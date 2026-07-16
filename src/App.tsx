@@ -16,7 +16,6 @@ import { SettingsPage } from './pages/SettingsPage'
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuthStore()
   const location = useLocation()
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -27,20 +26,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-
-  if (!session) {
-    return <Navigate to="/auth" replace state={{ from: location }} />
-  }
-
+  if (!session) return <Navigate to="/auth" replace state={{ from: location }} />
   return <>{children}</>
 }
 
 export default function App() {
   const { initialize, session, loading } = useAuthStore()
-
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  useEffect(() => { initialize() }, [initialize])
 
   if (loading) {
     return (
@@ -56,14 +48,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={session ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/*" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
         <Route path="/" element={<MapPage />} />
         <Route path="/adventures" element={<AdventuresPage />} />
         <Route path="/challenges" element={<ChallengesPage />} />

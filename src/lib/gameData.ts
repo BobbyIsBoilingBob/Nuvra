@@ -1,9 +1,5 @@
 export const XP_PER_LEVEL = 100
 
-export function xpForLevel(level: number): number {
-  return level * XP_PER_LEVEL
-}
-
 export function levelFromXp(xp: number): number {
   return Math.floor(xp / XP_PER_LEVEL) + 1
 }
@@ -39,39 +35,23 @@ export const RARITY_COLORS: Record<string, string> = {
 }
 
 export const ADVENTURE_TYPES = [
-  {
-    type: 'treasure_hunt' as const,
-    label: 'Treasure Hunt',
-    icon: '🗺️',
-    description: 'Follow waypoints to find hidden treasure',
-    baseXp: 50,
-    baseCoins: 100,
-  },
-  {
-    type: 'distance_walk' as const,
-    label: 'Distance Walk',
-    icon: '🚶',
-    description: 'Walk a target distance to earn rewards',
-    baseXp: 30,
-    baseCoins: 50,
-  },
-  {
-    type: 'checkpoint' as const,
-    label: 'Checkpoint Run',
-    icon: '🚩',
-    description: 'Reach checkpoints scattered around you',
-    baseXp: 40,
-    baseCoins: 75,
-  },
-  {
-    type: 'exploration' as const,
-    label: 'Exploration',
-    icon: '🧭',
-    description: 'Explore new areas of the map',
-    baseXp: 35,
-    baseCoins: 60,
-  },
+  { type: 'treasure_hunt' as const, label: 'Treasure Hunt', icon: '🗺️', description: 'Follow waypoints to find hidden treasure', baseXp: 50, baseCoins: 100 },
+  { type: 'distance_walk' as const, label: 'Distance Walk', icon: '🚶', description: 'Walk a target distance to earn rewards', baseXp: 30, baseCoins: 50 },
+  { type: 'checkpoint' as const, label: 'Checkpoint Run', icon: '🚩', description: 'Reach checkpoints scattered around you', baseXp: 40, baseCoins: 75 },
+  { type: 'exploration' as const, label: 'Exploration', icon: '🧭', description: 'Explore new areas of the map', baseXp: 35, baseCoins: 60 },
 ]
+
+export interface AchievementProgress {
+  steps: number
+  distance_walked: number
+  completed_adventures: number
+  treasure_collected: number
+  level: number
+  coins: number
+  walking_streak: number
+  friends: number
+  completed_challenges: number
+}
 
 export const ACHIEVEMENT_DEFINITIONS = [
   { id: 'first_steps', name: 'First Steps', description: 'Take your first 100 steps', icon: '👣', condition: (p: AchievementProgress) => p.steps >= 100 },
@@ -90,18 +70,6 @@ export const ACHIEVEMENT_DEFINITIONS = [
   { id: 'first_friend', name: 'Social Butterfly', description: 'Add your first friend', icon: '🤝', condition: (p: AchievementProgress) => p.friends >= 1 },
   { id: 'challenge_1', name: 'Challenger', description: 'Complete your first challenge', icon: '🎯', condition: (p: AchievementProgress) => p.completed_challenges >= 1 },
 ]
-
-export interface AchievementProgress {
-  steps: number
-  distance_walked: number
-  completed_adventures: number
-  treasure_collected: number
-  level: number
-  coins: number
-  walking_streak: number
-  friends: number
-  completed_challenges: number
-}
 
 export const TREASURE_ITEMS = [
   { item_id: 'gem_ruby', item_name: 'Ruby Gem', icon: '🔴', rarity: 'rare' as const },

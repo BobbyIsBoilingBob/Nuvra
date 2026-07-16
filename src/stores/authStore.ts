@@ -27,24 +27,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      
       if (session) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle()
-
-        if (error) {
-          console.error('Failed to load profile:', error)
-        }
-
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
         set({ session, user: session.user, profile, loading: false })
       } else {
         set({ session: null, user: null, profile: null, loading: false })
       }
-    } catch (err) {
-      console.error('Auth init error:', err)
+    } catch {
       set({ session: null, user: null, profile: null, loading: false })
     }
 
@@ -54,20 +43,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ session: null, user: null, profile: null })
           return
         }
-
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
             let profile = get().profile
             if (!profile || profile.id !== session.user.id) {
-              const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .maybeSingle()
-
-              if (!error && data) {
-                profile = data
-              }
+              const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
+              if (data) profile = data
             }
             set({ session, user: session.user, profile })
           }
@@ -80,7 +61,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const { data, error } = await supabase.auth.signUp({ email, password })
-
       if (error) {
         const msg = error.message
         if (msg.includes('already') || msg.includes('registered')) {
@@ -90,23 +70,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ loading: false, error: msg })
         return { error: msg }
       }
-
       if (data.session) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .maybeSingle()
-
-        if (profileError) {
-          console.error('Profile load error after signup:', profileError)
-        }
-
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.session.user.id).maybeSingle()
         set({ session: data.session, user: data.session.user, profile, loading: false })
       } else {
         set({ loading: false })
       }
-
       return { error: null }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred.'
@@ -119,7 +88,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
       if (error) {
         const msg = error.message
         if (msg.includes('Invalid login') || msg.includes('invalid')) {
@@ -129,23 +97,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ loading: false, error: msg })
         return { error: msg }
       }
-
       if (data.session) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .maybeSingle()
-
-        if (profileError) {
-          console.error('Profile load error after signin:', profileError)
-        }
-
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.session.user.id).maybeSingle()
         set({ session: data.session, user: data.session.user, profile, loading: false })
       } else {
         set({ loading: false })
       }
-
       return { error: null }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred.'
@@ -163,16 +120,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshProfile: async () => {
     const userId = get().user?.id
     if (!userId) return
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (!error && data) {
-      set({ profile: data })
-    }
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+    if (data) set({ profile: data })
   },
 
   clearError: () => set({ error: null }),
