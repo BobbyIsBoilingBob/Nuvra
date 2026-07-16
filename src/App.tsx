@@ -1,74 +1,79 @@
-import { StoreProvider, useStore } from './store';
-import { BottomNav } from './components/BottomNav';
-import { EncouragementToast, MysteryBanner, CelebrationOverlay } from './components/ui';
-import { Landing } from './screens/Landing';
-import { Onboarding } from './screens/Onboarding';
-import { Home } from './screens/Home';
-import { Adventures } from './screens/Adventures';
-import { AdventureDetail } from './screens/AdventureDetail';
-import { AdventurePreview } from './screens/AdventurePreview';
-import { AdventureMap } from './screens/AdventureMap';
-import { AIGenerator } from './screens/AIGenerator';
-import { Challenges } from './screens/Challenges';
-import { Rewards } from './screens/Rewards';
-import { Community } from './screens/Community';
-import { Creator } from './screens/Creator';
-import { Profile } from './screens/Profile';
-import { Customise } from './screens/Customise';
-import { Shop } from './screens/Shop';
-import { Inventory } from './screens/Inventory';
-import { Seasonal } from './screens/Seasonal';
-import { Settings } from './screens/Settings';
-import { Friends } from './screens/Friends';
-import { Party } from './screens/Party';
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useAuthStore } from './stores/authStore'
+import { AuthPage } from './pages/AuthPage'
+import { AppShell } from './components/AppShell'
+import { MapPage } from './pages/MapPage'
+import { AdventuresPage } from './pages/AdventuresPage'
+import { ChallengesPage } from './pages/ChallengesPage'
+import { InventoryPage } from './pages/InventoryPage'
+import { ProfilePage } from './pages/ProfilePage'
+import { LeaderboardPage } from './pages/LeaderboardPage'
+import { FriendsPage } from './pages/FriendsPage'
+import { NotificationsPage } from './pages/NotificationsPage'
+import { SettingsPage } from './pages/SettingsPage'
 
-const NO_NAV_SCREENS = ['landing', 'onboarding', 'adventure-map', 'adventure-preview'];
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuthStore()
+  const location = useLocation()
 
-function ScreenRouter() {
-  const { screen, accessibility } = useStore();
-  const showNav = !NO_NAV_SCREENS.includes(screen);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-neutral-500 text-sm">Loading Nuvra...</p>
+        </div>
+      </div>
+    )
+  }
 
-  const rootClasses = [
-    'min-h-screen bg-ink-950 text-white antialiased',
-    accessibility.highContrast ? 'hc-mode' : '',
-    accessibility.reducedMotion ? 'reduce-motion' : '',
-    accessibility.largeText ? 'large-text' : '',
-  ].filter(Boolean).join(' ');
+  if (!session) {
+    return <Navigate to="/auth" replace state={{ from: location }} />
+  }
 
-  return (
-    <div className={rootClasses}>
-      {screen === 'landing' && <Landing />}
-      {screen === 'onboarding' && <Onboarding />}
-      {screen === 'home' && <Home />}
-      {screen === 'adventures' && <Adventures />}
-      {screen === 'adventure-detail' && <AdventureDetail />}
-      {screen === 'adventure-preview' && <AdventurePreview />}
-      {screen === 'adventure-map' && <AdventureMap />}
-      {screen === 'ai-generator' && <AIGenerator />}
-      {screen === 'challenges' && <Challenges />}
-      {screen === 'rewards' && <Rewards />}
-      {screen === 'community' && <Community />}
-      {screen === 'creator' && <Creator />}
-      {screen === 'profile' && <Profile />}
-      {screen === 'customise' && <Customise />}
-      {screen === 'shop' && <Shop />}
-      {screen === 'inventory' && <Inventory />}
-      {screen === 'seasonal' && <Seasonal />}
-      {screen === 'settings' && <Settings />}
-      {screen === 'friends' && <Friends />}
-      {screen === 'party' && <Party />}
-      {showNav && <BottomNav />}
-      <EncouragementToast />
-      <MysteryBanner />
-      <CelebrationOverlay />
-    </div>
-  );
+  return <>{children}</>
 }
 
 export default function App() {
+  const { initialize, session, loading } = useAuthStore()
+
+  useEffect(() => {
+    initialize()
+  }, [initialize])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-neutral-500 text-sm">Loading Nuvra...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <StoreProvider>
-      <ScreenRouter />
-    </StoreProvider>
-  );
+    <Routes>
+      <Route path="/auth" element={session ? <Navigate to="/" replace /> : <AuthPage />} />
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/" element={<MapPage />} />
+        <Route path="/adventures" element={<AdventuresPage />} />
+        <Route path="/challenges" element={<ChallengesPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/friends" element={<FriendsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+    </Routes>
+  )
 }
