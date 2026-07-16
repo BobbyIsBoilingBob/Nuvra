@@ -145,4 +145,200 @@
 
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* --- Leaflet map overrides --- */
+  .leaflet-container {
+    background: #0a0e1a;
+    font-family: inherit;
+  }
+  .leaflet-control-attribution {
+    background: rgba(10, 14, 26, 0.7) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-size: 9px !important;
+    backdrop-filter: blur(8px);
+    border-radius: 6px 0 0 0;
+  }
+  .leaflet-control-attribution a {
+    color: rgba(64, 245, 203, 0.6) !important;
+  }
+  .leaflet-bar a {
+    background: rgba(10, 14, 26, 0.8) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(12px);
+  }
+  .leaflet-bar a:hover {
+    background: rgba(64, 245, 203, 0.2) !important;
+  }
+  .leaflet-tooltip {
+    background: rgba(10, 14, 26, 0.9) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(12px);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+  }
+
+  /* --- Player marker --- */
+  .nuvra-player-marker {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease-out;
+  }
+  .nuvra-player-dot {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #40f5cb, #22d3ee);
+    border: 3px solid #0a0e1a;
+    box-shadow: 0 0 12px rgba(64, 245, 203, 0.6);
+    z-index: 3;
+  }
+  .nuvra-player-pulse {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(64, 245, 203, 0.3);
+    animation: nuvra-pulse 2s ease-out infinite;
+    z-index: 1;
+  }
+  .nuvra-player-pulse-2 {
+    animation-delay: 1s;
+  }
+  @keyframes nuvra-pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(3.5); opacity: 0; }
+  }
+
+  /* --- Checkpoint markers --- */
+  .nuvra-cp-marker {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease;
+  }
+  .nuvra-cp-marker:hover {
+    transform: scale(1.15);
+  }
+  .nuvra-cp-emoji {
+    font-size: 14px;
+    line-height: 1;
+  }
+  .nuvra-cp-pulse {
+    animation: nuvra-cp-pulse-anim 2s ease-in-out infinite;
+  }
+  @keyframes nuvra-cp-pulse-anim {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(64, 245, 203, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(64, 245, 203, 0); }
+  }
+  .nuvra-cp-check {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #22c55e;
+    color: white;
+    font-size: 9px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #0a0e1a;
+  }
+
+  /* --- Treasure markers --- */
+  .nuvra-treasure-marker {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 2px solid rgba(251, 191, 36, 0.5);
+  }
+  .nuvra-treasure-glow {
+    background: rgba(251, 191, 36, 0.15);
+    animation: nuvra-treasure-glow-anim 1.5s ease-in-out infinite;
+  }
+  @keyframes nuvra-treasure-glow-anim {
+    0%, 100% { box-shadow: 0 0 4px rgba(251, 191, 36, 0.4); transform: scale(1); }
+    50% { box-shadow: 0 0 16px rgba(251, 191, 36, 0.8); transform: scale(1.1); }
+  }
+  .nuvra-treasure-collected {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.5);
+    font-size: 12px;
+    color: #22c55e;
+  }
+
+  /* --- Coin markers --- */
+  .nuvra-coin-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #fb923c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+  }
+  .nuvra-coin-collected {
+    display: none;
+  }
+
+  /* --- Event markers --- */
+  .nuvra-event-marker {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: rgba(10, 14, 26, 0.8);
+    border: 2px solid;
+    backdrop-filter: blur(8px);
+    animation: nuvra-event-bounce 3s ease-in-out infinite;
+  }
+  @keyframes nuvra-event-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  /* --- Route animation --- */
+  .leaflet-overlay-pane path.nuvra-route-draw {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: nuvra-route-draw 1.5s ease-out forwards;
+  }
+  @keyframes nuvra-route-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Reduced motion for map */
+  .reduce-motion .nuvra-player-pulse,
+  .reduce-motion .nuvra-cp-pulse,
+  .reduce-motion .nuvra-treasure-glow,
+  .reduce-motion .nuvra-event-marker {
+    animation: none !important;
+  }
 }

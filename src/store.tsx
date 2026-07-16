@@ -104,6 +104,7 @@ export interface StoreContextType {
   // Phase 9 — currencies
   addCoins: (n: number) => void;
   addGems: (n: number) => void;
+  addXP: (n: number) => void;
   spendCoins: (n: number) => boolean;
   spendGems: (n: number) => boolean;
 
@@ -304,6 +305,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProfile((p) => ({ ...p, gems: p.gems + n }));
   }, []);
 
+  const addXP = useCallback((n: number) => {
+    setProfile((p) => ({ ...p, xp: p.xp + n }));
+  }, []);
+
   const spendCoins = useCallback((n: number): boolean => {
     if (profile.coins < n) return false;
     setProfile((p) => (p.coins < n ? p : { ...p, coins: p.coins - n }));
@@ -381,6 +386,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toggleBadge,
     addCoins,
     addGems,
+    addXP,
     spendCoins,
     spendGems,
     claimDailyReward,
