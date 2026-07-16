@@ -6,6 +6,7 @@ import { Onboarding } from './screens/Onboarding';
 import { Home } from './screens/Home';
 import { Adventures } from './screens/Adventures';
 import { AdventureDetail } from './screens/AdventureDetail';
+import { AdventurePreview } from './screens/AdventurePreview';
 import { AdventureMap } from './screens/AdventureMap';
 import { AIGenerator } from './screens/AIGenerator';
 import { Challenges } from './screens/Challenges';
@@ -18,8 +19,10 @@ import { Shop } from './screens/Shop';
 import { Inventory } from './screens/Inventory';
 import { Seasonal } from './screens/Seasonal';
 import { Settings } from './screens/Settings';
+import { Friends } from './screens/Friends';
+import { Party } from './screens/Party';
 
-const NO_NAV_SCREENS = ['landing', 'onboarding', 'adventure-map'];
+const NO_NAV_SCREENS = ['landing', 'onboarding', 'adventure-map', 'adventure-preview'];
 
 function ScreenRouter() {
   const { screen, accessibility } = useStore();
@@ -39,6 +42,7 @@ function ScreenRouter() {
       {screen === 'home' && <Home />}
       {screen === 'adventures' && <Adventures />}
       {screen === 'adventure-detail' && <AdventureDetail />}
+      {screen === 'adventure-preview' && <AdventurePreview />}
       {screen === 'adventure-map' && <AdventureMap />}
       {screen === 'ai-generator' && <AIGenerator />}
       {screen === 'challenges' && <Challenges />}
@@ -51,6 +55,8 @@ function ScreenRouter() {
       {screen === 'inventory' && <Inventory />}
       {screen === 'seasonal' && <Seasonal />}
       {screen === 'settings' && <Settings />}
+      {screen === 'friends' && <Friends />}
+      {screen === 'party' && <Party />}
       {showNav && <BottomNav />}
       <EncouragementToast />
       <MysteryBanner />

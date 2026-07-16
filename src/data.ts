@@ -5,9 +5,9 @@
 // --- Screen Type ---
 export type Screen =
   | 'landing' | 'onboarding' | 'home' | 'adventures' | 'adventure-detail'
-  | 'adventure-map' | 'ai-generator' | 'challenges' | 'rewards' | 'community'
+  | 'adventure-preview' | 'adventure-map' | 'ai-generator' | 'challenges' | 'rewards' | 'community'
   | 'creator' | 'profile' | 'customise' | 'shop' | 'inventory' | 'seasonal'
-  | 'settings';
+  | 'settings' | 'friends' | 'party';
 
 // --- AI Adventure Preferences ---
 export type AdventureLength = '10-15' | '20-30' | '30-45' | '45-60' | '60+';
@@ -408,6 +408,7 @@ export const ADVENTURE_STYLES = [
 
 // --- Profile ---
 export interface Profile {
+  playerId: string;
   username: string;
   avatar: Avatar;
   style: AdventureStyle;
@@ -433,6 +434,7 @@ export interface Profile {
 }
 
 export const DEFAULT_PROFILE: Profile = {
+  playerId: 'p_' + Math.random().toString(36).slice(2, 12),
   username: 'Explorer',
   avatar: AVATARS[0],
   style: 'explorer',

@@ -14,7 +14,7 @@ export type MapStyle = 'standard' | 'satellite' | 'terrain';
 export interface MapMarkerData {
   id: string;
   position: LatLng;
-  type: 'player' | 'start' | 'finish' | 'checkpoint' | 'challenge' | 'treasure' | 'coin' | 'event' | 'rest' | 'landmark';
+  type: 'player' | 'start' | 'finish' | 'checkpoint' | 'challenge' | 'treasure' | 'coin' | 'event' | 'rest' | 'landmark' | 'multiplayer';
   label?: string;
   emoji?: string;
   color?: string;
@@ -131,6 +131,19 @@ function eventIcon(emoji: string, color: string): L.DivIcon {
     </div>`,
     'nuvra-event',
     [36, 36],
+  );
+}
+
+function multiplayerIcon(emoji: string, username: string, level: number, heading: number | null): L.DivIcon {
+  const rotation = heading != null ? `transform: rotate(${heading}deg);` : '';
+  return createDivIcon(
+    `<div class="nuvra-mp-marker" style="${rotation}">
+      <div class="nuvra-mp-avatar">${emoji}</div>
+      <div class="nuvra-mp-badge">Lv${level}</div>
+      <div class="nuvra-mp-name">${username}</div>
+    </div>`,
+    'nuvra-multiplayer',
+    [44, 56],
   );
 }
 
@@ -259,6 +272,9 @@ export function MapView({
           break;
         case 'landmark':
           icon = checkpointIcon(m.emoji ?? '🏛️', m.color ?? '#60a5fa', false, false);
+          break;
+        case 'multiplayer':
+          icon = multiplayerIcon(m.emoji ?? '🧭', m.label ?? 'Player', 1, null);
           break;
         default:
           icon = checkpointIcon(m.emoji ?? '📍', m.color ?? '#40f5cb', false, false);

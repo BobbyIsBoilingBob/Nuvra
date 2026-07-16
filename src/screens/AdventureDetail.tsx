@@ -153,9 +153,9 @@ export function AdventureDetail(): React.ReactElement {
             size="lg"
             fullWidth
             icon="Play"
-            onClick={() => setScreen('adventure-map')}
+            onClick={() => setScreen('adventure-preview')}
           >
-            Start Adventure
+            Preview & Start
           </Button>
         </div>
       </div>

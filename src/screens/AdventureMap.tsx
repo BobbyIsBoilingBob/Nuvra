@@ -4,8 +4,10 @@ import { TopBar } from '../components/BottomNav';
 import { MapView, type MapStyle, type MapMarkerData, type MapRouteData } from '../components/MapView';
 import { MapSearch } from '../components/MapSearch';
 import { useGeolocation } from '../hooks/useGeolocation';
+import { useDeviceOrientation } from '../hooks/useDeviceOrientation';
+import { useMultiplayer } from '../hooks/useMultiplayer';
 import { useStore } from '../store';
-import { TREASURE_RARITY_MAP, MYSTERY_EVENTS, getComboTier } from '../data';
+import { TREASURE_RARITY_MAP, MYSTERY_EVENTS, getComboTier, getLevelInfo } from '../data';
 import { SEASONAL_EVENTS } from '../cosmetics';
 import {
   gridToLatLng,
@@ -44,10 +46,17 @@ interface SelectedMarker {
 export function AdventureMap(): React.ReactElement {
   const {
     selectedAdventure, setScreen, combo, setCombo, resetCombo,
-    accessibility, addCoins, addXP, setActiveMystery,
+    accessibility, addCoins, addXP, setActiveMystery, profile,
   } = useStore();
 
   const geo = useGeolocation(true);
+  const deviceOrient = useDeviceOrientation(true);
+  const mp = useMultiplayer(
+    profile.playerId,
+    profile.username,
+    profile.avatar.emoji,
+    getLevelInfo(profile.xp).level,
+  );
 
   const [mapStyle, setMapStyle] = useState<MapStyle>('standard');
   const [progress, setProgress] = useState(0);
@@ -130,6 +139,9 @@ export function AdventureMap(): React.ReactElement {
         if (prev >= 100) return 100;
         const next = Math.min(100, prev + 100 / (route.length * 2));
         progressRef.current = next;
+        if (mp.party) {
+          mp.updateProgress(next, collectedCoins, collectedTreasures, completedChallenges);
+        }
         return next;
       });
 
@@ -150,6 +162,11 @@ export function AdventureMap(): React.ReactElement {
           const smoothed = smoothPosition(newPos, lastSimPosRef.current);
           lastSimPosRef.current = smoothed;
           playerPosRef.current = smoothed;
+
+          // Sync position to multiplayer
+          if (mp.party) {
+            mp.updatePosition(smoothed, playerHeading ?? 0, 0);
+          }
 
           // Compute heading
           if (lastSimPosRef.current) {
@@ -371,8 +388,32 @@ export function AdventureMap(): React.ReactElement {
       });
     }
 
+    // Multiplayer player markers
+    if (mp.party) {
+      for (const m of mp.party.members) {
+        if (m.id !== profile.playerId && m.position) {
+          result.push({
+            id: `mp-${m.id}`,
+            position: m.position,
+            type: 'multiplayer',
+            label: m.username,
+            emoji: m.avatar,
+            onClick: () => setSelectedMarker({
+              id: m.id,
+              label: m.username,
+              type: 'multiplayer',
+              emoji: m.avatar,
+            }),
+          });
+        }
+      }
+    }
+
+    // Use deviceOrient heading for player marker if GPS heading is null
+    void deviceOrient;
+
     return result;
-  }, [selectedAdventure, checkpointLatLngs, treasureLatLngs, coinLatLngs, center]);
+  }, [selectedAdventure, checkpointLatLngs, treasureLatLngs, coinLatLngs, center, mp.party, profile.playerId, deviceOrient]);
 
   // --- Build routes for the map ---
   const routes: MapRouteData[] = useMemo(() => {

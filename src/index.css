@@ -341,4 +341,53 @@
   .reduce-motion .nuvra-event-marker {
     animation: none !important;
   }
+
+  /* --- Multiplayer player markers --- */
+  .nuvra-mp-marker {
+    position: relative;
+    width: 44px;
+    height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.3s ease-out;
+  }
+  .nuvra-mp-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a78bfa, #40f5cb);
+    border: 2px solid rgba(10, 14, 26, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  .nuvra-mp-badge {
+    position: absolute;
+    top: -2px;
+    right: 0px;
+    background: rgba(64, 245, 203, 0.9);
+    color: #0a0e1a;
+    font-size: 8px;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .nuvra-mp-name {
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 14, 26, 0.8);
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
 }

@@ -3,6 +3,7 @@ import { Icon, GlassCard, Pill } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { LEADERBOARD, FRIENDS, POPULAR_ROUTES } from '../data';
+import { useStore } from '../store';
 
 type Tab = 'leaderboard' | 'friends' | 'routes';
 
@@ -13,6 +14,7 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 };
 
 export function Community(): React.ReactElement {
+  const { setScreen } = useStore();
   const [tab, setTab] = useState<Tab>('leaderboard');
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -165,13 +167,13 @@ export function Community(): React.ReactElement {
                 <div>
                   <h4 className="text-sm font-bold text-white">Add Friends</h4>
                   <p className="text-xs text-white/50 mt-0.5">
-                    Invite friends to join your adventures and earn rewards together.
+                    Search for players and invite friends to join your adventures.
                   </p>
                 </div>
                 <div className="flex gap-2 w-full">
-                  <button className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-nova-400 to-cyan-400 text-ink-950 shadow-glow transition-all duration-200 active:scale-95">
+                  <button onClick={() => setScreen('friends')} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-nova-400 to-cyan-400 text-ink-950 shadow-glow transition-all duration-200 active:scale-95">
                     <Icon name="Search" size={14} />
-                    Search
+                    Find Friends
                   </button>
                   <button className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold glass text-white hover:bg-white/[0.1] transition-all duration-200 active:scale-95">
                     <Icon name="Share2" size={14} />
