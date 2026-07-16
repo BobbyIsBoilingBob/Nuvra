@@ -193,7 +193,7 @@ export function Customise(): React.ReactElement {
                       <RarityBadge rarity={trail.rarity} size="sm" />
                       {owned ? (
                         equipped ? (
-                          <Button size="sm" variant="ghost" fullWidth onClick={() => equipTrail('')}>
+                          <Button size="sm" variant="ghost" fullWidth onClick={() => equipTrail(null)}>
                             Unequip
                           </Button>
                         ) : (
@@ -230,7 +230,7 @@ export function Customise(): React.ReactElement {
                       <RarityBadge rarity={pet.rarity} size="sm" />
                       {owned ? (
                         equipped ? (
-                          <Button size="sm" variant="ghost" fullWidth onClick={() => equipPet('')}>
+                          <Button size="sm" variant="ghost" fullWidth onClick={() => equipPet(null)}>
                             Unequip
                           </Button>
                         ) : (

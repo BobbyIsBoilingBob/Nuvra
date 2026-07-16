@@ -8,6 +8,8 @@ import {
   useState,
   useCallback,
   type ReactNode,
+  type Dispatch,
+  type SetStateAction,
 } from 'react';
 import {
   type Screen,
@@ -15,7 +17,6 @@ import {
   DEFAULT_PROFILE,
   type Adventure,
   type AdventurePreferences,
-  type ActiveChallenge,
   type ActiveMysteryEvent,
   type AccessibilitySettings,
   DEFAULT_ACCESSIBILITY,
@@ -59,7 +60,7 @@ export interface StoreContextType {
 
   // Profile
   profile: Profile;
-  setProfile: (p: Profile) => void;
+  setProfile: Dispatch<SetStateAction<Profile>>;
   updateProfile: (patch: Partial<Profile>) => void;
 
   // Adventures
@@ -70,20 +71,18 @@ export interface StoreContextType {
 
   // AI prefs
   aiPrefs: AdventurePreferences;
-  setAiPrefs: (p: AdventurePreferences) => void;
+  setAiPrefs: Dispatch<SetStateAction<AdventurePreferences>>;
 
   // Phase 7
-  activeChallenges: ActiveChallenge[];
-  setActiveChallenges: (c: ActiveChallenge[]) => void;
   combo: number;
-  setCombo: (n: number) => void;
+  setCombo: Dispatch<SetStateAction<number>>;
   resetCombo: () => void;
   activeMystery: ActiveMysteryEvent | null;
   setActiveMystery: (m: ActiveMysteryEvent | null) => void;
 
   // Accessibility
   accessibility: AccessibilitySettings;
-  setAccessibility: (a: AccessibilitySettings) => void;
+  setAccessibility: Dispatch<SetStateAction<AccessibilitySettings>>;
 
   // Encouragement toast
   encouragement: ToastState;
@@ -96,9 +95,9 @@ export interface StoreContextType {
   isOwned: (id: string) => boolean;
 
   // Phase 9 — equip
-  equipTrail: (id: string) => void;
-  equipPet: (id: string) => void;
-  equipTheme: (id: string) => void;
+  equipTrail: (id: string | null) => void;
+  equipPet: (id: string | null) => void;
+  equipTheme: (id: string | null) => void;
   toggleSticker: (id: string) => void;
   toggleBadge: (id: string) => void;
 
@@ -119,9 +118,9 @@ export interface StoreContextType {
 
   // Phase 10 — settings
   notifications: NotificationSettings;
-  setNotifications: (n: NotificationSettings) => void;
+  setNotifications: Dispatch<SetStateAction<NotificationSettings>>;
   privacy: PrivacySettings;
-  setPrivacy: (p: PrivacySettings) => void;
+  setPrivacy: Dispatch<SetStateAction<PrivacySettings>>;
 
   // Missions & achievements
   missions: DailyMission[];
@@ -169,7 +168,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
 
   // Phase 7
-  const [activeChallenges, setActiveChallenges] = useState<ActiveChallenge[]>([]);
   const [combo, setComboState] = useState<number>(0);
   const [activeMystery, setActiveMystery] = useState<ActiveMysteryEvent | null>(null);
 
@@ -223,8 +221,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // --- Combo ---
-  const setCombo = useCallback((n: number) => {
-    setComboState(n);
+  const setCombo = useCallback<Dispatch<SetStateAction<number>>>((updater) => {
+    setComboState(updater);
   }, []);
 
   const resetCombo = useCallback(() => {
@@ -261,15 +259,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   // --- Phase 9 — equip ---
-  const equipTrail = useCallback((id: string) => {
+  const equipTrail = useCallback((id: string | null) => {
     updateProfile({ equippedTrail: id });
   }, [updateProfile]);
 
-  const equipPet = useCallback((id: string) => {
+  const equipPet = useCallback((id: string | null) => {
     updateProfile({ equippedPet: id });
   }, [updateProfile]);
 
-  const equipTheme = useCallback((id: string) => {
+  const equipTheme = useCallback((id: string | null) => {
     updateProfile({ equippedTheme: id });
   }, [updateProfile]);
 
@@ -307,46 +305,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const spendCoins = useCallback((n: number): boolean => {
-    let ok = false;
-    setProfile((p) => {
-      if (p.coins < n) return p;
-      ok = true;
-      return { ...p, coins: p.coins - n };
-    });
-    return ok;
-  }, []);
+    if (profile.coins < n) return false;
+    setProfile((p) => (p.coins < n ? p : { ...p, coins: p.coins - n }));
+    return true;
+  }, [profile.coins]);
 
   const spendGems = useCallback((n: number): boolean => {
-    let ok = false;
-    setProfile((p) => {
-      if (p.gems < n) return p;
-      ok = true;
-      return { ...p, gems: p.gems - n };
-    });
-    return ok;
-  }, []);
+    if (profile.gems < n) return false;
+    setProfile((p) => (p.gems < n ? p : { ...p, gems: p.gems - n }));
+    return true;
+  }, [profile.gems]);
 
   // --- Phase 9 — daily ---
   const canClaimDaily = profile.lastDailyClaim !== todayString();
 
   const claimDailyReward = useCallback(() => {
     const today = todayString();
-    setProfile((p) => {
-      if (p.lastDailyClaim === today) return p;
-      const newStreak = p.dailyStreak + 1;
-      const reward = 100 + newStreak * 20;
-      return {
-        ...p,
-        coins: p.coins + reward,
-        dailyStreak: newStreak,
-        lastDailyClaim: today,
-      };
-    });
-    // show encouragement after state update is scheduled
+    if (profile.lastDailyClaim === today) return;
     const newStreak = profile.dailyStreak + 1;
     const reward = 100 + newStreak * 20;
+    setProfile((p) => ({
+      ...p,
+      coins: p.coins + reward,
+      dailyStreak: newStreak,
+      lastDailyClaim: today,
+    }));
     showEncouragement(`Daily reward claimed! +${reward} coins`, 'Gift', '#fbbf24');
-  }, [profile, showEncouragement]);
+  }, [profile.lastDailyClaim, profile.dailyStreak, showEncouragement]);
 
   // --- Phase 9 — celebration ---
   const showCelebration = useCallback(
@@ -376,8 +361,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addAdventure,
     aiPrefs,
     setAiPrefs,
-    activeChallenges,
-    setActiveChallenges,
     combo,
     setCombo,
     resetCombo,

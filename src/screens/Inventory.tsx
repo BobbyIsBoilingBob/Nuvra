@@ -147,13 +147,13 @@ export function Inventory(): React.ReactElement {
   const handleEquip = (item: { id: string; category: InventoryCategory }): void => {
     switch (item.category) {
       case 'trails':
-        equipTrail(isEquipped(item) ? '' : item.id);
+        equipTrail(isEquipped(item) ? null : item.id);
         break;
       case 'pets':
-        equipPet(isEquipped(item) ? '' : item.id);
+        equipPet(isEquipped(item) ? null : item.id);
         break;
       case 'themes':
-        equipTheme(isEquipped(item) ? '' : item.id);
+        equipTheme(isEquipped(item) ? null : item.id);
         break;
       case 'stickers':
         toggleSticker(item.id);

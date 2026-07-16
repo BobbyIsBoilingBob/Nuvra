@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon, GlassCard, Button, ProgressBar, ComboMeter } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
@@ -13,7 +13,7 @@ interface MapCheckpointState { id: string; label: string; kind: 'start' | 'chall
 const PROXIMITY = 7;
 
 export function AdventureMap(): React.ReactElement {
-  const { selectedAdventure, setScreen, combo, setCombo, resetCombo, accessibility, addCoins, setActiveMystery } = useStore();
+  const { selectedAdventure, setScreen, combo, setCombo, resetCombo, accessibility, addCoins, setActiveMystery, profile } = useStore();
 
   const [progress, setProgress] = useState(0);
   const [collectedCoins, setCollectedCoins] = useState(0);
@@ -25,6 +25,7 @@ export function AdventureMap(): React.ReactElement {
   const [treasures, setTreasures] = useState<MapTreasureState[]>([]);
   const [checkpoints, setCheckpoints] = useState<MapCheckpointState[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
+  const progressRef = useRef(0);
 
   // Initialize from selected adventure
   useEffect(() => {
@@ -47,12 +48,13 @@ export function AdventureMap(): React.ReactElement {
       setProgress((prev) => {
         if (prev >= 100) return 100;
         const next = Math.min(100, prev + 100 / route.length);
+        progressRef.current = next;
         return next;
       });
 
       setPlayerPos((prevPos) => {
         const segmentCount = route.length - 1;
-        const segmentProgress = (progress / 100) * segmentCount;
+        const segmentProgress = (progressRef.current / 100) * segmentCount;
         const segIdx = Math.min(Math.floor(segmentProgress), segmentCount - 1);
         const segT = segmentProgress - segIdx;
         const a = route[segIdx];
@@ -66,7 +68,7 @@ export function AdventureMap(): React.ReactElement {
     }, 800);
 
     return () => window.clearInterval(interval);
-  }, [selectedAdventure, finished, progress]);
+  }, [selectedAdventure, finished]);
 
   // Collect coins / treasures / checkpoints near player
   useEffect(() => {
@@ -79,7 +81,7 @@ export function AdventureMap(): React.ReactElement {
         const dy = c.y - playerPos.y;
         if (Math.sqrt(dx * dx + dy * dy) < PROXIMITY) {
           setCollectedCoins((n) => n + 1);
-          setCombo((combo + 1));
+          setCombo((c) => c + 1);
           addCoins(10);
           return { ...c, collected: true };
         }
@@ -94,7 +96,7 @@ export function AdventureMap(): React.ReactElement {
         const dy = t.y - playerPos.y;
         if (Math.sqrt(dx * dx + dy * dy) < PROXIMITY) {
           setCollectedTreasures((n) => n + 1);
-          setCombo(combo + 1);
+          setCombo((c) => c + 1);
           addCoins(t.coins);
           return { ...t, opened: true };
         }
@@ -109,14 +111,14 @@ export function AdventureMap(): React.ReactElement {
         const dy = c.y - playerPos.y;
         if (Math.sqrt(dx * dx + dy * dy) < PROXIMITY) {
           setCompletedChallenges((n) => n + 1);
-          setCombo(combo + 1);
+          setCombo((c) => c + 1);
           addCoins(c.reward);
           return { ...c, done: true };
         }
         return c;
       }),
     );
-  }, [playerPos, finished, combo, setCombo, addCoins]);
+  }, [playerPos, finished, setCombo, addCoins]);
 
   // Finish when progress reaches 100
   useEffect(() => {
@@ -152,7 +154,7 @@ export function AdventureMap(): React.ReactElement {
       setTimeLeft((t) => Math.max(0, t - 1));
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [selectedAdventure, finished, timeLeft]);
+  }, [selectedAdventure, finished]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!selectedAdventure) {
     return (
@@ -175,9 +177,9 @@ export function AdventureMap(): React.ReactElement {
 
   const adv = selectedAdventure;
   const tier = getComboTier(combo);
-  const equippedTrail = TRAILS.find((t) => t.id === adv.id) ?? null;
+  const equippedTrail = TRAILS.find((t) => t.id === profile.equippedTrail) ?? null;
   const trailColor = equippedTrail?.color ?? '#40f5cb';
-  const equippedPet = PETS.find((p) => p.id === adv.id) ?? null;
+  const equippedPet = PETS.find((p) => p.id === profile.equippedPet) ?? null;
   const petEmoji = equippedPet?.emoji ?? '🦊';
 
   // Build SVG path string
