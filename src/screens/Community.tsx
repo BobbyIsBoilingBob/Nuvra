@@ -1,53 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { supabase, type Profile } from '../lib/supabase';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button, AvatarDisplay } from '../components/ui';
+import { TopBar, BottomNav } from '../components/BottomNav';
+import { GlassCard, Icon, AvatarDisplay, Pill, LoadingScreen } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
+import { supabase, type Profile } from '../lib/supabase';
+import { getLevelInfo } from '../data';
 
 export function Community() {
   const { setScreen } = useStore();
-  const { profile } = useAuth();
   const [leaderboard, setLeaderboard] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function loadLeaderboard() {
-    setLoading(true);
-    const { data } = await supabase.from('profiles').select('*').order('xp', { ascending: false }).limit(20);
-    setLeaderboard((data as Profile[]) ?? []);
-    setLoading(false);
-  }
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('xp', { ascending: false })
+        .limit(50);
+      setLeaderboard((data as Profile[]) ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
-  if (loading && leaderboard.length === 0) loadLeaderboard();
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="relative min-h-screen pb-24">
       <AdventureBg accent="#8b5cf6" />
       <TopBar title="Community" showCurrencies />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
+      <div className="relative z-10 px-4 pt-3 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <GlassCard className="p-3 flex items-center gap-2" onClick={() => setScreen('friends')}><Icon name="Users" size={18} className="text-zeviqo-400" /><span className="text-xs font-bold text-white">Friends</span></GlassCard>
-          <GlassCard className="p-3 flex items-center gap-2" onClick={() => setScreen('party')}><Icon name="Swords" size={18} className="text-ember-400" /><span className="text-xs font-bold text-white">Party</span></GlassCard>
-        </div>
-        <div>
-          <h2 className="text-sm font-bold text-white mb-2">Leaderboard</h2>
-          {loading ? (
-            <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="glass rounded-2xl p-3 animate-pulse"><div className="h-4 w-2/3 bg-white/10 rounded" /></div>)}</div>
-          ) : (
-            <div className="space-y-2">
-              {leaderboard.map((p, i) => (
-                <GlassCard key={p.id} className={`p-3 flex items-center gap-3 ${p.id === profile?.id ? 'border-zeviqo-500/30' : ''}`}>
-                  <span className={`text-sm font-bold w-6 text-center ${i < 3 ? 'text-gold-400' : 'text-white/40'}`}>{i + 1}</span>
-                  <AvatarDisplay emoji={p.avatar_emoji} color={p.avatar_color} size={36} />
-                  <div className="flex-1"><p className="text-xs font-bold text-white">{p.username}</p><p className="text-[10px] text-white/40">Level {p.level}</p></div>
-                  <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">{p.xp.toLocaleString()}</Pill>
-                </GlassCard>
-              ))}
+          <GlassCard className="p-4 flex items-center gap-3" onClick={() => setScreen('friends')}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zeviqo-400 to-zeviqo-500 flex items-center justify-center">
+              <Icon name="UserPlus" size={18} className="text-ink-950" />
             </div>
-          )}
+            <span className="text-sm font-bold text-white">Friends</span>
+          </GlassCard>
+          <GlassCard className="p-4 flex items-center gap-3" onClick={() => setScreen('party')}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-nova-400 to-nova-500 flex items-center justify-center">
+              <Icon name="Users" size={18} className="text-ink-950" />
+            </div>
+            <span className="text-sm font-bold text-white">Party</span>
+          </GlassCard>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <Icon name="Trophy" size={16} className="text-gold-400" />
+            Leaderboard
+          </h3>
+          <div className="space-y-2">
+            {leaderboard.map((p, i) => {
+              const levelInfo = getLevelInfo(p.xp ?? 0);
+              const isTop3 = i < 3;
+              const medalColors = ['#fbbf24', '#c0c0c0', '#cd7f32'];
+              return (
+                <GlassCard key={p.id} className={`p-3 flex items-center gap-3 ${isTop3 ? 'ring-1' : ''}`} >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm"
+                    style={isTop3 ? { background: `${medalColors[i]}22`, color: medalColors[i], border: `1px solid ${medalColors[i]}44` } : undefined}
+                  >
+                    {isTop3 ? (i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉') : i + 1}
+                  </div>
+                  <AvatarDisplay emoji={p.avatar_emoji ?? '🧭'} color={p.avatar_color ?? '#00c4ff'} size={36} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{p.username}</p>
+                    <p className="text-[10px] text-white/40">{levelInfo.emoji} Lv {levelInfo.level}</p>
+                  </div>
+                  <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">{p.xp ?? 0}</Pill>
+                  {p.is_online && <div className="w-2 h-2 rounded-full bg-green-400" />}
+                </GlassCard>
+              );
+            })}
+          </div>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

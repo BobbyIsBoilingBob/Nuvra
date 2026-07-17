@@ -53,11 +53,6 @@ function treasureIcon(emoji: string, collected: boolean): L.DivIcon {
   return createDivIcon(`<div class="nuvra-treasure-marker nuvra-treasure-glow"><span>${emoji}</span></div>`, 'nuvra-treasure', [28, 28]);
 }
 
-function coinIcon(collected: boolean): L.DivIcon {
-  if (collected) return createDivIcon('', 'nuvra-coin-collected', [16, 16]);
-  return createDivIcon(`<div class="nuvra-coin-marker"><span>●</span></div>`, 'nuvra-coin', [16, 16]);
-}
-
 export function MapView({
   center, zoom = 15, style = 'standard', markers = [], routes = [], followPlayer = false,
   playerHeading = null, accuracy = null, onMapClick, onStyleChange, className = '',
@@ -158,7 +153,6 @@ export function MapView({
         case 'checkpoint': icon = checkpointIcon(m.emoji ?? '📍', m.color ?? '#40f5cb', m.completed ?? false, m.pulsing ?? true); break;
         case 'challenge': icon = checkpointIcon(m.emoji ?? '⚔️', m.color ?? '#fb923c', m.completed ?? false, m.pulsing ?? true); break;
         case 'treasure': icon = treasureIcon(m.emoji ?? '💎', m.completed ?? false); break;
-        case 'coin': icon = coinIcon(m.completed ?? false); break;
         case 'rest': icon = checkpointIcon('☕', '#94a3b8', m.completed ?? false, false); break;
         case 'landmark': icon = checkpointIcon(m.emoji ?? '🏛️', m.color ?? '#60a5fa', false, false); break;
         default: icon = checkpointIcon(m.emoji ?? '📍', m.color ?? '#40f5cb', false, false);

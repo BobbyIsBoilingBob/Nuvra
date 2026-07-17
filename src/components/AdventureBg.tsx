@@ -1,4 +1,4 @@
-export function AdventureBg({ accent = '#00c4ff', variant }: { accent?: string; variant?: string }) {
+export function AdventureBg({ accent = '#00c4ff' }: { accent?: string }) {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full opacity-20 blur-3xl animate-float" style={{ background: accent }} />

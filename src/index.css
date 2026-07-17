@@ -3,56 +3,33 @@
 @tailwind utilities;
 
 :root { color-scheme: dark; }
-
 * { -webkit-tap-highlight-color: transparent; }
-
 html, body { margin: 0; padding: 0; overscroll-behavior: none; }
-
-body {
-  font-family: 'Inter', sans-serif;
-  background: #0a0e1a;
-  color: #fff;
-  -webkit-font-smoothing: antialiased;
-}
+body { font-family: 'Inter', sans-serif; background: #0a0e1a; color: #fff; -webkit-font-smoothing: antialiased; }
 
 .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
 .glass-strong { background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
-
-.text-gradient-zeviqo {
-  background: linear-gradient(135deg, #00c4ff, #7c3aed);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
+.text-gradient-zeviqo { background: linear-gradient(135deg, #00c4ff, #7c3aed); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Leaflet overrides */
 .leaflet-container { background: #0a0e1a !important; }
 .leaflet-control-attribution { font-size: 8px !important; opacity: 0.5 !important; }
 .leaflet-bar { border: none !important; }
 
-/* Player marker */
 .nuvra-player-marker { position: relative; width: 40px; height: 40px; transform: rotate(var(--player-rot, 0deg)); }
 .nuvra-player-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 16px; height: 16px; border-radius: 50%; background: #00c4ff; border: 2px solid #fff; box-shadow: 0 0 8px rgba(0,196,255,0.6); z-index: 2; }
 .nuvra-player-pulse { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 16px; height: 16px; border-radius: 50%; border: 2px solid #00c4ff; animation: nuvraPulse 2s ease-out infinite; }
 .nuvra-player-pulse-2 { animation-delay: 1s; }
 @keyframes nuvraPulse { 0% { width: 16px; height: 16px; opacity: 1; } 100% { width: 48px; height: 48px; opacity: 0; } }
 
-/* Checkpoint marker */
 .nuvra-cp-marker { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
 .nuvra-cp-emoji { font-size: 14px; }
 .nuvra-cp-check { position: absolute; top: -4px; right: -4px; width: 14px; height: 14px; border-radius: 50%; background: #22c55e; color: #fff; font-size: 8px; display: flex; align-items: center; justify-content: center; }
 .nuvra-cp-pulse { animation: nuvraCpPulse 1.5s ease-out infinite; }
 @keyframes nuvraCpPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(0,196,255,0.4); } 50% { box-shadow: 0 0 0 8px rgba(0,196,255,0); } }
 
-/* Treasure marker */
 .nuvra-treasure-marker { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(251,191,36,0.2); border: 2px solid #fbbf24; }
 .nuvra-treasure-glow { box-shadow: 0 0 12px rgba(251,191,36,0.5); animation: nuvraTreasureGlow 2s ease-in-out infinite; }
 @keyframes nuvraTreasureGlow { 0%,100% { box-shadow: 0 0 8px rgba(251,191,36,0.3); } 50% { box-shadow: 0 0 16px rgba(251,191,36,0.6); } }
 .nuvra-treasure-collected { background: rgba(34,197,94,0.2); border-color: #22c55e; }
-
-/* Coin marker */
-.nuvra-coin-marker { width: 16px; height: 16px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #92400e; }
-.nuvra-coin-collected { opacity: 0.3; }

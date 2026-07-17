@@ -1,441 +1,83 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { supabase, type Friend, type FriendRequest, type NotificationRow, type Profile, type PartyData, type PartyMember } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
-// ============================================================
-// useFriends — complete friend system via Supabase
-// Search, send/accept/decline/cancel requests, remove, block.
-// Tracks outgoing requests and friend online status.
-// ============================================================
-
-export type FriendStatus = 'accepted' | 'blocked';
-export type PlayerOnlineStatus = 'online' | 'offline' | 'walking' | 'in_adventure';
-
-export interface Friend {
-  id: string;
-  username: string;
-  avatar: string;
-  level: number;
-  status: FriendStatus;
-  addedAt: number;
-  onlineStatus: PlayerOnlineStatus;
-}
-
-export interface FriendRequest {
-  id: string;
-  fromId: string;
-  fromUsername: string;
-  fromAvatar: string;
-  fromLevel: number;
-  status: 'pending' | 'accepted' | 'declined';
-  createdAt: number;
-}
-
-export interface OutgoingRequest {
-  id: string;
-  toId: string;
-  toUsername: string;
-  toAvatar: string;
-  toLevel: number;
-  createdAt: number;
-}
-
-export interface SearchResult {
-  id: string;
-  username: string;
-  avatar: string;
-  level: number;
-  isFriend: boolean;
-  hasOutgoingRequest: boolean;
-}
-
-export function useFriends(playerId: string) {
+export function useFriends() {
+  const { user } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
-  const [outgoing, setOutgoing] = useState<OutgoingRequest[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const friendIdsRef = useRef<Set<string>>(new Set());
-  const outgoingIdsRef = useRef<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Load friends with their online status
   const loadFriends = useCallback(async () => {
-    try {
-      const { data, error: err } = await supabase
-        .from('nuvra_friends')
-        .select('*')
-        .eq('player_id', playerId)
-        .eq('status', 'accepted');
+    if (!user) return;
+    const { data } = await supabase
+      .from('friends')
+      .select('id, friend_id, created_at, friend:profiles!friend_id(*)')
+      .eq('user_id', user.id);
+    setFriends((data as unknown as Friend[]) ?? []);
+  }, [user]);
 
-      if (err) throw err;
-
-      const friendIds = (data ?? []).map((f: Record<string, unknown>) => f.friend_id as string);
-      friendIdsRef.current = new Set(friendIds);
-      if (friendIds.length === 0) {
-        setFriends([]);
-        return;
-      }
-
-      const [profilesRes, statusRes] = await Promise.all([
-        supabase.from('nuvra_players').select('*').in('id', friendIds),
-        supabase.from('nuvra_player_status').select('*').in('player_id', friendIds),
-      ]);
-
-      const profileMap = new Map((profilesRes.data ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
-      const statusMap = new Map((statusRes.data ?? []).map((s: Record<string, unknown>) => [s.player_id as string, s.status as string]));
-
-      setFriends(
-        (data ?? []).map((f: Record<string, unknown>) => {
-          const profile = profileMap.get(f.friend_id as string) as Record<string, unknown> | undefined;
-          return {
-            id: f.friend_id as string,
-            username: (profile?.username as string) ?? 'Unknown',
-            avatar: (profile?.avatar as string) ?? '🧭',
-            level: (profile?.level as number) ?? 1,
-            status: f.status as FriendStatus,
-            addedAt: new Date(f.created_at as string).getTime(),
-            onlineStatus: (statusMap.get(f.friend_id as string) as PlayerOnlineStatus) ?? 'offline',
-          };
-        }),
-      );
-    } catch {
-      // Best-effort
-    }
-  }, [playerId]);
-
-  // Load incoming requests
   const loadRequests = useCallback(async () => {
-    try {
-      const { data, error: err } = await supabase
-        .from('nuvra_friend_requests')
-        .select('*')
-        .eq('to_player_id', playerId)
-        .eq('status', 'pending');
+    if (!user) return;
+    const { data } = await supabase
+      .from('friend_requests')
+      .select('id, sender_id, receiver_id, status, created_at, updated_at, sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)')
+      .eq('receiver_id', user.id)
+      .eq('status', 'pending');
+    setRequests((data as unknown as FriendRequest[]) ?? []);
+  }, [user]);
 
-      if (err) throw err;
-      if (!data || data.length === 0) {
-        setRequests([]);
-        return;
-      }
-
-      const senderIds = data.map((r: Record<string, unknown>) => r.from_player_id as string);
-      const { data: profiles } = await supabase
-        .from('nuvra_players')
-        .select('*')
-        .in('id', senderIds);
-
-      const profileMap = new Map((profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
-      setRequests(
-        data.map((r: Record<string, unknown>) => {
-          const profile = profileMap.get(r.from_player_id as string) as Record<string, unknown> | undefined;
-          return {
-            id: r.id as string,
-            fromId: r.from_player_id as string,
-            fromUsername: (profile?.username as string) ?? 'Unknown',
-            fromAvatar: (profile?.avatar as string) ?? '🧭',
-            fromLevel: (profile?.level as number) ?? 1,
-            status: r.status as 'pending' | 'accepted' | 'declined',
-            createdAt: new Date(r.created_at as string).getTime(),
-          };
-        }),
-      );
-    } catch {
-      // Best-effort
-    }
-  }, [playerId]);
-
-  // Load outgoing requests
-  const loadOutgoing = useCallback(async () => {
-    try {
-      const { data, error: err } = await supabase
-        .from('nuvra_friend_requests')
-        .select('*')
-        .eq('from_player_id', playerId)
-        .eq('status', 'pending');
-
-      if (err) throw err;
-      if (!data || data.length === 0) {
-        setOutgoing([]);
-        outgoingIdsRef.current = new Set();
-        return;
-      }
-
-      const toIds = data.map((r: Record<string, unknown>) => r.to_player_id as string);
-      outgoingIdsRef.current = new Set(toIds);
-
-      const { data: profiles } = await supabase
-        .from('nuvra_players')
-        .select('*')
-        .in('id', toIds);
-
-      const profileMap = new Map((profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
-      setOutgoing(
-        data.map((r: Record<string, unknown>) => {
-          const profile = profileMap.get(r.to_player_id as string) as Record<string, unknown> | undefined;
-          return {
-            id: r.id as string,
-            toId: r.to_player_id as string,
-            toUsername: (profile?.username as string) ?? 'Unknown',
-            toAvatar: (profile?.avatar as string) ?? '🧭',
-            toLevel: (profile?.level as number) ?? 1,
-            createdAt: new Date(r.created_at as string).getTime(),
-          };
-        }),
-      );
-    } catch {
-      // Best-effort
-    }
-  }, [playerId]);
-
-  // Search for players by username
-  const searchPlayers = useCallback(async (query: string): Promise<SearchResult[]> => {
-    if (query.trim().length < 2) return [];
-    try {
-      const { data, error: err } = await supabase
-        .from('nuvra_players')
-        .select('*')
-        .ilike('username', `%${query.trim()}%`)
-        .neq('id', playerId)
-        .limit(10);
-
-      if (err) throw err;
-
-      return (data ?? []).map((p: Record<string, unknown>) => ({
-        id: p.id as string,
-        username: p.username as string,
-        avatar: p.avatar as string,
-        level: p.level as number,
-        isFriend: friendIdsRef.current.has(p.id as string),
-        hasOutgoingRequest: outgoingIdsRef.current.has(p.id as string),
-      }));
-    } catch {
-      return [];
-    }
-  }, [playerId]);
-
-  // Send friend request — prevents self-add, duplicates, and existing friends
-  const sendRequest = useCallback(async (toPlayerId: string): Promise<{ success: boolean; message: string }> => {
-    if (toPlayerId === playerId) {
-      return { success: false, message: "You can't send a friend request to yourself." };
-    }
-    if (friendIdsRef.current.has(toPlayerId)) {
-      return { success: false, message: 'You are already friends with this player.' };
-    }
-    if (outgoingIdsRef.current.has(toPlayerId)) {
-      return { success: false, message: 'You already have a pending request to this player.' };
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const { error: err } = await supabase
-        .from('nuvra_friend_requests')
-        .insert({
-          from_player_id: playerId,
-          to_player_id: toPlayerId,
-          status: 'pending',
-        });
-
-      if (err) {
-        if (err.code === '23505') {
-          return { success: false, message: 'A request already exists between you and this player.' };
-        }
-        throw err;
-      }
-
-      // Create a notification for the recipient
-      await supabase.from('nuvra_notifications').insert({
-        player_id: toPlayerId,
-        type: 'friend_request',
-        title: 'New friend request',
-        message: 'sent you a friend request',
-        from_player_id: playerId,
-      });
-
-      outgoingIdsRef.current.add(toPlayerId);
-      await loadOutgoing();
-      return { success: true, message: 'Friend request sent!' };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to send request';
-      setError(msg);
-      return { success: false, message: msg };
-    } finally {
-      setLoading(false);
-    }
-  }, [playerId, loadOutgoing]);
-
-  // Accept friend request
-  const acceptRequest = useCallback(async (requestId: string, fromId: string): Promise<void> => {
-    setLoading(true);
-    try {
-      await supabase
-        .from('nuvra_friend_requests')
-        .update({ status: 'accepted' })
-        .eq('id', requestId);
-
-      await supabase.from('nuvra_friends').insert([
-        { player_id: playerId, friend_id: fromId, status: 'accepted' },
-        { player_id: fromId, friend_id: playerId, status: 'accepted' },
-      ]);
-
-      // Notify the sender that their request was accepted
-      await supabase.from('nuvra_notifications').insert({
-        player_id: fromId,
-        type: 'friend_accepted',
-        title: 'Friend request accepted',
-        message: 'accepted your friend request',
-        from_player_id: playerId,
-      });
-
-      // Log activity
-      await supabase.from('nuvra_activity_log').insert({
-        player_id: playerId,
-        username: 'You',
-        activity_type: 'friend_added',
-        description: 'added a new friend',
-      });
-
-      setRequests((prev) => prev.filter((r) => r.id !== requestId));
-      friendIdsRef.current.add(fromId);
-      await loadFriends();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to accept request');
-    } finally {
-      setLoading(false);
-    }
-  }, [playerId, loadFriends]);
-
-  // Decline friend request
-  const declineRequest = useCallback(async (requestId: string): Promise<void> => {
-    try {
-      await supabase
-        .from('nuvra_friend_requests')
-        .update({ status: 'declined' })
-        .eq('id', requestId);
-      setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    } catch {
-      // Best-effort
-    }
-  }, []);
-
-  // Cancel outgoing friend request
-  const cancelRequest = useCallback(async (requestId: string, toId: string): Promise<void> => {
-    try {
-      await supabase
-        .from('nuvra_friend_requests')
-        .delete()
-        .eq('id', requestId);
-      outgoingIdsRef.current.delete(toId);
-      setOutgoing((prev) => prev.filter((r) => r.id !== requestId));
-    } catch {
-      // Best-effort
-    }
-  }, []);
-
-  // Remove friend (bidirectional)
-  const removeFriend = useCallback(async (friendId: string): Promise<void> => {
-    try {
-      await supabase
-        .from('nuvra_friends')
-        .delete()
-        .eq('player_id', playerId)
-        .eq('friend_id', friendId);
-      await supabase
-        .from('nuvra_friends')
-        .delete()
-        .eq('player_id', friendId)
-        .eq('friend_id', playerId);
-      friendIdsRef.current.delete(friendId);
-      setFriends((prev) => prev.filter((f) => f.id !== friendId));
-    } catch {
-      // Best-effort
-    }
-  }, [playerId]);
-
-  // Block user — removes friendship and marks as blocked
-  const blockUser = useCallback(async (friendId: string): Promise<void> => {
-    try {
-      // Upsert our side as blocked
-      await supabase
-        .from('nuvra_friends')
-        .upsert({
-          player_id: playerId,
-          friend_id: friendId,
-          status: 'blocked',
-        }, { onConflict: 'player_id,friend_id' });
-
-      // Remove the reverse friendship
-      await supabase
-        .from('nuvra_friends')
-        .delete()
-        .eq('player_id', friendId)
-        .eq('friend_id', playerId);
-
-      friendIdsRef.current.delete(friendId);
-      setFriends((prev) => prev.filter((f) => f.id !== friendId));
-    } catch {
-      // Best-effort
-    }
-  }, [playerId]);
-
-  // Load on mount + subscribe to new requests and status changes
   useEffect(() => {
-    loadFriends();
-    loadRequests();
-    loadOutgoing();
+    if (!user) return;
+    let mounted = true;
+    Promise.all([loadFriends(), loadRequests()]).finally(() => { if (mounted) setLoading(false); });
 
-    const reqChannel = supabase
-      .channel(`friend_requests:${playerId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'nuvra_friend_requests',
-        filter: `to_player_id=eq.${playerId}`,
-      }, () => {
-        loadRequests();
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'nuvra_friend_requests',
-        filter: `from_player_id=eq.${playerId}`,
-      }, () => {
-        loadOutgoing();
-      })
+    const channel = supabase
+      .channel('friends-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends', filter: `user_id=eq.${user.id}` }, () => { if (mounted) loadFriends(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests', filter: `receiver_id=eq.${user.id}` }, () => { if (mounted) loadRequests(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests', filter: `sender_id=eq.${user.id}` }, () => { if (mounted) loadRequests(); })
       .subscribe();
+    channelRef.current = channel;
 
-    // Subscribe to friend status changes
-    const statusChannel = supabase
-      .channel(`friend_status:${playerId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'nuvra_player_status',
-      }, () => {
-        loadFriends();
-      })
-      .subscribe();
+    return () => { mounted = false; if (channelRef.current) supabase.removeChannel(channelRef.current); };
+  }, [user, loadFriends, loadRequests]);
 
-    return () => {
-      reqChannel.unsubscribe();
-      statusChannel.unsubscribe();
-    };
-  }, [playerId, loadFriends, loadRequests, loadOutgoing]);
+  const sendRequest = useCallback(async (receiverId: string): Promise<{ error: string | null }> => {
+    if (!user) return { error: 'Not signed in.' };
+    const { error } = await supabase.from('friend_requests').insert({ sender_id: user.id, receiver_id: receiverId });
+    return { error: error?.message ?? null };
+  }, [user]);
 
-  return {
-    friends,
-    requests,
-    outgoing,
-    loading,
-    error,
-    searchPlayers,
-    sendRequest,
-    acceptRequest,
-    declineRequest,
-    cancelRequest,
-    removeFriend,
-    blockUser,
-    loadFriends,
-    loadRequests,
-    loadOutgoing,
-  };
+  const acceptRequest = useCallback(async (requestId: string, senderId: string): Promise<{ error: string | null }> => {
+    if (!user) return { error: 'Not signed in.' };
+    const { error: updateErr } = await supabase.from('friend_requests').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', requestId);
+    if (updateErr) return { error: updateErr.message };
+    const { error: insertErr1 } = await supabase.from('friends').insert({ user_id: user.id, friend_id: senderId });
+    const { error: insertErr2 } = await supabase.from('friends').insert({ user_id: senderId, friend_id: user.id });
+    if (insertErr1 || insertErr2) return { error: insertErr1?.message ?? insertErr2?.message ?? null };
+    await supabase.from('notifications').insert({ user_id: senderId, type: 'friend_accepted', title: 'Friend request accepted', body: 'Your friend request was accepted!' });
+    return { error: null };
+  }, [user]);
+
+  const declineRequest = useCallback(async (requestId: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.from('friend_requests').update({ status: 'declined', updated_at: new Date().toISOString() }).eq('id', requestId);
+    return { error: error?.message ?? null };
+  }, []);
+
+  const removeFriend = useCallback(async (friendId: string): Promise<{ error: string | null }> => {
+    if (!user) return { error: 'Not signed in.' };
+    await supabase.from('friends').delete().eq('user_id', user.id).eq('friend_id', friendId);
+    await supabase.from('friends').delete().eq('user_id', friendId).eq('friend_id', user.id);
+    return { error: null };
+  }, [user]);
+
+  const searchUsers = useCallback(async (query: string): Promise<Profile[]> => {
+    if (!query || query.length < 2) return [];
+    const { data } = await supabase.from('profiles').select('*').ilike('username', `%${query}%`).limit(10);
+    return (data as Profile[]) ?? [];
+  }, []);
+
+  return { friends, requests, loading, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers, loadFriends };
 }

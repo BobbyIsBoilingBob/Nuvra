@@ -3,14 +3,12 @@ export type InventoryCategory = 'trails' | 'pets' | 'themes' | 'stickers' | 'bad
 
 export type CosmeticItem = {
   id: string; name: string; category: InventoryCategory; rarity: CosmeticRarity;
-  emoji: string; color: string; price: number; currency: 'coins' | 'gems';
-  description: string;
+  emoji: string; color: string; price: number; currency: 'coins' | 'gems'; description: string;
 };
 
 export const RARITY_COLORS: Record<CosmeticRarity, string> = {
   common: '#94a3b8', uncommon: '#22c55e', rare: '#4de8ff', epic: '#8b5cf6', legendary: '#fbbf24', mythic: '#ef4444',
 };
-
 export const RARITY_LABELS: Record<CosmeticRarity, string> = {
   common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic',
 };

@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Button, ProgressBar, RewardPopup, ConfirmDialog } from '../components/ui';
+import { GlassCard, Icon, Pill, Button, ProgressBar, ConfirmDialog, RewardPopup } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { ADVENTURE_TYPES, DIFFICULTY_LABELS, getComboTier, type Adventure } from '../data';
-import { createGpsFilter, filterGpsReading, formatDistance, formatDuration, routeToLatLngs, DEFAULT_CENTER, type GpsFilter } from '../lib/map-utils';
-import { getAdventureById } from '../data';
+import { getAdventureById, getComboTier, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
+import { routeToLatLngs, DEFAULT_CENTER, formatDistance, formatDuration, createGpsFilter, filterGpsReading, type GpsFilter } from '../lib/map-utils';
 import { MapView, type MapMarkerData, type MapRouteData } from '../components/MapView';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { vibrate } from '../lib/settings';
@@ -14,297 +13,298 @@ import { vibrate } from '../lib/settings';
 type GpsState = 'idle' | 'starting' | 'tracking' | 'paused' | 'completed' | 'denied' | 'error';
 
 export function AdventureMap() {
-  const { selectedAdventureId, setScreen, recordAdventureComplete, updateQuestProgress } = useStore();
+  const { selectedAdventureId, goBack, recordAdventureComplete, addQuestProgress } = useStore();
   const { profile, updateProfile } = useAuth();
-  const geo = useGeolocation(false);
-  const adventure = useStore.getState().selectedAdventureObj ?? null;
-  const adventureFromId = useMemo(() => {
-    if (adventure) return adventure;
-    return getAdventureById(selectedAdventureId ?? '') ?? null;
-  }, [adventure, selectedAdventureId]);
+  const adventure = getAdventureById(selectedAdventureId ?? '');
 
   const [gpsState, setGpsState] = useState<GpsState>('idle');
+  const geo = useGeolocation(gpsState === 'tracking' || gpsState === 'starting');
   const [distance, setDistance] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const [objectivesDone, setObjectivesDone] = useState<boolean[]>([]);
   const [combo, setCombo] = useState(0);
-  const [showComplete, setShowComplete] = useState(false);
-  const [showCancel, setShowCancel] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const [objectivesDone, setObjectivesDone] = useState<boolean[]>([]);
   const [treasuresFound, setTreasuresFound] = useState(0);
+  const [showCancel, setShowCancel] = useState(false);
+  const [showReward, setShowReward] = useState(false);
+  const [rewardData, setRewardData] = useState<{ icon: string; label: string; amount: number; color: string }[]>([]);
 
-  const filterRef = useRef<GpsFilter>(createGpsFilter());
-  const watchIdRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const gpsFilterRef = useRef<GpsFilter>(createGpsFilter());
+  const startTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastMoveRef = useRef<number>(0);
+  const completedRef = useRef(false);
 
-  const adv: Adventure | null = adventureFromId;
+  const routeLatLngs = useMemo(() => {
+    if (!adventure) return [];
+    return routeToLatLngs(adventure.route, DEFAULT_CENTER);
+  }, [adventure]);
 
+  const mapMarkers: MapMarkerData[] = useMemo(() => {
+    const markers: MapMarkerData[] = [];
+    if (routeLatLngs.length > 0) {
+      markers.push({ id: 'start', position: routeLatLngs[0], type: 'start', label: 'Start' });
+      markers.push({ id: 'finish', position: routeLatLngs[routeLatLngs.length - 1], type: 'finish', label: 'Finish' });
+    }
+    if (geo.position) {
+      markers.push({ id: 'player', position: geo.position, type: 'player' });
+    }
+    return markers;
+  }, [routeLatLngs, geo.position]);
+
+  const mapRoutes: MapRouteData[] = useMemo(() => {
+    if (routeLatLngs.length < 2) return [];
+    return [{ id: 'route', positions: routeLatLngs, color: '#00c4ff', weight: 4, dashed: true }];
+  }, [routeLatLngs]);
+
+  // Start tracking when GPS is granted
   useEffect(() => {
-    if (adv) setObjectivesDone(new Array(adv.objectives.length).fill(false));
-    return () => stopTracking();
-  }, [adv?.id]);
+    if (gpsState === 'starting' && geo.status === 'granted') {
+      setGpsState('tracking');
+      startTimeRef.current = Date.now();
+      setObjectivesDone(new Array(adventure?.objectives.length ?? 0).fill(false));
+    }
+    if (gpsState === 'starting' && (geo.status === 'denied' || geo.status === 'unavailable' || geo.status === 'error')) {
+      setGpsState('denied');
+    }
+  }, [geo.status, gpsState, adventure]);
 
-  const stopTracking = useCallback(() => {
-    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    watchIdRef.current = null;
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null;
-  }, []);
+  // Timer
+  useEffect(() => {
+    if (gpsState === 'tracking') {
+      timerRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }, 1000);
+      return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }
+  }, [gpsState]);
 
-  const tickTimer = useCallback(() => {
-    if (startTimeRef.current) setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-  }, []);
-
-  const handlePosition = useCallback((pos: GeolocationPosition) => {
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    const time = pos.timestamp;
-    const result = filterGpsReading(filterRef.current, lat, lon, time);
-
+  // GPS reading processing
+  useEffect(() => {
+    if (gpsState !== 'tracking' || !geo.position) return;
+    const result = filterGpsReading(gpsFilterRef.current, geo.position.lat, geo.position.lng, Date.now());
     if (result.accepted && result.distance > 0) {
-      setDistance(d => d + result.distance);
-      lastMoveRef.current = time;
-      setCombo(c => c + 1);
-      vibrate(10);
-    } else {
-      // Standing still — decay combo after 30s of no movement
-      if (time - lastMoveRef.current > 30000) setCombo(0);
-    }
-
-    if (adv) {
-      const pct = (filterRef.current.totalDistance / adv.distance) * 100;
-      const newObjs = objectivesDone.map((done, i) => {
-        if (done) return true;
-        const threshold = ((i + 1) / adv.objectives.length) * 100;
-        return pct >= threshold;
-      });
-      const justCompleted = newObjs.some((d, i) => d && !objectivesDone[i]);
-      if (justCompleted) {
-        setObjectivesDone(newObjs);
-        vibrate([20, 40, 20]);
-        setTreasuresFound(t => t + 1);
-      }
-      if (filterRef.current.totalDistance >= adv.distance && gpsState !== 'completed') {
-        completeAdventure();
+      setDistance(prev => prev + result.distance);
+      if (geo.movement === 'walking') {
+        setCombo(prev => {
+          const next = prev + 1;
+          setMaxCombo(m => Math.max(m, next));
+          return next;
+        });
+      } else {
+        setCombo(prev => prev > 0 ? 0 : prev);
       }
     }
-  }, [adv, objectivesDone, gpsState]);
+  }, [geo.position, geo.movement, gpsState]);
 
-  const startTracking = useCallback(async () => {
-    if (!navigator.geolocation) { setErrorMsg('GPS not supported on this device.'); setGpsState('error'); return; }
-    setGpsState('starting'); setErrorMsg(null);
-    filterRef.current = createGpsFilter();
-    setDistance(0); setElapsed(0); setCombo(0); setTreasuresFound(0);
-    if (adv) setObjectivesDone(new Array(adv.objectives.length).fill(false));
+  // Complete objectives based on distance progress
+  useEffect(() => {
+    if (!adventure || gpsState !== 'tracking') return;
+    const progress = adventure.distance > 0 ? distance / adventure.distance : 0;
+    const newDone = adventure.objectives.map((_, i) => {
+      const threshold = (i + 1) / adventure.objectives.length;
+      return progress >= threshold;
+    });
+    const justCompleted = newDone.some((d, i) => d && !objectivesDone[i]);
+    if (justCompleted) {
+      vibrate(30);
+      setTreasuresFound(prev => prev + 1);
+    }
+    setObjectivesDone(newDone);
+  }, [distance, adventure, gpsState]);
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        filterRef.current.lastLat = pos.coords.latitude;
-        filterRef.current.lastLon = pos.coords.longitude;
-        filterRef.current.lastTime = pos.timestamp;
-        startTimeRef.current = Date.now();
-        lastMoveRef.current = pos.timestamp;
-        setGpsState('tracking');
-        timerRef.current = setInterval(tickTimer, 1000);
-        watchIdRef.current = navigator.geolocation.watchPosition(handlePosition, (err) => {
-          setErrorMsg(err.message || 'GPS error');
-          setGpsState('error');
-        }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) { setGpsState('denied'); setErrorMsg('Location permission denied. Enable GPS to track adventures.'); }
-        else { setGpsState('error'); setErrorMsg('Could not get your location. Try going outside.'); }
-      },
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
-  }, [adv, handlePosition, tickTimer]);
+  // Check completion
+  useEffect(() => {
+    if (!adventure || completedRef.current || gpsState !== 'tracking') return;
+    if (distance >= adventure.distance * 0.95) {
+      completedRef.current = true;
+      handleComplete();
+    }
+  }, [distance, adventure, gpsState]);
 
-  const completeAdventure = useCallback(() => {
-    if (!adv || gpsState === 'completed') return;
-    stopTracking();
+  async function handleComplete() {
+    if (!adventure || !profile) return;
     setGpsState('completed');
-    vibrate([30, 50, 30, 50, 60]);
+    if (timerRef.current) clearInterval(timerRef.current);
+    vibrate([50, 30, 50]);
 
-    const tier = getComboTier(combo);
-    const xpEarned = Math.round(adv.xp * tier.multiplier);
-    const coinsEarned = Math.round(adv.coins * tier.multiplier);
-    const gemsEarned = adv.gems;
+    const comboTier = getComboTier(maxCombo);
+    const xpEarned = Math.round(adventure.xp * comboTier.multiplier);
+    const coinsEarned = Math.round(adventure.coins * comboTier.multiplier);
+    const gemsEarned = adventure.gems;
 
-    recordAdventureComplete({
-      adventureId: adv.id, adventureName: adv.title, type: adv.type,
-      emoji: adv.emoji, difficulty: adv.difficulty,
-      distance: filterRef.current.totalDistance, time: elapsed,
-      xpEarned, coinsEarned, gemsEarned, treasuresFound,
-      maxCombo: combo,
+    setRewardData([
+      { icon: 'Zap', label: 'XP', amount: xpEarned, color: 'text-zeviqo-300' },
+      { icon: 'Coins', label: 'Coins', amount: coinsEarned, color: 'text-gold-400' },
+      ...(gemsEarned > 0 ? [{ icon: 'Gem', label: 'Gems', amount: gemsEarned, color: 'text-zeviqo-300' }] : []),
+      { icon: 'Route', label: 'Distance', amount: Math.round(distance * 1000), color: 'text-zeviqo-400' },
+    ]);
+
+    await recordAdventureComplete({
+      adventure_id: adventure.id,
+      adventure_name: adventure.title,
+      emoji: adventure.emoji,
+      type: adventure.type,
+      difficulty: adventure.difficulty,
+      distance,
+      duration: elapsed,
+      xp_earned: xpEarned,
+      coins_earned: coinsEarned,
+      gems_earned: gemsEarned,
+      treasures_found: treasuresFound,
+      max_combo: maxCombo,
     });
 
-    updateQuestProgress('distance', filterRef.current.totalDistance);
-    updateQuestProgress('adventures', 1);
-    updateQuestProgress('treasures', treasuresFound);
-    updateQuestProgress('combo', combo);
+    await updateProfile({
+      xp: (profile.xp ?? 0) + xpEarned,
+      coins: (profile.coins ?? 0) + coinsEarned,
+      gems: (profile.gems ?? 0) + gemsEarned,
+      distance_walked: (profile.distance_walked ?? 0) + distance,
+      steps: (profile.steps ?? 0) + Math.round(distance * 1300),
+      completed_adventures: (profile.completed_adventures ?? 0) + 1,
+      treasure_collected: (profile.treasure_collected ?? 0) + treasuresFound,
+      last_walk_date: new Date().toISOString().split('T')[0],
+    });
 
-    if (profile) {
-      const newXp = profile.xp + xpEarned;
-      const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
-      updateProfile({
-        xp: newXp, level: newLevel,
-        coins: profile.coins + coinsEarned,
-        gems: (profile.gems ?? 0) + gemsEarned,
-        distance_walked: Math.round((profile.distance_walked + filterRef.current.totalDistance) * 100) / 100,
-        steps: profile.steps + Math.round(filterRef.current.totalDistance * 1300),
-        completed_adventures: profile.completed_adventures + 1,
-        treasure_collected: profile.treasure_collected + treasuresFound,
-        last_walk_date: new Date().toISOString().split('T')[0],
-      });
-    }
-    setShowComplete(true);
-  }, [adv, combo, elapsed, treasuresFound, profile, updateProfile, recordAdventureComplete, stopTracking, gpsState, updateQuestProgress]);
+    addQuestProgress('distance', distance);
+    addQuestProgress('adventures', 1);
+    addQuestProgress('treasures', treasuresFound);
+    addQuestProgress('combo', maxCombo);
 
-  const cancelAdventure = () => { stopTracking(); setScreen('adventure-detail'); setShowCancel(false); };
+    setShowReward(true);
+  }
 
-  if (!adv) {
+  if (!adventure) {
     return (
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen flex items-center justify-center">
         <AdventureBg />
-        <TopBar title="Adventure" showBack showCurrencies={false} />
-        <div className="px-6 py-20 text-center"><p className="text-sm text-white/40">No adventure selected.</p>
-        <Button className="mt-4" onClick={() => setScreen('adventures')}>Browse Adventures</Button></div>
+        <div className="relative z-10 text-center">
+          <p className="text-sm text-white/40">No adventure selected</p>
+          <Button onClick={goBack} className="mt-4">Go Back</Button>
+        </div>
       </div>
     );
   }
 
-  const typeInfo = ADVENTURE_TYPES.find(t => t.type === adv.type);
-  const tier = getComboTier(combo);
-  const progress = Math.min(100, (distance / adv.distance) * 100);
-  const playerPos = geo.position ?? DEFAULT_CENTER;
-
-  const routeLatLngs = useMemo(() => routeToLatLngs(adv.route, DEFAULT_CENTER, 800), [adv.route]);
-  const mapMarkers: MapMarkerData[] = useMemo(() => {
-    const markers: MapMarkerData[] = [];
-    if (routeLatLngs.length > 0) {
-      markers.push({ id: 'start', position: routeLatLngs[0], type: 'start', label: 'Start', color: '#22c55e' });
-      markers.push({ id: 'finish', position: routeLatLngs[routeLatLngs.length - 1], type: 'finish', label: 'Finish', color: '#fbbf24' });
-    }
-    if (geo.position) {
-      markers.push({ id: 'player', position: geo.position, type: 'player', color: '#00c4ff' });
-    }
-    return markers;
-  }, [routeLatLngs, geo.position]);
-  const mapRoutes: MapRouteData[] = useMemo(() => {
-    if (routeLatLngs.length < 2) return [];
-    return [{ id: 'adv-route', positions: routeLatLngs, color: typeInfo?.color ?? '#00c4ff', weight: 4, animated: true }];
-  }, [routeLatLngs, typeInfo?.color]);
+  const comboTier = getComboTier(combo);
+  const progressPct = Math.min(100, (distance / adventure.distance) * 100);
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg accent={typeInfo?.color} />
-      <TopBar title={adv.title} showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        {/* Stats card */}
-        <GlassCard className="p-4 animate-slide-up">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{adv.emoji}</span>
-              <div>
-                <p className="text-sm font-display font-bold text-white">{formatDistance(distance)}</p>
-                <p className="text-[10px] text-white/40">of {formatDistance(adv.distance)}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-display font-bold text-white">{formatDuration(elapsed)}</p>
-              <p className="text-[10px] text-white/40">elapsed</p>
-            </div>
-          </div>
-          <ProgressBar value={distance} max={adv.distance} />
-          <div className="flex items-center justify-between mt-2 text-[10px] text-white/40">
-            <span>{Math.round(progress)}% complete</span>
-            <span className="flex items-center gap-1" style={{ color: tier.color }}>
-              <Icon name="Flame" size={10} />{combo}x {tier.name}
-            </span>
-          </div>
-        </GlassCard>
+    <div className="relative min-h-screen">
+      <AdventureBg accent={DIFFICULTY_COLORS[adventure.difficulty]} />
+      <TopBar title={adventure.title} showBack showCurrencies={false} />
+      <div className="relative z-10 px-4 pt-3 space-y-3">
+        {gpsState === 'idle' && (
+          <GlassCard className="p-6 text-center">
+            <div className="text-4xl mb-3">{adventure.emoji}</div>
+            <h2 className="text-lg font-display font-bold text-white mb-2">{adventure.title}</h2>
+            <p className="text-sm text-white/50 mb-4">{formatDistance(adventure.distance)} · {formatDuration(adventure.duration * 60)}</p>
+            <Button fullWidth size="lg" icon="Play" onClick={() => setGpsState('starting')}>
+              Start GPS Tracking
+            </Button>
+          </GlassCard>
+        )}
 
-        {/* Map */}
-        <div className="animate-slide-up h-64 rounded-2xl overflow-hidden glass">
+        {gpsState === 'starting' && (
+          <GlassCard className="p-6 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full border-2 border-zeviqo-400 border-t-transparent animate-spin" />
+            <p className="text-sm text-white/60">Finding your location...</p>
+          </GlassCard>
+        )}
+
+        {gpsState === 'denied' && (
+          <GlassCard className="p-6 text-center">
+            <Icon name="MapPin" size={32} className="text-rose-400 mx-auto mb-3" />
+            <p className="text-sm text-white/60 mb-4">Location permission denied. Enable GPS to start your adventure.</p>
+            <Button fullWidth onClick={() => setGpsState('starting')}>Try Again</Button>
+          </GlassCard>
+        )}
+
+        {(gpsState === 'tracking' || gpsState === 'paused' || gpsState === 'completed') && (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <GlassCard className="p-3 text-center">
+                <p className="text-[10px] text-white/40 mb-1">Distance</p>
+                <p className="text-sm font-bold text-white">{formatDistance(distance)}</p>
+                <p className="text-[9px] text-white/30">of {formatDistance(adventure.distance)}</p>
+              </GlassCard>
+              <GlassCard className="p-3 text-center">
+                <p className="text-[10px] text-white/40 mb-1">Time</p>
+                <p className="text-sm font-bold text-white">{formatDuration(elapsed)}</p>
+              </GlassCard>
+              <GlassCard className="p-3 text-center">
+                <p className="text-[10px] text-white/40 mb-1">Combo</p>
+                <p className="text-sm font-bold" style={{ color: comboTier.color }}>{combo}x</p>
+                <p className="text-[9px]" style={{ color: comboTier.color }}>{comboTier.name}</p>
+              </GlassCard>
+            </div>
+
+            <GlassCard className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-white">Progress</span>
+                <span className="text-[10px] text-white/40">{Math.round(progressPct)}%</span>
+              </div>
+              <ProgressBar value={progressPct} max={100} accent="from-zeviqo-400 to-zeviqo-500" />
+            </GlassCard>
+
+            <GlassCard className="p-3">
+              <p className="text-xs font-bold text-white mb-2">Objectives</p>
+              <div className="space-y-1.5">
+                {adventure.objectives.map((obj, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${objectivesDone[i] ? 'bg-zeviqo-500/30' : 'glass'}`}>
+                      {objectivesDone[i] ? <Icon name="Check" size={12} className="text-zeviqo-300" /> : <span className="text-[9px] text-white/40">{i + 1}</span>}
+                    </div>
+                    <p className={`text-xs ${objectivesDone[i] ? 'text-zeviqo-300 line-through' : 'text-white/60'}`}>{obj}</p>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </>
+        )}
+
+        <GlassCard className="p-0 overflow-hidden h-64">
           <MapView
-            center={playerPos}
+            center={geo.position ?? DEFAULT_CENTER}
             zoom={16}
             markers={mapMarkers}
             routes={mapRoutes}
             followPlayer={gpsState === 'tracking'}
             playerHeading={geo.heading}
             accuracy={geo.accuracy}
-            className="h-full"
           />
-        </div>
-
-        {/* Objectives */}
-        <GlassCard className="p-4 animate-slide-up">
-          <h3 className="text-sm font-display font-bold text-white mb-3">Objectives</h3>
-          <div className="space-y-2">
-            {adv.objectives.map((obj, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${objectivesDone[i] ? 'bg-emerald-500/20' : 'glass'}`}>
-                  {objectivesDone[i] ? <Icon name="Check" size={12} className="text-emerald-400" /> : <span className="text-[10px] font-bold text-white/40">{i + 1}</span>}
-                </div>
-                <span className={`text-xs ${objectivesDone[i] ? 'text-white/80 line-through' : 'text-white/60'}`}>{obj}</span>
-              </div>
-            ))}
-          </div>
         </GlassCard>
 
-        {/* GPS status */}
-        {geo.message && (
-          <GlassCard className="p-3 border-amber-500/20 animate-fade-in">
-            <div className="flex items-start gap-2">
-              <Icon name="AlertCircle" size={14} className="text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-300">{geo.message}</p>
-            </div>
-          </GlassCard>
+        {gpsState === 'tracking' && (
+          <div className="flex gap-2">
+            <Button variant="secondary" fullWidth icon="Pause" onClick={() => setGpsState('paused')}>Pause</Button>
+            <Button variant="danger" fullWidth icon="X" onClick={() => setShowCancel(true)}>Cancel</Button>
+          </div>
         )}
-
-        {errorMsg && (
-          <GlassCard className="p-3 border-rose-500/20 animate-fade-in">
-            <div className="flex items-start gap-2">
-              <Icon name="AlertCircle" size={14} className="text-rose-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-rose-300">{errorMsg}</p>
-            </div>
-          </GlassCard>
+        {gpsState === 'paused' && (
+          <div className="flex gap-2">
+            <Button fullWidth icon="Play" onClick={() => setGpsState('tracking')}>Resume</Button>
+            <Button variant="danger" fullWidth icon="X" onClick={() => setShowCancel(true)}>Cancel</Button>
+          </div>
         )}
-
-        {/* Controls */}
-        <div className="space-y-2">
-          {gpsState === 'idle' && <Button fullWidth size="lg" icon="Play" onClick={startTracking}>Start Tracking</Button>}
-          {gpsState === 'starting' && <Button fullWidth size="lg" disabled>Getting GPS...</Button>}
-          {(gpsState === 'tracking' || gpsState === 'paused') && (
-            <>
-              <Button fullWidth size="lg" variant="secondary" icon="Pause" onClick={() => { stopTracking(); setGpsState('paused'); }}>Pause</Button>
-              <Button fullWidth size="md" variant="danger" icon="X" onClick={() => setShowCancel(true)}>End Adventure</Button>
-            </>
-          )}
-          {gpsState === 'paused' && <Button fullWidth size="lg" icon="Play" onClick={startTracking}>Resume</Button>}
-          {(gpsState === 'denied' || gpsState === 'error') && (
-            <>
-              <Button fullWidth size="lg" icon="RotateCcw" onClick={startTracking}>Retry GPS</Button>
-              <Button fullWidth size="md" variant="ghost" onClick={() => setScreen('adventures')}>Back to Adventures</Button>
-            </>
-          )}
-          {gpsState === 'completed' && <Button fullWidth size="lg" variant="secondary" icon="Home" onClick={() => setScreen('home')}>Back Home</Button>}
-        </div>
+        {gpsState === 'completed' && !showReward && (
+          <Button fullWidth size="lg" icon="Check" onClick={goBack}>Finish</Button>
+        )}
       </div>
 
-      <ConfirmDialog visible={showCancel} title="End Adventure?" message="Your progress will be lost. Are you sure you want to end this adventure?" confirmLabel="End" danger onConfirm={cancelAdventure} onCancel={() => setShowCancel(false)} />
+      <ConfirmDialog
+        visible={showCancel}
+        title="Cancel Adventure?"
+        message="Your progress will be lost. Are you sure?"
+        confirmLabel="Cancel Adventure"
+        danger
+        onConfirm={() => { if (timerRef.current) clearInterval(timerRef.current); goBack(); }}
+        onCancel={() => setShowCancel(false)}
+      />
 
       <RewardPopup
-        visible={showComplete}
-        onClose={() => { setShowComplete(false); setScreen('home'); }}
-        rewards={[
-          { icon: 'Zap', label: 'XP', amount: Math.round(adv.xp * tier.multiplier), color: 'text-zeviqo-400' },
-          { icon: 'Coins', label: 'Coins', amount: Math.round(adv.coins * tier.multiplier), color: 'text-gold-400' },
-          ...(adv.gems > 0 ? [{ icon: 'Gem', label: 'Gems', amount: adv.gems, color: 'text-zeviqo-300' }] : []),
-        ]}
+        visible={showReward}
+        onClose={() => { setShowReward(false); goBack(); }}
+        rewards={rewardData}
       />
     </div>
   );

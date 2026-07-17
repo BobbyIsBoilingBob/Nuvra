@@ -6,8 +6,8 @@ import {
   Info, Lock, LogOut, Mail, Map, MapPin, Package, Palette, Pause, PenTool,
   Play, RefreshCw, Rocket, RotateCcw, Route, Search, Settings, Shield,
   ShoppingBag, Sparkles, Star, Swords, Target, Trash2, TrendingUp, Trophy,
-  User, UserPlus, Users, Vibrate, Volume2, X, Zap, Circle, Leaf, Scale,
-  Crosshair, Medal, Footprints as FootprintsIcon, type LucideIcon,
+  User, UserPlus, Users, Vibrate, Volume2, X, Zap, Circle, Leaf, Medal,
+  type LucideIcon,
 } from 'lucide-react';
 import { APP_NAME, getLevelInfo, type LevelInfo } from '../data';
 
@@ -18,8 +18,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Info, Lock, LogOut, Mail, Map, MapPin, Package, Palette, Pause, PenTool,
   Play, RefreshCw, Rocket, RotateCcw, Route, Search, Settings, Shield,
   ShoppingBag, Sparkles, Star, Swords, Target, Trash2, TrendingUp, Trophy,
-  User, UserPlus, Users, Vibrate, Volume2, X, Zap, Circle, Leaf, Scale,
-  Crosshair, Medal, FootprintsIcon,
+  User, UserPlus, Users, Vibrate, Volume2, X, Zap, Circle, Leaf, Medal,
 };
 
 export function Icon({ name, size = 20, className = '', style }: { name: string; size?: number; className?: string; style?: CSSProperties }) {

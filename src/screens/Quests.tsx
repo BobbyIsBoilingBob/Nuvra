@@ -1,71 +1,86 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button, ProgressBar } from '../components/ui';
+import { TopBar, BottomNav } from '../components/BottomNav';
+import { GlassCard, Icon, Pill, Button, ProgressBar, SectionTitle } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { BottomNav } from '../components/BottomNav';
-import { QUESTS, DAILY_REWARDS } from '../data';
+import { QUESTS } from '../data';
 
 export function Quests() {
-  const { completedQuests, claimQuest, questProgress } = useStore();
+  const { questProgress, claimedQuests, claimQuest, addQuestProgress } = useStore();
   const { profile, updateProfile } = useAuth();
+  const [tab, setTab] = useState<'daily' | 'weekly'>('daily');
 
-  const dailyQuests = QUESTS.filter(q => q.category === 'daily');
-  const weeklyQuests = QUESTS.filter(q => q.category === 'weekly');
+  const quests = QUESTS.filter(q => q.category === tab);
 
-  function handleClaim(questId: string) {
+  async function handleClaim(questId: string) {
     const quest = QUESTS.find(q => q.id === questId);
-    if (!quest || completedQuests.includes(questId)) return;
-    const progress = questProgress[quest.metric] ?? 0;
-    if (progress < quest.target) return;
+    if (!quest || !profile) return;
     claimQuest(questId);
-    if (profile) updateProfile({ xp: profile.xp + quest.reward.xp, coins: profile.coins + quest.reward.coins });
+    await updateProfile({
+      xp: (profile.xp ?? 0) + quest.reward.xp,
+      coins: (profile.coins ?? 0) + quest.reward.coins,
+    });
   }
 
   return (
     <div className="relative min-h-screen pb-24">
       <AdventureBg />
       <TopBar title="Quests" showCurrencies />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        <QuestSection title="Daily Quests" icon="CalendarClock" quests={dailyQuests} progress={questProgress} completed={completedQuests} onClaim={handleClaim} />
-        <QuestSection title="Weekly Quests" icon="Route" quests={weeklyQuests} progress={questProgress} completed={completedQuests} onClaim={handleClaim} />
+      <div className="relative z-10 px-4 pt-3 space-y-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTab('daily')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'daily' ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}
+          >
+            Daily
+          </button>
+          <button
+            onClick={() => setTab('weekly')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'weekly' ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}
+          >
+            Weekly
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {quests.map(quest => {
+            const progress = questProgress[quest.metric] ?? 0;
+            const pct = Math.min(100, (progress / quest.target) * 100);
+            const isComplete = progress >= quest.target;
+            const isClaimed = claimedQuests.includes(quest.id);
+            return (
+              <GlassCard key={quest.id} className="p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl glass flex items-center justify-center flex-shrink-0">
+                    <Icon name={quest.icon} size={18} className="text-zeviqo-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white">{quest.title}</p>
+                    <p className="text-[10px] text-white/40">{quest.description}</p>
+                  </div>
+                  <div className="flex flex-col gap-1 items-end">
+                    <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{quest.reward.xp}</Pill>
+                    <Pill icon="Coins" accent="text-gold-400 border-gold-500/30">+{quest.reward.coins}</Pill>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <ProgressBar value={progress} max={quest.target} className="flex-1" />
+                  <span className="text-[10px] text-white/40 font-bold whitespace-nowrap">{Math.floor(progress)}/{quest.target}</span>
+                </div>
+                {isClaimed ? (
+                  <Button variant="ghost" fullWidth disabled icon="Check">Claimed</Button>
+                ) : isComplete ? (
+                  <Button variant="gold" fullWidth icon="Gift" onClick={() => handleClaim(quest.id)}>Claim Reward</Button>
+                ) : (
+                  <Button variant="secondary" fullWidth disabled>In Progress</Button>
+                )}
+              </GlassCard>
+            );
+          })}
+        </div>
       </div>
       <BottomNav />
-    </div>
-  );
-}
-
-function QuestSection({ title, icon, quests, progress, completed, onClaim }: {
-  title: string; icon: string; quests: typeof QUESTS; progress: Record<string, number>;
-  completed: string[]; onClaim: (id: string) => void;
-}) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-2"><Icon name={icon} size={16} className="text-zeviqo-400" /><h2 className="text-sm font-bold text-white">{title}</h2></div>
-      <div className="space-y-2">
-        {quests.map(q => {
-          const current = progress[q.metric] ?? 0;
-          const isComplete = current >= q.target;
-          const claimed = completed.includes(q.id);
-          return (
-            <GlassCard key={q.id} className="p-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl glass flex items-center justify-center"><Icon name={q.icon} size={18} className="text-zeviqo-400" /></div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-white">{q.title}</p>
-                  <p className="text-[10px] text-white/40">{q.description}</p>
-                  <div className="mt-1.5"><ProgressBar value={Math.min(current, q.target)} max={q.target} height={4} /></div>
-                  <p className="text-[9px] text-white/40 mt-1">{Math.min(current, q.target)} / {q.target}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Pill icon="Zap" accent="text-gold-300 border-gold-500/30">+{q.reward.xp}</Pill>
-                  {claimed ? <Pill accent="text-emerald-300 border-emerald-500/30">Claimed</Pill> : isComplete ? <Button size="sm" onClick={() => onClaim(q.id)}>Claim</Button> : <span className="text-[9px] text-white/30">In progress</span>}
-                </div>
-              </div>
-            </GlassCard>
-          );
-        })}
-      </div>
     </div>
   );
 }

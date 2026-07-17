@@ -1,113 +1,146 @@
 import { useMemo } from 'react';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
 import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button, ProgressBar } from '../components/ui';
+import { GlassCard, Icon, Pill, Button, SectionTitle } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { getAdventureById, ADVENTURE_TYPES, DIFFICULTY_LABELS, DIFFICULTY_COLORS, CHALLENGES } from '../data';
 import { routeToLatLngs, DEFAULT_CENTER, formatDistance, formatDuration } from '../lib/map-utils';
 import { MapView, type MapMarkerData, type MapRouteData } from '../components/MapView';
 
 export function AdventureDetail() {
-  const { selectedAdventureId, setScreen, favoriteAdventures, toggleFavoriteAdventure } = useStore();
+  const { selectedAdventureId, setScreen, setSelectedAdventureObj, favoriteAdventures, toggleFavoriteAdventure } = useStore();
   const adventure = getAdventureById(selectedAdventureId ?? '');
-  const typeInfo = ADVENTURE_TYPES.find(t => t.type === adventure?.type);
-  const isFav = adventure ? favoriteAdventures.includes(adventure.id) : false;
 
-  const routeLatLngs = useMemo(() => adventure ? routeToLatLngs(adventure.route, DEFAULT_CENTER, 800) : [], [adventure]);
+  const routeLatLngs = useMemo(() => {
+    if (!adventure) return [];
+    return routeToLatLngs(adventure.route, DEFAULT_CENTER);
+  }, [adventure]);
+
   const mapMarkers: MapMarkerData[] = useMemo(() => {
-    if (routeLatLngs.length === 0) return [];
+    if (!adventure || routeLatLngs.length === 0) return [];
     return [
-      { id: 'start', position: routeLatLngs[0], type: 'start', label: 'Start', color: '#22c55e' },
-      { id: 'finish', position: routeLatLngs[routeLatLngs.length - 1], type: 'finish', label: 'Finish', color: '#fbbf24' },
+      { id: 'start', position: routeLatLngs[0], type: 'start', label: 'Start' },
+      { id: 'finish', position: routeLatLngs[routeLatLngs.length - 1], type: 'finish', label: 'Finish' },
     ];
-  }, [routeLatLngs]);
+  }, [adventure, routeLatLngs]);
+
   const mapRoutes: MapRouteData[] = useMemo(() => {
     if (routeLatLngs.length < 2) return [];
-    return [{ id: 'adv-route', positions: routeLatLngs, color: typeInfo?.color ?? '#00c4ff', weight: 4, animated: true }];
-  }, [routeLatLngs, typeInfo?.color]);
+    return [{ id: 'route', positions: routeLatLngs, color: '#00c4ff', weight: 4, animated: true }];
+  }, [routeLatLngs]);
 
   if (!adventure) {
     return (
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen flex items-center justify-center">
         <AdventureBg />
-        <TopBar title="Adventure" showBack />
-        <div className="px-6 py-20 text-center"><p className="text-sm text-white/40">Adventure not found.</p>
-        <Button className="mt-4" onClick={() => setScreen('adventures')}>Browse Adventures</Button></div>
+        <div className="relative z-10 text-center">
+          <p className="text-sm text-white/40">Adventure not found</p>
+          <Button onClick={() => setScreen('adventures')} className="mt-4">Back to Adventures</Button>
+        </div>
       </div>
     );
   }
 
+  const typeInfo = ADVENTURE_TYPES.find(t => t.type === adventure.type);
+  const isFav = favoriteAdventures.includes(adventure.id);
+  const challengeList = adventure.challenges
+    .map(id => CHALLENGES.find(c => c.id === id))
+    .filter(Boolean);
+
   return (
-    <div className="relative min-h-screen pb-24">
+    <div className="relative min-h-screen pb-8">
       <AdventureBg accent={typeInfo?.color} />
-      <TopBar title={adventure.title} showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        {/* Hero */}
-        <GlassCard className="p-4 animate-slide-up">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl" style={{ background: `${typeInfo?.color}22` }}>{adventure.emoji}</div>
-            <div className="flex-1">
-              <h2 className="text-base font-display font-bold text-white">{adventure.title}</h2>
-              <p className="text-[10px] text-white/40">{typeInfo?.label} · {DIFFICULTY_LABELS[adventure.difficulty]}</p>
-            </div>
-            <button onClick={() => toggleFavoriteAdventure(adventure.id)} className="w-9 h-9 rounded-xl glass flex items-center justify-center active:scale-90 transition-transform">
-              <Icon name="Star" size={16} className={isFav ? 'text-gold-400 fill-gold-400' : 'text-white/40'} />
+      <TopBar title="Adventure Details" showBack showCurrencies={false} />
+      <div className="relative z-10 px-4 pt-3 space-y-4">
+        <GlassCard className="p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div className="text-5xl">{adventure.emoji}</div>
+            <button
+              onClick={() => toggleFavoriteAdventure(adventure.id)}
+              className="w-9 h-9 rounded-xl glass flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <Icon name="Star" size={18} className={isFav ? 'text-gold-400' : 'text-white/30'} style={isFav ? { fill: '#fbbf24' } : undefined} />
             </button>
           </div>
-          <p className="text-xs text-white/60">{adventure.description}</p>
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <Pill icon="Route" accent="text-zeviqo-300 border-zeviqo-500/30">{formatDistance(adventure.distance)}</Pill>
-            <Pill icon="Clock" accent="text-white/50 border-white/10">{formatDuration(adventure.duration * 60)}</Pill>
-            <Pill icon="Zap" accent="text-gold-300 border-gold-500/30">+{adventure.xp} XP</Pill>
-            <Pill icon="Coins" accent="text-gold-300 border-gold-500/30">+{adventure.coins}</Pill>
-            {adventure.gems > 0 && <Pill icon="Gem" accent="text-zeviqo-300 border-zeviqo-500/30">+{adventure.gems}</Pill>}
+          <h1 className="text-xl font-display font-bold text-white mb-1">{adventure.title}</h1>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            <Pill icon={typeInfo?.icon ?? 'Compass'} accent="text-white/60 border-white/10">
+              <span style={{ color: typeInfo?.color }}>{typeInfo?.label}</span>
+            </Pill>
+            <Pill accent="text-white/60 border-white/10">
+              <span style={{ color: DIFFICULTY_COLORS[adventure.difficulty] }}>{DIFFICULTY_LABELS[adventure.difficulty]}</span>
+            </Pill>
+          </div>
+          <p className="text-sm text-white/60">{adventure.description}</p>
+          <div className="grid grid-cols-4 gap-2 mt-4">
+            <div className="glass rounded-xl p-2 text-center">
+              <Icon name="Route" size={14} className="text-zeviqo-400 mx-auto mb-1" />
+              <p className="text-xs font-bold text-white">{formatDistance(adventure.distance)}</p>
+            </div>
+            <div className="glass rounded-xl p-2 text-center">
+              <Icon name="Clock" size={14} className="text-white/50 mx-auto mb-1" />
+              <p className="text-xs font-bold text-white">{formatDuration(adventure.duration * 60)}</p>
+            </div>
+            <div className="glass rounded-xl p-2 text-center">
+              <Icon name="Zap" size={14} className="text-zeviqo-300 mx-auto mb-1" />
+              <p className="text-xs font-bold text-white">+{adventure.xp}</p>
+            </div>
+            <div className="glass rounded-xl p-2 text-center">
+              <Icon name="Coins" size={14} className="text-gold-400 mx-auto mb-1" />
+              <p className="text-xs font-bold text-white">+{adventure.coins}</p>
+            </div>
           </div>
         </GlassCard>
 
-        {/* Map preview */}
-        <div className="animate-slide-up h-48 rounded-2xl overflow-hidden glass">
-          <MapView center={DEFAULT_CENTER} zoom={15} markers={mapMarkers} routes={mapRoutes} className="h-full" />
+        <div>
+          <SectionTitle icon="Map">Route Preview</SectionTitle>
+          <GlassCard className="p-0 overflow-hidden h-48">
+            <MapView center={DEFAULT_CENTER} zoom={14} markers={mapMarkers} routes={mapRoutes} />
+          </GlassCard>
         </div>
 
-        {/* Objectives */}
-        <GlassCard className="p-4 animate-slide-up">
-          <h3 className="text-sm font-bold text-white mb-3">Objectives</h3>
-          <div className="space-y-2">
+        <div>
+          <SectionTitle icon="Target">Objectives</SectionTitle>
+          <GlassCard className="p-3 space-y-2">
             {adventure.objectives.map((obj, i) => (
               <div key={i} className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full glass flex items-center justify-center"><span className="text-[10px] font-bold text-white/40">{i + 1}</span></div>
-                <span className="text-xs text-white/60">{obj}</span>
+                <div className="w-5 h-5 rounded-full glass flex items-center justify-center flex-shrink-0">
+                  <span className="text-[9px] font-bold text-zeviqo-300">{i + 1}</span>
+                </div>
+                <p className="text-xs text-white/70">{obj}</p>
               </div>
             ))}
-          </div>
-        </GlassCard>
-
-        {/* Challenges */}
-        {adventure.challenges.length > 0 && (
-          <GlassCard className="p-4 animate-slide-up">
-            <h3 className="text-sm font-bold text-white mb-3">Challenges</h3>
-            <div className="space-y-2">
-              {adventure.challenges.map(chId => {
-                const ch = CHALLENGES.find(c => c.id === chId);
-                if (!ch) return null;
-                return (
-                  <div key={ch.id} className="flex items-center gap-3 glass rounded-xl p-3">
-                    <div className="w-8 h-8 rounded-lg bg-ember-500/20 flex items-center justify-center"><Icon name={ch.icon} size={14} className="text-ember-400" /></div>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-white">{ch.title}</p>
-                      <p className="text-[10px] text-white/40">{ch.description}</p>
-                    </div>
-                    <Pill icon="Zap" accent="text-gold-300 border-gold-500/30">+{ch.xpReward}</Pill>
-                  </div>
-                );
-              })}
-            </div>
           </GlassCard>
+        </div>
+
+        {challengeList.length > 0 && (
+          <div>
+            <SectionTitle icon="Swords">Challenges</SectionTitle>
+            <div className="space-y-2">
+              {challengeList.map(ch => ch && (
+                <GlassCard key={ch.id} className="p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg glass flex items-center justify-center flex-shrink-0">
+                    <Icon name={ch.icon} size={16} className="text-ember-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-white">{ch.title}</p>
+                    <p className="text-[10px] text-white/40">{ch.description}</p>
+                  </div>
+                  <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{ch.xpReward}</Pill>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* Start button */}
-        <Button fullWidth size="lg" icon="Play" onClick={() => setScreen('adventure-map')}>Start Adventure</Button>
+        <Button
+          fullWidth
+          size="lg"
+          icon="Play"
+          onClick={() => { setSelectedAdventureObj(adventure); setScreen('adventure-map'); }}
+        >
+          Start Adventure
+        </Button>
       </div>
     </div>
   );

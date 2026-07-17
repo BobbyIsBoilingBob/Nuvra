@@ -58,7 +58,7 @@ export function Auth() {
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-zeviqo-400/40" />
               </div>
             )}
-            <Button type="submit" fullWidth size="lg" disabled={loading} icon={loading ? undefined : mode === 'login' ? 'LogIn' : mode === 'signup' ? 'Rocket' : 'Mail'}>
+            <Button type="submit" fullWidth size="lg" disabled={loading}>
               {loading ? 'Please wait...' : mode === 'login' ? 'Log In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
             </Button>
           </form>

@@ -1,53 +1,95 @@
+import { useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button, ProgressBar, SectionTitle } from '../components/ui';
+import { TopBar, BottomNav } from '../components/BottomNav';
+import { GlassCard, Icon, Pill, Button, RarityBadge, RarityBorder, ConfirmDialog } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { SEASONAL_ITEMS, RARITY_COLORS, RARITY_LABELS } from '../cosmetics';
+import { SEASONAL_ITEMS, RARITY_COLORS, type CosmeticItem } from '../cosmetics';
 
 export function Seasonal() {
   const { ownedItems, buyItem } = useStore();
-  const { profile, updateProfile, refreshProfile } = useAuth();
-  const daysLeft = Math.max(0, 30 - Math.floor((Date.now() % 2592000000) / 86400000));
+  const { profile, updateProfile } = useAuth();
+  const [confirmItem, setConfirmItem] = useState<CosmeticItem | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleBuy(itemId: string, price: number, currency: 'coins' | 'gems') {
-    if (ownedItems.includes(itemId) || !profile) return;
-    if (currency === 'coins' && profile.coins < price) return;
-    if (currency === 'gems' && (profile.gems ?? 0) < price) return;
-    buyItem(itemId);
-    const updates = currency === 'coins' ? { coins: profile.coins - price } : { gems: (profile.gems ?? 0) - price };
-    updateProfile(updates).then(() => refreshProfile());
+  async function handleBuy(item: CosmeticItem) {
+    if (!profile) return;
+    if (ownedItems.includes(item.id)) { setConfirmItem(null); return; }
+    if (item.currency === 'coins' && profile.coins < item.price) { setError('Not enough coins.'); return; }
+    if (item.currency === 'gems' && (profile.gems ?? 0) < item.price) { setError('Not enough gems.'); return; }
+    setError(null);
+    buyItem(item.id);
+    const updates: Partial<typeof profile> = {};
+    if (item.currency === 'coins') updates.coins = profile.coins - item.price;
+    else updates.gems = (profile.gems ?? 0) - item.price;
+    await updateProfile(updates);
+    setConfirmItem(null);
   }
 
   return (
     <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#8b5cf6" />
-      <TopBar title="Seasonal Event" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        <GlassCard className="p-4 text-center">
+      <AdventureBg accent="#22c55e" />
+      <TopBar title="Seasonal Event" showCurrencies />
+      <div className="relative z-10 px-4 pt-3 space-y-4">
+        <GlassCard className="p-5 text-center">
           <div className="text-4xl mb-2">🎄</div>
           <h2 className="text-lg font-display font-bold text-white">Winter Festival</h2>
-          <p className="text-xs text-white/40 mt-1">Limited-time items available for the season.</p>
-          <div className="mt-3"><ProgressBar value={30 - daysLeft} max={30} accent="from-nova-400 to-nova-500" /></div>
-          <p className="text-[10px] text-white/40 mt-1">{daysLeft} days remaining</p>
+          <p className="text-xs text-white/40 mt-1">Limited-time items available now!</p>
+          <div className="flex justify-center mt-3">
+            <Pill icon="Clock" accent="text-ember-400 border-ember-500/30">Limited Time</Pill>
+          </div>
         </GlassCard>
+
+        {error && (
+          <GlassCard className="p-3 flex items-center gap-2 border-rose-500/20">
+            <Icon name="AlertCircle" size={14} className="text-rose-400" />
+            <p className="text-xs text-rose-300">{error}</p>
+          </GlassCard>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           {SEASONAL_ITEMS.map(item => {
-            const owned = ownedItems.includes(item.id);
-            const canAfford = profile ? (item.currency === 'coins' ? profile.coins >= item.price : (profile.gems ?? 0) >= item.price) : false;
+            const isOwned = ownedItems.includes(item.id);
             return (
-              <GlassCard key={item.id} className="p-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2" style={{ background: `${item.color}22` }}>{item.emoji}</div>
-                <p className="text-xs font-bold text-white text-center">{item.name}</p>
-                <p className="text-[10px] text-white/40 text-center mb-1">{item.description}</p>
-                <p className="text-[9px] font-bold uppercase text-center mb-2" style={{ color: RARITY_COLORS[item.rarity] }}>{RARITY_LABELS[item.rarity]}</p>
-                {owned ? <Pill accent="text-emerald-300 border-emerald-500/30 mx-auto">Owned</Pill> : <Button size="sm" fullWidth disabled={!canAfford} onClick={() => handleBuy(item.id, item.price, item.currency)} icon={item.currency === 'coins' ? 'Coins' : 'Gem'}>{item.price}</Button>}
-              </GlassCard>
+              <RarityBorder key={item.id} rarity={item.rarity}>
+                <GlassCard className="p-3">
+                  <div className="text-center mb-2">
+                    <div className="text-3xl mb-1">{item.emoji}</div>
+                    <p className="text-xs font-bold text-white">{item.name}</p>
+                  </div>
+                  <div className="flex justify-center mb-2">
+                    <RarityBadge rarity={item.rarity} size="sm" />
+                  </div>
+                  <p className="text-[10px] text-white/40 text-center mb-2 h-6">{item.description}</p>
+                  {isOwned ? (
+                    <Button variant="ghost" fullWidth disabled icon="Check">Owned</Button>
+                  ) : (
+                    <Button
+                      fullWidth
+                      size="sm"
+                      variant={item.currency === 'gems' ? 'secondary' : 'gold'}
+                      icon={item.currency === 'gems' ? 'Gem' : 'Coins'}
+                      onClick={() => setConfirmItem(item)}
+                    >
+                      {item.price}
+                    </Button>
+                  )}
+                </GlassCard>
+              </RarityBorder>
             );
           })}
         </div>
       </div>
+      <BottomNav />
+
+      <ConfirmDialog
+        visible={!!confirmItem}
+        title="Confirm Purchase"
+        message={confirmItem ? `Buy ${confirmItem.name} for ${confirmItem.price} ${confirmItem.currency}?` : ''}
+        confirmLabel="Buy"
+        onConfirm={() => confirmItem && handleBuy(confirmItem)}
+        onCancel={() => setConfirmItem(null)}
+      />
     </div>
   );
 }

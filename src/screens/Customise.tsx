@@ -1,78 +1,76 @@
+import { useMemo } from 'react';
 import { useStore } from '../store';
 import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, RarityBadge, RarityBorder, AvatarDisplay, SectionTitle } from '../components/ui';
+import { GlassCard, Icon, Button, RarityBadge, RarityBorder } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { COSMETICS, RARITY_COLORS, RARITY_LABELS, type InventoryCategory } from '../cosmetics';
+import { COSMETICS, RARITY_COLORS, type InventoryCategory } from '../cosmetics';
+
+const CATEGORIES: { key: InventoryCategory; label: string; icon: string }[] = [
+  { key: 'trails', label: 'Trails', icon: 'Sparkles' },
+  { key: 'pets', label: 'Pets', icon: 'Paw' },
+  { key: 'themes', label: 'Themes', icon: 'Palette' },
+];
 
 export function Customise() {
-  const { ownedItems } = useStore();
-  const owned = COSMETICS.filter(c => ownedItems.includes(c.id));
+  const { ownedItems, equippedItems, equipItem } = useStore();
 
-  const trails = owned.filter(c => c.category === 'trails');
-  const pets = owned.filter(c => c.category === 'pets');
-  const themes = owned.filter(c => c.category === 'themes');
+  const itemsByCategory = useMemo(() => {
+    const map: Record<InventoryCategory, typeof COSMETICS> = { trails: [], pets: [], themes: [], stickers: [], badges: [] };
+    for (const item of COSMETICS) {
+      if (ownedItems.includes(item.id)) {
+        map[item.category].push(item);
+      }
+    }
+    return map;
+  }, [ownedItems]);
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#fb923c" />
+    <div className="relative min-h-screen pb-8">
+      <AdventureBg accent="#8b5cf6" />
       <TopBar title="Customise" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        <GlassCard className="p-4 text-center">
-          <AvatarDisplay emoji="🧭" color="#00c4ff" size={64} ring />
-          <p className="text-sm font-bold text-white mt-2">Your Avatar</p>
-          <p className="text-[10px] text-white/40">Customize your appearance with owned items</p>
-        </GlassCard>
-
-        {trails.length > 0 && (
-          <GlassCard className="p-4">
-            <SectionTitle icon="Sparkles">Trails</SectionTitle>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {trails.map(t => (
-                <RarityBorder key={t.id} rarity={t.rarity} className="p-3 text-center">
-                  <div className="text-2xl">{t.emoji}</div>
-                  <p className="text-[10px] font-bold text-white mt-1">{t.name}</p>
-                  <RarityBadge rarity={t.rarity} size="sm" showLabel={false} />
-                </RarityBorder>
-              ))}
+      <div className="relative z-10 px-4 pt-3 space-y-4">
+        {CATEGORIES.map(cat => {
+          const items = itemsByCategory[cat.key];
+          if (items.length === 0) return null;
+          return (
+            <div key={cat.key}>
+              <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                <Icon name={cat.icon} size={14} className="text-zeviqo-400" />
+                {cat.label}
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {items.map(item => {
+                  const isEquipped = equippedItems[item.category] === item.id || equippedItems[item.id] === item.id;
+                  return (
+                    <RarityBorder key={item.id} rarity={item.rarity} active={isEquipped}>
+                      <GlassCard className="p-3 text-center">
+                        <div className="text-2xl mb-1">{item.emoji}</div>
+                        <p className="text-[10px] font-bold text-white truncate">{item.name}</p>
+                        <div className="flex justify-center my-1">
+                          <RarityBadge rarity={item.rarity} size="sm" showLabel={false} />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={isEquipped ? 'ghost' : 'secondary'}
+                          disabled={isEquipped}
+                          onClick={() => equipItem(item.category, item.id)}
+                        >
+                          {isEquipped ? '✓ Equipped' : 'Equip'}
+                        </Button>
+                      </GlassCard>
+                    </RarityBorder>
+                  );
+                })}
+              </div>
             </div>
-          </GlassCard>
-        )}
+          );
+        })}
 
-        {pets.length > 0 && (
-          <GlassCard className="p-4">
-            <SectionTitle icon="Users">Pets</SectionTitle>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {pets.map(p => (
-                <RarityBorder key={p.id} rarity={p.rarity} className="p-3 text-center">
-                  <div className="text-2xl">{p.emoji}</div>
-                  <p className="text-[10px] font-bold text-white mt-1">{p.name}</p>
-                  <RarityBadge rarity={p.rarity} size="sm" showLabel={false} />
-                </RarityBorder>
-              ))}
-            </div>
-          </GlassCard>
-        )}
-
-        {themes.length > 0 && (
-          <GlassCard className="p-4">
-            <SectionTitle icon="Palette">Themes</SectionTitle>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {themes.map(t => (
-                <RarityBorder key={t.id} rarity={t.rarity} className="p-3 text-center">
-                  <div className="text-2xl">{t.emoji}</div>
-                  <p className="text-[10px] font-bold text-white mt-1">{t.name}</p>
-                  <RarityBadge rarity={t.rarity} size="sm" showLabel={false} />
-                </RarityBorder>
-              ))}
-            </div>
-          </GlassCard>
-        )}
-
-        {owned.length === 0 && (
-          <GlassCard className="p-6 text-center">
-            <Icon name="Package" size={32} className="text-white/20 mx-auto mb-2" />
-            <p className="text-sm text-white/40">No items to customize.</p>
-            <p className="text-xs text-white/30 mt-1">Visit the shop to get trails, pets, and themes.</p>
+        {CATEGORIES.every(cat => itemsByCategory[cat.key].length === 0) && (
+          <GlassCard className="p-8 text-center">
+            <Icon name="ShoppingBag" size={32} className="text-white/30 mx-auto mb-2" />
+            <p className="text-sm text-white/40">No items to customise yet</p>
+            <Button variant="secondary" className="mt-3" onClick={() => useStore.getState().setScreen('shop')}>Visit Shop</Button>
           </GlassCard>
         )}
       </div>

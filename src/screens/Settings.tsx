@@ -1,74 +1,122 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { TopBar } from '../components/BottomNav';
+import { TopBar, BottomNav } from '../components/BottomNav';
 import { GlassCard, Icon, Button, ConfirmDialog } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { BottomNav } from '../components/BottomNav';
-import { loadSettings, saveSettings, DEFAULT_SETTINGS, type AppSettings } from '../lib/settings';
-import { useState, useEffect } from 'react';
+import { loadSettings, saveSettings, type AppSettings, vibrate } from '../lib/settings';
+
+function Toggle({ label, icon, value, onChange }: { label: string; icon: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between p-3 glass rounded-xl">
+      <div className="flex items-center gap-2">
+        <Icon name={icon} size={16} className="text-white/60" />
+        <span className="text-sm font-bold text-white">{label}</span>
+      </div>
+      <button
+        onClick={() => { onChange(!value); vibrate(20); }}
+        className={`w-11 h-6 rounded-full transition-all flex items-center ${value ? 'bg-zeviqo-500' : 'bg-white/10'}`}
+      >
+        <div className={`w-5 h-5 rounded-full bg-white transition-all ${value ? 'ml-5' : 'ml-0.5'}`} />
+      </button>
+    </div>
+  );
+}
 
 export function Settings() {
-  const { signOut, resetPassword, updatePassword, deleteAccount } = useAuth();
-  const { profile } = useAuth();
-  const { resetLocalState } = useStore();
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [showReset, setShowReset] = useState(false);
+  const { resetLocalState, goBack } = useStore();
+  const { signOut, resetPassword, deleteAccount } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showDelete, setShowDelete] = useState(false);
-  const [showSignOut, setShowSignOut] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
+  const [showReset, setShowReset] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => { setSettings(loadSettings()); }, []);
-  function updateSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
+  function updateSetting(key: keyof AppSettings, value: boolean | string) {
     const updated = { ...settings, [key]: value };
-    setSettings(updated); saveSettings(updated);
+    setSettings(updated);
+    saveSettings(updated);
+  }
+
+  async function handleResetPassword() {
+    const { error } = await resetPassword(''); // Will use current user's email
+    setMessage(error ? error : 'Password reset link sent to your email.');
+    setShowReset(false);
+  }
+
+  async function handleDeleteAccount() {
+    const { error } = await deleteAccount();
+    if (error) setMessage(error);
+    setShowDelete(false);
   }
 
   return (
     <div className="relative min-h-screen pb-24">
       <AdventureBg />
       <TopBar title="Settings" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        <GlassCard className="p-4 space-y-3">
-          <h3 className="text-sm font-bold text-white">Preferences</h3>
-          <ToggleRow icon="Volume2" label="Sound Effects" value={settings.soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
-          <ToggleRow icon="Vibrate" label="Haptics" value={settings.hapticsEnabled} onChange={v => updateSetting('hapticsEnabled', v)} />
-          <ToggleRow icon="BookOpen" label="Voice Guide" value={settings.voiceEnabled} onChange={v => updateSetting('voiceEnabled', v)} />
-          <ToggleRow icon="Eye" label="High Contrast" value={settings.highContrast} onChange={v => updateSetting('highContrast', v)} />
-        </GlassCard>
+      <div className="relative z-10 px-4 pt-3 space-y-4">
+        {message && (
+          <GlassCard className="p-3 flex items-center gap-2">
+            <Icon name="Info" size={14} className="text-zeviqo-400" />
+            <p className="text-xs text-white/60">{message}</p>
+          </GlassCard>
+        )}
 
-        <GlassCard className="p-4 space-y-3">
-          <h3 className="text-sm font-bold text-white">Account</h3>
-          <div className="text-xs text-white/40">Email: {profile?.username ? 'Connected' : 'Not set'}</div>
-          <Button fullWidth variant="secondary" icon="Mail" onClick={() => { setMsg(null); setShowReset(true); }}>Reset Password</Button>
-          <Button fullWidth variant="danger" icon="LogOut" onClick={() => setShowSignOut(true)}>Sign Out</Button>
-        </GlassCard>
+        <div>
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <Icon name="Volume2" size={14} className="text-zeviqo-400" />
+            Preferences
+          </h3>
+          <div className="space-y-2">
+            <Toggle label="Sound" icon="Volume2" value={settings.soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
+            <Toggle label="Haptics" icon="Vibrate" value={settings.hapticsEnabled} onChange={v => updateSetting('hapticsEnabled', v)} />
+            <Toggle label="Voice Guide" icon="User" value={settings.voiceEnabled} onChange={v => updateSetting('voiceEnabled', v)} />
+            <Toggle label="High Contrast" icon="Eye" value={settings.highContrast} onChange={v => updateSetting('highContrast', v)} />
+          </div>
+        </div>
 
-        <GlassCard className="p-4 space-y-3">
-          <h3 className="text-sm font-bold text-white">Data</h3>
-          <Button fullWidth variant="secondary" icon="Trash2" onClick={resetLocalState}>Clear Local Data</Button>
-          <Button fullWidth variant="danger" icon="AlertCircle" onClick={() => setShowDelete(true)}>Delete Account</Button>
-        </GlassCard>
+        <div>
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <Icon name="Shield" size={14} className="text-zeviqo-400" />
+            Account
+          </h3>
+          <div className="space-y-2">
+            <Button variant="secondary" fullWidth icon="Mail" onClick={() => setShowReset(true)}>Reset Password</Button>
+            <Button variant="secondary" fullWidth icon="LogOut" onClick={() => signOut()}>Sign Out</Button>
+            <Button variant="danger" fullWidth icon="Trash2" onClick={() => setShowDelete(true)}>Delete Account</Button>
+          </div>
+        </div>
 
-        {msg && <div className="glass rounded-xl px-3 py-2 text-xs text-zeviqo-300">{msg}</div>}
+        <div>
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <Icon name="Trash2" size={14} className="text-zeviqo-400" />
+            Data
+          </h3>
+          <Button variant="secondary" fullWidth icon="RotateCcw" onClick={() => { resetLocalState(); setMessage('Local data cleared.'); }}>
+            Clear Local Data
+          </Button>
+        </div>
+
+        <p className="text-center text-[10px] text-white/30 pt-4">Zeviqo v1.0.0</p>
       </div>
       <BottomNav />
 
-      <ConfirmDialog visible={showSignOut} title="Sign Out?" message="You will need to sign in again to access your adventures." confirmLabel="Sign Out" onConfirm={() => { setShowSignOut(false); signOut(); }} onCancel={() => setShowSignOut(false)} />
-      <ConfirmDialog visible={showDelete} title="Delete Account?" message="This will permanently delete your account and all data. This cannot be undone." confirmLabel="Delete" danger onConfirm={async () => { setShowDelete(false); const { error } = await deleteAccount(); if (error) setMsg(error); }} onCancel={() => setShowDelete(false)} />
-      <ConfirmDialog visible={showReset} title="Reset Password" message="Enter your email to receive a reset link." confirmLabel="Send" onConfirm={async () => { const { error } = await resetPassword(resetEmail); setShowReset(false); setMsg(error ?? 'Reset link sent!'); }} onCancel={() => setShowReset(false)} />
-    </div>
-  );
-}
-
-function ToggleRow({ icon, label, value, onChange }: { icon: string; label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2"><Icon name={icon} size={16} className="text-white/50" /><span className="text-xs text-white/70">{label}</span></div>
-      <button onClick={() => onChange(!value)} className={`w-11 h-6 rounded-full transition-colors ${value ? 'bg-zeviqo-500' : 'bg-white/10'}`}>
-        <div className={`w-5 h-5 rounded-full bg-white transition-transform ${value ? 'translate-x-5' : 'translate-x-0.5'} mt-0.5`} />
-      </button>
+      <ConfirmDialog
+        visible={showDelete}
+        title="Delete Account?"
+        message="This will permanently delete your account and all data. This cannot be undone."
+        confirmLabel="Delete Forever"
+        danger
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDelete(false)}
+      />
+      <ConfirmDialog
+        visible={showReset}
+        title="Reset Password?"
+        message="A password reset link will be sent to your email."
+        confirmLabel="Send Link"
+        onConfirm={handleResetPassword}
+        onCancel={() => setShowReset(false)}
+      />
     </div>
   );
 }

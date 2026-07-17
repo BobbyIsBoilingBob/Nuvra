@@ -11,21 +11,14 @@ export type AppSettings = {
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  soundEnabled: true,
-  hapticsEnabled: true,
-  voiceEnabled: false,
-  mapStyle: 'standard',
-  highContrast: false,
+  soundEnabled: true, hapticsEnabled: true, voiceEnabled: false, mapStyle: 'standard', highContrast: false,
 };
 
 export function loadSettings(): AppSettings {
-  try {
-    const stored = localStorage.getItem('zeviqo-settings');
-    if (stored) return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-  } catch { /* ignore */ }
+  try { const s = localStorage.getItem('zeviqo-settings'); if (s) return { ...DEFAULT_SETTINGS, ...JSON.parse(s) }; } catch { /* */ }
   return DEFAULT_SETTINGS;
 }
 
 export function saveSettings(settings: AppSettings): void {
-  try { localStorage.setItem('zeviqo-settings', JSON.stringify(settings)); } catch { /* ignore */ }
+  try { localStorage.setItem('zeviqo-settings', JSON.stringify(settings)); } catch { /* */ }
 }

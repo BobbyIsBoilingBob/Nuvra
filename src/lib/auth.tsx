@@ -68,11 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile, updateOnlineStatus, user]);
 
   const validateSignup = (email: string, password: string, username: string): string | null => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return 'Please enter a valid email address.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.';
     if (password.length < 6) return 'Password must be at least 6 characters long.';
-    if (username.length < 3) return 'Username must be at least 3 characters long.';
-    if (username.length > 20) return 'Username must be at most 20 characters long.';
+    if (username.length < 3 || username.length > 20) return 'Username must be 3-20 characters long.';
     if (!/^[a-zA-Z0-9_]+$/.test(username)) return 'Username can only contain letters, numbers, and underscores.';
     return null;
   };
@@ -83,24 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
     if (existing) return { error: 'That username is already taken. Please choose another.' };
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
-    if (error) {
-      if (error.message.includes('already registered') || error.message.includes('already been registered')) return { error: 'An account with this email already exists. Try logging in instead.' };
-      return { error: error.message };
-    }
+    if (error) return { error: error.message.includes('already registered') ? 'An account with this email already exists. Try logging in.' : error.message };
     if (data.user) { await loadProfile(data.user.id); updateOnlineStatus(data.user.id, true); }
     return { error: null };
   }, [loadProfile, updateOnlineStatus]);
 
   const signIn = useCallback(async (email: string, password: string): Promise<{ error: string | null }> => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return { error: 'Please enter a valid email address.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Please enter a valid email address.' };
     if (!password) return { error: 'Please enter your password.' };
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (error.message.includes('Invalid login') || error.message.includes('invalid')) return { error: 'Incorrect email or password. Please check your credentials and try again.' };
-      if (error.message.includes('not confirmed') || error.message.includes('Email not confirmed')) return { error: 'Your email has not been verified. Please check your inbox for a confirmation link.' };
-      return { error: error.message };
-    }
+    if (error) return { error: error.message.includes('Invalid login') ? 'Incorrect email or password.' : error.message };
     if (data.user) { await loadProfile(data.user.id); updateOnlineStatus(data.user.id, true); }
     return { error: null };
   }, [loadProfile, updateOnlineStatus]);
@@ -112,26 +102,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, updateOnlineStatus]);
 
   const resetPassword = useCallback(async (email: string): Promise<{ error: string | null }> => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return { error: 'Please enter a valid email address.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Please enter a valid email address.' };
     const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) return { error: error.message };
-    return { error: null };
+    return { error: error?.message ?? null };
   }, []);
 
   const updatePassword = useCallback(async (newPassword: string): Promise<{ error: string | null }> => {
     if (newPassword.length < 6) return { error: 'Password must be at least 6 characters long.' };
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) return { error: error.message };
-    return { error: null };
+    return { error: error?.message ?? null };
   }, []);
 
   const updateEmail = useCallback(async (newEmail: string): Promise<{ error: string | null }> => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) return { error: 'Please enter a valid email address.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return { error: 'Please enter a valid email address.' };
     const { error } = await supabase.auth.updateUser({ email: newEmail });
-    if (error) return { error: error.message };
-    return { error: null };
+    return { error: error?.message ?? null };
   }, []);
 
   const deleteAccount = useCallback(async (): Promise<{ error: string | null }> => {

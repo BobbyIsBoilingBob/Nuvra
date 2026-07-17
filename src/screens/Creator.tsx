@@ -1,57 +1,112 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Button, Pill, SectionTitle } from '../components/ui';
+import { GlassCard, Icon, Pill, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { generateAdventure, ADVENTURE_TYPES, DIFFICULTY_LABELS, type AdventureType, type Difficulty } from '../data';
+import { ADVENTURE_TYPES, DIFFICULTY_LABELS, DIFFICULTY_COLORS, generateAdventure, type AdventureType, type Difficulty } from '../data';
 
 export function Creator() {
-  const { setSelectedAdventureObj, setScreen } = useStore();
-  const [title, setTitle] = useState('');
+  const { setScreen, setSelectedAdventureObj } = useStore();
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<AdventureType>('explorer');
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [error, setError] = useState<string | null>(null);
 
   function handleCreate() {
-    const seed = Math.floor(Math.random() * 100000);
-    const adv = generateAdventure(seed, type, difficulty);
-    if (title) adv.title = title;
-    if (description) adv.description = description;
-    adv.isAI = true;
-    setSelectedAdventureObj(adv);
+    if (name.trim().length < 3) { setError('Name must be at least 3 characters.'); return; }
+    if (description.trim().length < 10) { setError('Description must be at least 10 characters.'); return; }
+    setError(null);
+    const seed = Math.floor(Math.random() * 10000) + 1;
+    const base = generateAdventure(seed, type, difficulty);
+    const custom = {
+      ...base,
+      id: `custom-${Date.now()}`,
+      title: name.trim(),
+      description: description.trim(),
+    };
+    setSelectedAdventureObj(custom);
     setScreen('adventure-preview');
   }
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#fb923c" />
+    <div className="relative min-h-screen pb-8">
+      <AdventureBg accent="#fbbf24" />
       <TopBar title="Create Adventure" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-4 space-y-4">
-        <GlassCard className="p-4">
-          <SectionTitle icon="PenTool">Adventure Name</SectionTitle>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="My Custom Adventure" className="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-zeviqo-400/40 mt-2" />
+      <div className="relative z-10 px-4 pt-3 space-y-4">
+        <GlassCard className="p-5 text-center">
+          <div className="text-4xl mb-2">🎨</div>
+          <h2 className="text-lg font-display font-bold text-white">Custom Adventure</h2>
+          <p className="text-xs text-white/40 mt-1">Design your own walking adventure</p>
         </GlassCard>
-        <GlassCard className="p-4">
-          <SectionTitle icon="BookOpen">Description</SectionTitle>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe your adventure..." rows={3} className="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-zeviqo-400/40 mt-2 resize-none" />
+
+        {error && (
+          <GlassCard className="p-3 flex items-center gap-2 border-rose-500/20">
+            <Icon name="AlertCircle" size={14} className="text-rose-400" />
+            <p className="text-xs text-rose-300">{error}</p>
+          </GlassCard>
+        )}
+
+        <GlassCard className="p-4 space-y-3">
+          <div>
+            <label className="text-xs text-white/50 font-semibold mb-1 block">Adventure Name</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="My Custom Trail"
+              maxLength={40}
+              className="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-zeviqo-400/40"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-white/50 font-semibold mb-1 block">Description</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Describe your adventure..."
+              maxLength={200}
+              rows={3}
+              className="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-zeviqo-400/40 resize-none"
+            />
+          </div>
         </GlassCard>
-        <GlassCard className="p-4">
-          <SectionTitle icon="Compass">Type</SectionTitle>
-          <div className="grid grid-cols-2 gap-2 mt-2">
+
+        <div>
+          <h3 className="text-sm font-bold text-white mb-2">Type</h3>
+          <div className="grid grid-cols-2 gap-2">
             {ADVENTURE_TYPES.map(t => (
-              <button key={t.type} onClick={() => setType(t.type)} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold ${type === t.type ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}><Icon name={t.icon} size={14} />{t.label}</button>
+              <button
+                key={t.type}
+                onClick={() => setType(t.type)}
+                className={`p-3 rounded-xl text-left transition-all ${type === t.type ? 'glass ring-2' : 'glass'}`}
+                style={type === t.type ? { borderColor: t.color + '60', boxShadow: `0 0 0 1px ${t.color}40` } : undefined}
+              >
+                <Icon name={t.icon} size={18} style={{ color: t.color }} />
+                <p className="text-xs font-bold text-white mt-1">{t.label}</p>
+              </button>
             ))}
           </div>
-        </GlassCard>
-        <GlassCard className="p-4">
-          <SectionTitle icon="Gauge">Difficulty</SectionTitle>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {(['relaxed', 'easy', 'medium', 'hard', 'extreme'] as Difficulty[]).map(d => (
-              <button key={d} onClick={() => setDifficulty(d)} className={`px-3 py-2 rounded-xl text-xs font-bold capitalize ${difficulty === d ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}>{DIFFICULTY_LABELS[d]}</button>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-white mb-2">Difficulty</h3>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => (
+              <button
+                key={d}
+                onClick={() => setDifficulty(d)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${difficulty === d ? 'glass ring-2' : 'glass'}`}
+                style={difficulty === d ? { borderColor: DIFFICULTY_COLORS[d] + '60', boxShadow: `0 0 0 1px ${DIFFICULTY_COLORS[d]}40` } : undefined}
+              >
+                <span style={{ color: difficulty === d ? DIFFICULTY_COLORS[d] : undefined }}>{DIFFICULTY_LABELS[d]}</span>
+              </button>
             ))}
           </div>
-        </GlassCard>
-        <Button fullWidth size="lg" icon="Rocket" onClick={handleCreate}>Create Adventure</Button>
+        </div>
+
+        <Button fullWidth size="lg" icon="Rocket" onClick={handleCreate}>
+          Create & Preview
+        </Button>
       </div>
     </div>
   );
