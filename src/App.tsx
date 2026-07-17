@@ -1,7 +1,8 @@
 import { useStore } from './store';
+import { useAuth } from './lib/auth';
 import { BottomNav } from './components/BottomNav';
-import { Landing } from './screens/Landing';
-import { Onboarding } from './screens/Onboarding';
+import { LoadingScreen } from './components/ui';
+import { Auth } from './screens/Auth';
 import { Home } from './screens/Home';
 import { Adventures } from './screens/Adventures';
 import { AdventureDetail } from './screens/AdventureDetail';
@@ -20,15 +21,19 @@ import { History } from './screens/History';
 import type { Screen } from './store';
 
 export default function App() {
-  const { currentScreen, hasOnboarded } = useStore();
+  const { currentScreen } = useStore();
+  const { session, profile, loading } = useAuth();
 
-  if (!hasOnboarded && currentScreen !== 'onboarding' && currentScreen !== 'landing') {
-    return <Landing />;
+  if (loading) return <LoadingScreen />;
+
+  // Not signed in — show auth screen
+  if (!session || !profile) {
+    return <Auth />;
   }
 
   const screens: Record<Screen, React.ReactElement> = {
-    landing: <Landing />,
-    onboarding: <Onboarding />,
+    landing: <Home />,
+    onboarding: <Home />,
     home: <Home />,
     adventures: <Adventures />,
     'adventure-detail': <AdventureDetail />,

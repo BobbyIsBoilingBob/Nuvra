@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { GlassCard, Icon, Pill, Button, ProgressBar, EmptyState } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
@@ -6,16 +6,12 @@ import { useStore } from '../store';
 import { DAILY_QUESTS, WEEKLY_QUESTS } from '../data';
 
 export function Quests() {
-  const { profile, questProgress, claimQuest } = useStore();
+  const { questProgress, completedQuests, claimQuest } = useStore();
   const [tab, setTab] = useState<'daily' | 'weekly'>('daily');
   const quests = tab === 'daily' ? DAILY_QUESTS : WEEKLY_QUESTS;
 
-  const getProgress = (metric: string, target: number) => {
-    const current = questProgress[metric] || 0;
-    return Math.min(current, target);
-  };
-
-  const isCompleted = (questId: string) => profile.completedQuests.includes(questId);
+  const getProgress = (metric: string, target: number) => Math.min(questProgress[metric] || 0, target);
+  const isCompleted = (questId: string) => completedQuests.includes(questId);
   const isClaimable = (questId: string, metric: string, target: number) => !isCompleted(questId) && getProgress(metric, target) >= target;
 
   return (
@@ -23,13 +19,11 @@ export function Quests() {
       <AdventureBg accent="#22c55e" />
       <div className="relative z-10">
         <TopBar title="Quests" />
-
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
           <div className="flex gap-2 p-1 glass rounded-2xl">
             <button onClick={() => setTab('daily')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${tab==='daily'?'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950':'text-white/50'}`}>Daily</button>
             <button onClick={() => setTab('weekly')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${tab==='weekly'?'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950':'text-white/50'}`}>Weekly</button>
           </div>
-
           <div className="flex flex-col gap-2">
             {quests.map(q => {
               const current = getProgress(q.metric, q.target);
@@ -57,16 +51,13 @@ export function Quests() {
                           </div>
                         </div>
                       </div>
-                      {claimable && (
-                        <Button size="sm" variant="primary" fullWidth className="mt-2" icon="Gift" onClick={() => claimQuest(q.id, q.xpReward, q.coinReward)}>Claim Reward</Button>
-                      )}
+                      {claimable && <Button size="sm" variant="primary" fullWidth className="mt-2" icon="Gift" onClick={() => claimQuest(q.id)}>Claim Reward</Button>}
                     </div>
                   </div>
                 </GlassCard>
               );
             })}
           </div>
-
           {quests.length === 0 && <EmptyState icon="Target" title="No quests" desc="Check back later for new quests!" />}
         </div>
       </div>

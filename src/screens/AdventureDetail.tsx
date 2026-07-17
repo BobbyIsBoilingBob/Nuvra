@@ -14,8 +14,7 @@ export function AdventureDetail() {
     return (
       <div className="relative min-h-screen w-full overflow-hidden pb-24">
         <AdventureBg />
-        <div className="relative z-10">
-          <TopBar title="Adventure" showBack />
+        <div className="relative z-10"><TopBar title="Adventure" showBack />
           <div className="px-4 py-8 text-center text-white/40">Adventure not found.</div>
         </div>
       </div>
@@ -38,7 +37,6 @@ export function AdventureDetail() {
       <AdventureBg accent={adventure.type === 'treasure_hunt' ? '#f5b800' : '#00c4ff'} />
       <div className="relative z-10">
         <TopBar title="Adventure Details" showBack />
-
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
           <div className="flex items-center gap-3">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zeviqo-400/20 to-plasma-500/20 flex items-center justify-center text-4xl">{adventure.emoji}</div>
@@ -51,11 +49,8 @@ export function AdventureDetail() {
               </div>
             </div>
           </div>
-
           <p className="text-sm text-white/60">{adventure.description}</p>
-
           <RoutePreview route={adventure.route} color="#00c4ff" />
-
           <div>
             <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Route Stats</h3>
             <div className="grid grid-cols-2 gap-2">
@@ -70,7 +65,6 @@ export function AdventureDetail() {
               ))}
             </div>
           </div>
-
           <div>
             <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Objectives</h3>
             <div className="flex flex-col gap-2">
@@ -84,33 +78,7 @@ export function AdventureDetail() {
               ))}
             </div>
           </div>
-
-          <div>
-            <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Rewards</h3>
-            <GlassCard className="p-4 flex items-center justify-around">
-              <div className="flex flex-col items-center gap-1">
-                <Icon name="Zap" size={20} className="text-zeviqo-300" />
-                <span className="text-sm font-bold text-zeviqo-300">+{adventure.xp}</span>
-                <span className="text-[9px] text-white/40 uppercase">XP</span>
-              </div>
-              <div className="w-px h-12 bg-white/10" />
-              <div className="flex flex-col items-center gap-1">
-                <Icon name="Coins" size={20} className="text-gold-300" />
-                <span className="text-sm font-bold text-gold-300">+{adventure.coins}</span>
-                <span className="text-[9px] text-white/40 uppercase">Coins</span>
-              </div>
-              <div className="w-px h-12 bg-white/10" />
-              <div className="flex flex-col items-center gap-1">
-                <Icon name="Gem" size={20} className="text-plasma-300" />
-                <span className="text-sm font-bold text-plasma-300">+{adventure.gems}</span>
-                <span className="text-[9px] text-white/40 uppercase">Gems</span>
-              </div>
-            </GlassCard>
-          </div>
-
-          <Button size="lg" fullWidth icon="Play" onClick={() => setScreen('adventure-map')} className="mb-4">
-            Start Adventure
-          </Button>
+          <Button size="lg" fullWidth icon="Play" onClick={() => setScreen('adventure-map')} className="mb-4">Start Adventure</Button>
         </div>
       </div>
     </div>

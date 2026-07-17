@@ -1,10 +1,10 @@
 import { Icon } from './ui';
 import { useStore, type Screen } from '../store';
-import { getLevelInfo } from '../data';
+import { useAuth } from '../lib/auth';
 
 export function TopBar({ title, showBack = false, showCurrencies = true }: { title: string; showBack?: boolean; showCurrencies?: boolean }) {
-  const { profile, setScreen } = useStore();
-  const info = getLevelInfo(profile.xp);
+  const { setScreen } = useStore();
+  const { profile } = useAuth();
   return (
     <div className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between glass-strong border-b border-white/5">
       <div className="flex items-center gap-2">
@@ -15,19 +15,15 @@ export function TopBar({ title, showBack = false, showCurrencies = true }: { tit
         )}
         <h1 className="text-base font-display font-bold text-white">{title}</h1>
       </div>
-      {showCurrencies && (
+      {showCurrencies && profile && (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 glass rounded-full px-2.5 py-1">
             <Icon name="Coins" size={12} className="text-gold-400" />
             <span className="text-xs font-bold text-gold-300">{profile.coins.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1 glass rounded-full px-2.5 py-1">
-            <Icon name="Gem" size={12} className="text-plasma-400" />
-            <span className="text-xs font-bold text-plasma-300">{profile.gems}</span>
-          </div>
-          <div className="flex items-center gap-1 glass rounded-full px-2.5 py-1">
             <Icon name="Zap" size={12} className="text-zeviqo-400" />
-            <span className="text-xs font-bold text-zeviqo-300">LV{info.level}</span>
+            <span className="text-xs font-bold text-zeviqo-300">LV{profile.level}</span>
           </div>
         </div>
       )}

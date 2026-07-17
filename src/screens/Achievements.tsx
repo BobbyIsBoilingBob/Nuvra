@@ -1,23 +1,24 @@
 import { useState, useMemo } from 'react';
-import { GlassCard, Icon, ProgressBar, EmptyState } from '../components/ui';
+import { GlassCard, Icon, ProgressBar } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
-import { useStore } from '../store';
+import { useAuth } from '../lib/auth';
 import { ACHIEVEMENTS, getLevelInfo } from '../data';
 
 export function Achievements() {
-  const { profile } = useStore();
+  const { profile } = useAuth();
   const [category, setCategory] = useState<string>('all');
-
   const categories = ['all', 'exploration', 'fitness', 'social', 'collection', 'milestones'];
+
+  if (!profile) return null;
 
   const getProgress = (a: typeof ACHIEVEMENTS[0]): number => {
     switch (a.metric) {
-      case 'distance': return profile.totalDistance;
-      case 'adventures': return profile.totalAdventures;
-      case 'streak': return profile.walkingStreak;
-      case 'treasures': return profile.totalTreasures;
-      case 'challenges': return profile.totalChallenges;
+      case 'distance': return profile.distance_walked;
+      case 'adventures': return profile.completed_adventures;
+      case 'streak': return profile.walking_streak;
+      case 'treasures': return profile.treasure_collected;
+      case 'challenges': return profile.completed_challenges;
       case 'level': return getLevelInfo(profile.xp).level;
       case 'friends': return 0;
       default: return 0;
@@ -26,7 +27,7 @@ export function Achievements() {
 
   const filtered = useMemo(() => category === 'all' ? ACHIEVEMENTS : ACHIEVEMENTS.filter(a => a.category === category), [category]);
 
-  const tierColors = {
+  const tierColors: Record<string, string> = {
     bronze: 'from-amber-600 to-amber-800',
     silver: 'from-gray-300 to-gray-500',
     gold: 'from-gold-400 to-gold-600',
@@ -38,19 +39,16 @@ export function Achievements() {
       <AdventureBg accent="#f5b800" />
       <div className="relative z-10">
         <TopBar title="Achievements" />
-
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {categories.map(c => (
               <button key={c} onClick={() => setCategory(c)} className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize whitespace-nowrap transition-all ${category===c?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{c}</button>
             ))}
           </div>
-
           <div className="flex flex-col gap-2">
             {filtered.map(a => {
               const current = getProgress(a);
-              const unlocked = profile.unlockedAchievements.includes(a.id) || current >= a.requirement;
-              const pct = Math.min(100, (current / a.requirement) * 100);
+              const unlocked = current >= a.requirement;
               return (
                 <GlassCard key={a.id} className={`p-4 ${unlocked ? '' : 'opacity-70'}`}>
                   <div className="flex items-start gap-3">

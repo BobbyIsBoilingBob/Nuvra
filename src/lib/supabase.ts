@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type Session, type User } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -29,9 +29,9 @@ export type Profile = {
   last_walk_date: string | null;
   settings: Record<string, unknown>;
   created_at: string;
-  is_online?: boolean;
-  last_seen?: string;
-  bio?: string | null;
+  is_online: boolean;
+  last_seen: string;
+  bio: string | null;
 };
 
 export type Friendship = {
@@ -42,12 +42,15 @@ export type Friendship = {
   created_at: string;
 };
 
-export type Notification = {
+export type AppNotification = {
   id: string;
   user_id: string;
+  actor_id: string | null;
   type: string;
   title: string;
   message: string;
   read: boolean;
   created_at: string;
 };
+
+export type { Session, User };

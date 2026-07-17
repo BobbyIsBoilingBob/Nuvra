@@ -3,16 +3,25 @@ import { Icon, GlassCard, Pill, Button, RewardPopup } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
+import { useAuth } from '../lib/auth';
 import { CHALLENGES } from '../data';
 
 export function Challenges() {
-  const { recordChallengeComplete, profile } = useStore();
+  const { claimedChallenges, recordChallengeComplete } = useStore();
+  const { profile, updateProfile } = useAuth();
   const [showReward, setShowReward] = useState(false);
   const [rewardData, setRewardData] = useState<Array<{ icon: string; label: string; amount: number; color: string }>>([]);
 
+  if (!profile) return null;
+
   const handleComplete = (id: string, xp: number, coins: number) => {
-    if (profile.claimedChallenges.includes(id)) return;
-    recordChallengeComplete(id, xp, coins);
+    if (claimedChallenges.includes(id)) return;
+    recordChallengeComplete(id);
+    updateProfile({
+      xp: profile.xp + xp,
+      coins: profile.coins + coins,
+      completed_challenges: profile.completed_challenges + 1
+    });
     setRewardData([
       { icon: 'Zap', label: 'XP', amount: xp, color: 'text-zeviqo-300' },
       { icon: 'Coins', label: 'Coins', amount: coins, color: 'text-gold-300' }
@@ -29,7 +38,7 @@ export function Challenges() {
         <div className="px-4 max-w-md mx-auto flex flex-col gap-3 pt-4">
           <p className="text-xs text-white/40 text-center">Complete challenges during your adventures for bonus rewards!</p>
           {CHALLENGES.map(c => {
-            const claimed = profile.claimedChallenges.includes(c.id);
+            const claimed = claimedChallenges.includes(c.id);
             return (
               <GlassCard key={c.id} className={`p-4 ${claimed ? 'opacity-50' : ''}`}>
                 <div className="flex items-start gap-3">

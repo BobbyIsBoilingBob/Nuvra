@@ -49,7 +49,7 @@ export type Achievement = {
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
 };
 
-export type Challenge = {
+export type ChallengeDef = {
   id: string;
   title: string;
   description: string;
@@ -75,6 +75,18 @@ export type DailyReward = {
   xp: number;
   item?: string;
 };
+
+export type LevelInfo = { level: number; xpIntoLevel: number; xpNeeded: number; progress: number; xpForNextLevel: number };
+
+export function getLevelInfo(xp: number): LevelInfo {
+  const level = Math.floor(Math.sqrt(xp / 100)) + 1;
+  const xpForCurrentLevel = Math.pow(level - 1, 2) * 100;
+  const xpForNextLevel = Math.pow(level, 2) * 100;
+  const xpIntoLevel = xp - xpForCurrentLevel;
+  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
+  const progress = xpNeeded > 0 ? (xpIntoLevel / xpNeeded) * 100 : 100;
+  return { level, xpIntoLevel, xpNeeded, progress, xpForNextLevel };
+}
 
 export const ADVENTURE_TYPES: { type: AdventureType; label: string; emoji: string; description: string; color: string }[] = [
   { type: 'treasure_hunt', label: 'Treasure Hunt', emoji: '🗺️', description: 'Follow clues to find hidden treasures', color: '#f5b800' },
@@ -159,7 +171,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'a15', title: 'Zeviqo Master', description: 'Reach level 25', icon: 'Crown', category: 'milestones', requirement: 25, metric: 'level', tier: 'platinum' }
 ];
 
-export const CHALLENGES: Challenge[] = [
+export const CHALLENGES: ChallengeDef[] = [
   { id: 'c1', title: 'Sprint Master', description: 'Walk 500m in under 5 minutes', difficulty: 'medium', xpReward: 150, coinReward: 300, icon: 'Zap' },
   { id: 'c2', title: 'Treasure Sprint', description: 'Find 3 treasures in one adventure', difficulty: 'hard', xpReward: 250, coinReward: 500, icon: 'Gem' },
   { id: 'c3', title: 'Combo King', description: 'Reach a 10x combo multiplier', difficulty: 'extreme', xpReward: 400, coinReward: 800, icon: 'Flame' },
@@ -182,12 +194,12 @@ export const SHOP_ITEMS: ShopItem[] = [
 const ADJECTIVES = [
   'Mystic', 'Golden', 'Hidden', 'Ancient', 'Forgotten', 'Secret', 'Crystal', 'Silver',
   'Wandering', 'Emerald', 'Twilight', 'Dawn', 'Midnight', 'Crimson', 'Frost', 'Storm',
-  'Velvet', 'Shadow', 'Radiant', 'Wild', 'Sacred', 'Lost', 'Sacred', 'Silent', 'Distant'
+  'Velvet', 'Shadow', 'Radiant', 'Wild', 'Sacred', 'Lost', 'Silent', 'Distant', 'Northern'
 ];
 const NOUNS = [
   'Trail', 'Path', 'Quest', 'Journey', 'Expedition', 'Voyage', 'Odyssey', 'Route',
   'Passage', 'Way', 'Track', 'Circuit', 'Loop', 'Trek', 'Hike', 'Stroll', 'Ramble',
-  'Wander', 'Pilgrimage', 'Safari', 'Venture', 'Excursion', 'Odyssey', 'Pursuit', 'Discovery'
+  'Wander', 'Pilgrimage', 'Safari', 'Venture', 'Excursion', 'Pursuit', 'Discovery', 'Frontier'
 ];
 
 const OBJECTIVE_TEMPLATES: Record<AdventureType, string[]> = {
@@ -205,7 +217,7 @@ const DESCRIPTION_TEMPLATES: Record<AdventureType, string[]> = {
   treasure_hunt: ['A legendary treasure awaits those brave enough to follow the clues through uncharted paths.', 'Ancient pirates buried their gold along this route. Can you find it?', 'Hidden chests are scattered across this trail. Each holds a piece of the puzzle.'],
   nature_walk: ['Immerse yourself in the beauty of nature on this tranquil trail through lush greenery.', 'A peaceful journey through forests and meadows, perfect for reconnecting with the outdoors.', 'Discover the wonders of local wildlife on this serene nature path.'],
   mystery: ['A puzzling adventure where every step reveals a new clue. Can you solve the mystery?', 'Strange occurrences have been reported along this route. Investigate if you dare.', 'An enigmatic trail filled with riddles and hidden messages waiting to be decoded.'],
-  explorer_route: ['Chart unknown territory and discover hidden gems along this explorer\'s dream route.', 'Be the first to map this uncharted path filled with surprises at every turn.', 'A true explorer\'s journey through undiscovered landmarks and secret passages.'],
+  explorer_route: ["Chart unknown territory and discover hidden gems along this explorer's dream route.", 'Be the first to map this uncharted path filled with surprises at every turn.', "An true explorer's journey through undiscovered landmarks and secret passages."],
   speed_challenge: ['Push your limits on this timed challenge. Speed is everything!', 'Race against the clock through this high-intensity speed course.', 'How fast can you go? Test your pace on this thrilling speed challenge.'],
   scenic_walk: ['Breathtaking views await on this picturesque trail designed for photography enthusiasts.', 'A visual feast of stunning landscapes and perfect photo opportunities.', 'Walk through the most beautiful scenery the area has to offer.'],
   fitness_adventure: ['Turn your walk into a workout with this calorie-burning fitness adventure.', 'Power-walk intervals and terrain challenges make this a full-body experience.', 'Elevate your heart rate and burn calories on this fitness-focused route.'],
@@ -273,8 +285,7 @@ export function generateAdventure(opts?: { type?: AdventureType; difficulty?: Di
   const terrain = terrainPool[Math.floor(rng() * terrainPool.length)];
   const route = generateRoute(rng, distance);
   return {
-    id: `gen_${seed}`,
-    type, title, description, difficulty, distance, duration, calories,
+    id: `gen_${seed}`, type, title, description, difficulty, distance, duration, calories,
     xp, coins, gems, emoji: typeInfo.emoji, theme, objectives, route, terrain
   };
 }
@@ -299,16 +310,4 @@ export function getComboTier(combo: number) {
     if (combo >= COMBO_TIERS[i].min) return COMBO_TIERS[i];
   }
   return COMBO_TIERS[0];
-}
-
-export type LevelInfo = { level: number; xpIntoLevel: number; xpNeeded: number; progress: number; xpForNextLevel: number };
-
-export function getLevelInfo(xp: number): LevelInfo {
-  const level = Math.floor(Math.sqrt(xp / 100)) + 1;
-  const xpForCurrentLevel = Math.pow(level - 1, 2) * 100;
-  const xpForNextLevel = Math.pow(level, 2) * 100;
-  const xpIntoLevel = xp - xpForCurrentLevel;
-  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
-  const progress = xpNeeded > 0 ? (xpIntoLevel / xpNeeded) * 100 : 100;
-  return { level, xpIntoLevel, xpNeeded, progress, xpForNextLevel };
 }

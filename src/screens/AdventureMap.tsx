@@ -4,11 +4,13 @@ import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { RoutePreview } from '../components/RoutePreview';
 import { useStore } from '../store';
+import { useAuth } from '../lib/auth';
 import { CURATED_ADVENTURES, getComboTier, DIFFICULTY_MULTIPLIERS } from '../data';
-import { haversineDistance, formatDistance, formatDuration } from '../lib/map-utils';
+import { formatDistance, formatDuration } from '../lib/map-utils';
 
 export function AdventureMap() {
-  const { selectedAdventure, selectedAdventureObj, setScreen, recordAdventureComplete, profile } = useStore();
+  const { selectedAdventure, selectedAdventureObj, setScreen, recordAdventureComplete } = useStore();
+  const { profile, updateProfile } = useAuth();
   const adventure = selectedAdventureObj ?? CURATED_ADVENTURES.find(a => a.id === selectedAdventure);
   const [phase, setPhase] = useState<'active' | 'complete'>('active');
   const [elapsed, setElapsed] = useState(0);
@@ -24,26 +26,19 @@ export function AdventureMap() {
     if (phase !== 'active') return;
     const tick = () => {
       setElapsed(Math.floor((Date.now() - startTime.current) / 1000));
-      setDistance(prev => {
-        const inc = 0.0008 + Math.random() * 0.0004;
-        return prev + inc;
-      });
-      if (Math.random() < 0.005) {
-        setTreasuresFound(t => t + 1);
-        setCombo(c => c + 1);
-      }
+      setDistance(prev => prev + 0.0008 + Math.random() * 0.0004);
+      if (Math.random() < 0.005) { setTreasuresFound(t => t + 1); setCombo(c => c + 1); }
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase]);
 
-  if (!adventure) {
+  if (!adventure || !profile) {
     return (
       <div className="relative min-h-screen w-full overflow-hidden pb-24">
         <AdventureBg />
-        <div className="relative z-10">
-          <TopBar title="Adventure" showBack />
+        <div className="relative z-10"><TopBar title="Adventure" showBack />
           <div className="px-4 py-8 text-center text-white/40">Adventure not found.</div>
         </div>
       </div>
@@ -52,9 +47,8 @@ export function AdventureMap() {
 
   const comboTier = getComboTier(combo);
   const diffMult = DIFFICULTY_MULTIPLIERS[adventure.difficulty];
-  const playerBonus = 1;
-  const finalXp = Math.round(adventure.xp * comboTier.multiplier * playerBonus);
-  const finalCoins = Math.round(adventure.coins * comboTier.multiplier * playerBonus);
+  const finalXp = Math.round(adventure.xp * comboTier.multiplier);
+  const finalCoins = Math.round(adventure.coins * comboTier.multiplier);
   const finalGems = adventure.gems;
 
   const handleComplete = () => {
@@ -75,6 +69,21 @@ export function AdventureMap() {
       players: [profile.username],
       challengesCompleted: []
     });
+    // Sync to Supabase profile
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    let newStreak = profile.walking_streak;
+    if (profile.last_walk_date === yesterday) newStreak += 1;
+    else if (profile.last_walk_date !== today) newStreak = 1;
+    updateProfile({
+      xp: profile.xp + finalXp,
+      coins: profile.coins + finalCoins,
+      distance_walked: profile.distance_walked + distance,
+      completed_adventures: profile.completed_adventures + 1,
+      treasure_collected: profile.treasure_collected + treasuresFound,
+      walking_streak: newStreak,
+      last_walk_date: today
+    });
     setRewardData([
       { icon: 'Zap', label: 'XP', amount: finalXp, color: 'text-zeviqo-300' },
       { icon: 'Coins', label: 'Coins', amount: finalCoins, color: 'text-gold-300' },
@@ -89,10 +98,8 @@ export function AdventureMap() {
       <RewardPopup rewards={rewardData} visible={showReward} onClose={() => { setShowReward(false); setScreen('home'); }} />
       <div className="relative z-10">
         <TopBar title={adventure.title} showBack />
-
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
           <RoutePreview route={adventure.route} color="#00c4ff" animated={false} />
-
           {phase === 'active' ? (
             <>
               <div className="grid grid-cols-3 gap-2">
@@ -112,15 +119,13 @@ export function AdventureMap() {
                   <span className="text-[9px] text-white/40 uppercase">Treasures</span>
                 </GlassCard>
               </div>
-
               {combo > 0 && (
-                <GlassCard className="p-3 flex items-center justify-center gap-2" >
+                <GlassCard className="p-3 flex items-center justify-center gap-2">
                   <Icon name="Flame" size={20} style={{ color: comboTier.color }} />
                   <span className="text-sm font-bold" style={{ color: comboTier.color }}>{comboTier.name} Combo</span>
                   <span className="text-lg font-display font-extrabold" style={{ color: comboTier.color }}>{combo}x</span>
                 </GlassCard>
               )}
-
               <div className="flex flex-col gap-2">
                 <div className="text-xs font-bold text-white/40 uppercase">Objectives</div>
                 {adventure.objectives.map((obj, i) => (
@@ -130,10 +135,7 @@ export function AdventureMap() {
                   </div>
                 ))}
               </div>
-
-              <Button size="lg" fullWidth icon="Flag" variant="secondary" onClick={handleComplete} className="mb-4">
-                Complete Adventure
-              </Button>
+              <Button size="lg" fullWidth icon="Flag" variant="secondary" onClick={handleComplete} className="mb-4">Complete Adventure</Button>
             </>
           ) : (
             <>

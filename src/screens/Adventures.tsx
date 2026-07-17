@@ -34,11 +34,7 @@ export function Adventures() {
 
   const openAdventure = (id: string) => {
     const adv = CURATED_ADVENTURES.find(a => a.id === id);
-    if (adv) {
-      setSelectedAdventure(id);
-      setSelectedAdventureObj(adv);
-      setScreen('adventure-detail');
-    }
+    if (adv) { setSelectedAdventure(id); setSelectedAdventureObj(adv); setScreen('adventure-detail'); }
   };
 
   return (
@@ -46,7 +42,6 @@ export function Adventures() {
       <AdventureBg />
       <div className="relative z-10">
         <TopBar title="Adventures" />
-
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
           <GlassCard className="p-4">
             <div className="flex items-center gap-3">
@@ -68,21 +63,17 @@ export function Adventures() {
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterType==='all'?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>All</button>
               {ADVENTURE_TYPES.map(t => (
-                <button key={t.type} onClick={() => setFilterType(t.type)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterType===t.type?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>
-                  {t.emoji} {t.label}
-                </button>
+                <button key={t.type} onClick={() => setFilterType(t.type)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterType===t.type?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{t.emoji} {t.label}</button>
               ))}
             </div>
           </div>
 
           <div>
             <div className="text-xs font-bold text-white/40 uppercase mb-2">Difficulty</div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button onClick={() => setFilterDiff('all')} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${filterDiff==='all'?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>All</button>
               {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => (
-                <button key={d} onClick={() => setFilterDiff(d)} className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${filterDiff===d?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>
-                  {DIFFICULTY_LABELS[d]}
-                </button>
+                <button key={d} onClick={() => setFilterDiff(d)} className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${filterDiff===d?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{DIFFICULTY_LABELS[d]}</button>
               ))}
             </div>
           </div>

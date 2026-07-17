@@ -1,10 +1,7 @@
 import { useState, useEffect, type ReactNode, type CSSProperties } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { APP_NAME, getLevelInfo, type LevelInfo } from '../data';
 import type { LucideIcon } from 'lucide-react';
-import { useStore } from '../store';
-
-type IconName = keyof typeof LucideIcons;
+import { APP_NAME, getLevelInfo, type LevelInfo } from '../data';
 
 export function Icon({ name, size = 20, className = '', style }: { name: string; size?: number; className?: string; style?: CSSProperties }) {
   const Comp = (LucideIcons as unknown as Record<string, LucideIcon>)[name] ?? LucideIcons.Circle;
@@ -37,9 +34,9 @@ export function Pill({ children, icon, accent = 'text-white/60 border-white/10' 
   );
 }
 
-export function Button({ children, onClick, variant = 'primary', size = 'md', fullWidth = false, icon, disabled = false, className = '' }: {
+export function Button({ children, onClick, variant = 'primary', size = 'md', fullWidth = false, icon, disabled = false, className = '', type = 'button' }: {
   children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg'; fullWidth?: boolean; icon?: string; disabled?: boolean; className?: string;
+  size?: 'sm' | 'md' | 'lg'; fullWidth?: boolean; icon?: string; disabled?: boolean; className?: string; type?: 'button' | 'submit';
 }) {
   const variants = {
     primary: 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950 font-bold shadow-lg shadow-zeviqo-500/20',
@@ -50,6 +47,7 @@ export function Button({ children, onClick, variant = 'primary', size = 'md', fu
   const sizes = { sm: 'px-3 py-1.5 text-xs rounded-lg gap-1', md: 'px-4 py-2.5 text-sm rounded-xl gap-1.5', lg: 'px-6 py-3 text-base rounded-xl gap-2' };
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`inline-flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
@@ -108,12 +106,11 @@ export function RewardPopup({ rewards, visible, onClose }: { rewards: Array<{ ic
   );
 }
 
-export function LevelBadge({ xp, size = 'md' }: { xp: number; size?: 'sm' | 'md' | 'lg' }) {
-  const info = getLevelInfo(xp);
+export function LevelBadge({ level, size = 'md' }: { level: number; size?: 'sm' | 'md' | 'lg' }) {
   const sizes = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-14 h-14 text-lg' };
   return (
     <div className={`${sizes[size]} rounded-full bg-gradient-to-br from-zeviqo-400 to-plasma-500 flex items-center justify-center font-display font-extrabold text-ink-950 shadow-lg shadow-zeviqo-500/20`}>
-      {info.level}
+      {level}
     </div>
   );
 }
@@ -129,18 +126,6 @@ export function XpBar({ xp, showText = true, className = '' }: { xp: number; sho
         </div>
       )}
       <ProgressBar value={info.xpIntoLevel} max={info.xpNeeded} />
-    </div>
-  );
-}
-
-export function StatChip({ icon, label, value, color = 'text-white' }: { icon: string; label: string; value: string | number; color?: string }) {
-  return (
-    <div className="glass rounded-xl px-3 py-2 flex items-center gap-2">
-      <Icon name={icon} size={16} className={color} />
-      <div>
-        <div className="text-[9px] font-bold uppercase text-white/40">{label}</div>
-        <div className={`text-sm font-bold ${color}`}>{value}</div>
-      </div>
     </div>
   );
 }

@@ -1,10 +1,8 @@
 import { ZeviqoLogo, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { APP_TAGLINE } from '../data';
-import { useStore } from '../store';
 
 export function Landing() {
-  const { setScreen, hasOnboarded } = useStore();
   return (
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col">
       <AdventureBg />
@@ -14,7 +12,7 @@ export function Landing() {
         <p className="text-sm text-white/50 text-center max-w-xs mb-12">
           Explore unique routes, complete quests, find treasures, and level up your walking adventures.
         </p>
-        <Button size="lg" fullWidth icon="ArrowRight" onClick={() => setScreen(hasOnboarded ? 'home' : 'onboarding')} className="max-w-xs">
+        <Button size="lg" fullWidth icon="ArrowRight" className="max-w-xs" onClick={() => {}}>
           Start Your Journey
         </Button>
       </div>
