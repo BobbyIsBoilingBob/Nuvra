@@ -3,7 +3,7 @@ import { Icon, GlassCard, Button, SectionTitle } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
-import { ADVENTURE_TYPE_META, type AdventureType } from '../data';
+import { ADVENTURE_TYPE_META, type AdventureType } from '../adventure-model';
 
 const DIFFICULTIES: { id: 'Easy' | 'Medium' | 'Hard' | 'Epic'; label: string; accent: string }[] = [
   { id: 'Easy', label: 'Easy', accent: 'from-nova-400 to-cyan-400' },

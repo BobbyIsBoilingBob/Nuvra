@@ -3,27 +3,27 @@
 // ============================================================
 
 import {
-  Adventure,
-  AdventurePreferences,
-  AdventureType,
-  Difficulty,
+  type Adventure,
+  type AdventurePreferences,
+  type AdventureType,
+  type Difficulty,
   ADVENTURE_THEMES,
-  AdventureTheme,
+  type AdventureTheme,
   CHALLENGES,
   buildAdventure,
-  MapPoint,
-  MapCheckpoint,
-  MapTreasure,
-  MapCoin,
-  ChallengeZone,
-  ChallengeZoneType,
-  TreasureRarity,
+  type MapPoint,
+  type MapCheckpoint,
+  type MapTreasure,
+  type MapCoin,
+  type ChallengeZone,
+  type ChallengeZoneType,
+  type TreasureRarity,
   TREASURE_RARITIES,
-  AdventureLength,
-  AdventureStylePref,
-  DifficultyPref,
-  RewardPriority,
-} from './data';
+  type AdventureLength,
+  type AdventureStylePref,
+  type DifficultyPref,
+  type RewardPriority,
+} from './adventure-model';
 
 // --- Random helpers ---
 

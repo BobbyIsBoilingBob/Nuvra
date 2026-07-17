@@ -10,7 +10,7 @@ import {
   BADGES,
   getLevelProgress,
   LEVELS,
-} from '../data';
+} from '../adventure-model';
 
 const CATEGORY_ACCENTS: Record<AchievementCategory, string> = {
   Explorer: 'from-nova-400 to-cyan-500',

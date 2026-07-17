@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateAdventure, type Adventure, type Difficulty, type AdventureType } from './data';
+import type { AdventurePreferences } from './adventure-model';
+import type { InventoryCategory } from './cosmetics';
 
 export type AdventureHistoryEntry = {
   id: string;
@@ -27,6 +29,25 @@ export type Screen =
   | 'quests' | 'achievements' | 'daily-rewards' | 'profile'
   | 'challenges' | 'community' | 'friends' | 'party' | 'shop' | 'settings' | 'history';
 
+export type Profile = {
+  username: string;
+  avatar: { emoji: string; color: string };
+  level: number;
+  xp: number;
+  coins: number;
+  gems: number;
+  totalDistance: number;
+  friends: number;
+  streak: number;
+  equippedTrail: string | null;
+  equippedPet: string | null;
+  equippedTheme: string | null;
+  equippedStickers: string[];
+  equippedBadges: string[];
+};
+
+export type OwnedItemEntry = { id: string; category: InventoryCategory; unlockedAt: number; favourite: boolean };
+
 type StoreState = {
   currentScreen: Screen;
   previousScreen: Screen | null;
@@ -40,8 +61,12 @@ type StoreState = {
   lastDailyRewardDate: string | null;
   dailyRewardStreak: number;
   ownedItems: string[];
+  ownedItemEntries: OwnedItemEntry[];
   questProgress: Record<string, number>;
   recentlyViewedProfiles: { id: string; username: string; avatar_emoji: string; avatar_color: string; level: number; viewedAt: number }[];
+  profile: Profile;
+  aiPrefs: AdventurePreferences;
+  onboardingComplete: boolean;
 
   setScreen: (s: Screen) => void;
   goBack: () => void;
@@ -58,6 +83,17 @@ type StoreState = {
   updateQuestProgress: (metric: string, amount: number) => void;
   addRecentlyViewedProfile: (p: { id: string; username: string; avatar_emoji: string; avatar_color: string; level: number }) => void;
   resetLocalState: () => void;
+  setProfile: (p: Partial<Profile>) => void;
+  completeOnboarding: () => void;
+  setAiPrefs: (prefs: Partial<AdventurePreferences>) => void;
+  addAdventure: (a: Adventure) => void;
+  equipTrail: (id: string | null) => void;
+  equipPet: (id: string | null) => void;
+  equipTheme: (id: string | null) => void;
+  toggleSticker: (id: string) => void;
+  toggleBadge: (id: string) => void;
+  toggleFavourite: (itemId: string) => void;
+  isOwned: (itemId: string) => boolean;
 };
 
 export const useStore = create<StoreState>()(
@@ -75,8 +111,19 @@ export const useStore = create<StoreState>()(
       lastDailyRewardDate: null,
       dailyRewardStreak: 0,
       ownedItems: [],
+      ownedItemEntries: [],
       questProgress: {},
       recentlyViewedProfiles: [],
+      profile: {
+        username: 'Explorer',
+        avatar: { emoji: '🧭', color: '#00c4ff' },
+        level: 1, xp: 0, coins: 1000, gems: 0,
+        totalDistance: 0, friends: 0, streak: 0,
+        equippedTrail: null, equippedPet: null, equippedTheme: null,
+        equippedStickers: [], equippedBadges: [],
+      },
+      aiPrefs: { length: '20-30', difficulty: 'Easy', style: 'explorer', rewardPriority: 'balanced' },
+      onboardingComplete: false,
 
       setScreen: (s) => set((state) => ({ previousScreen: state.currentScreen, currentScreen: s })),
       goBack: () => set((state) => ({ currentScreen: state.previousScreen ?? 'home' })),
@@ -152,8 +199,28 @@ export const useStore = create<StoreState>()(
       resetLocalState: () => set({
         adventureHistory: [], favoriteAdventures: [], claimedChallenges: [], completedQuests: [],
         lastDailyRewardDay: null, lastDailyRewardDate: null, dailyRewardStreak: 0,
-        ownedItems: [], questProgress: {}, recentlyViewedProfiles: [], currentScreen: 'home'
-      })
+        ownedItems: [], ownedItemEntries: [], questProgress: {}, recentlyViewedProfiles: [], currentScreen: 'home'
+      }),
+
+      setProfile: (p) => set((state) => ({ profile: { ...state.profile, ...p } })),
+      completeOnboarding: () => set({ onboardingComplete: true }),
+      setAiPrefs: (prefs) => set((state) => ({ aiPrefs: { ...state.aiPrefs, ...prefs } })),
+      addAdventure: (a) => set((state) => ({ selectedAdventureObj: a })),
+      equipTrail: (id) => set((state) => ({ profile: { ...state.profile, equippedTrail: id } })),
+      equipPet: (id) => set((state) => ({ profile: { ...state.profile, equippedPet: id } })),
+      equipTheme: (id) => set((state) => ({ profile: { ...state.profile, equippedTheme: id } })),
+      toggleSticker: (id) => set((state) => {
+        const has = state.profile.equippedStickers.includes(id);
+        return { profile: { ...state.profile, equippedStickers: has ? state.profile.equippedStickers.filter(s => s !== id) : [...state.profile.equippedStickers, id] } };
+      }),
+      toggleBadge: (id) => set((state) => {
+        const has = state.profile.equippedBadges.includes(id);
+        return { profile: { ...state.profile, equippedBadges: has ? state.profile.equippedBadges.filter(b => b !== id) : [...state.profile.equippedBadges, id] } };
+      }),
+      toggleFavourite: (itemId) => set((state) => ({
+        ownedItemEntries: state.ownedItemEntries.map(e => e.id === itemId ? { ...e, favourite: !e.favourite } : e),
+      })),
+      isOwned: (itemId) => get().ownedItems.includes(itemId),
     }),
     { name: 'zeviqo-local' }
   )

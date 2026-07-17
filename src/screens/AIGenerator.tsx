@@ -16,11 +16,11 @@ import {
   type AdventureStylePref,
   type DifficultyPref,
   type RewardPriority,
-} from '../data';
+} from '../adventure-model';
 import { generateAdventureOptions } from '../generator';
 
 export function AIGenerator(): React.ReactElement {
-  const { aiPrefs, setAiPrefs, setSelectedAdventure, setScreen, addAdventure } = useStore();
+  const { aiPrefs, setAiPrefs, setScreen, addAdventure } = useStore();
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState<Adventure[]>([]);
 
@@ -51,8 +51,7 @@ export function AIGenerator(): React.ReactElement {
   }
 
   function openAdventure(a: Adventure): void {
-    setSelectedAdventure(a);
-    addAdventure(a);
+    addAdventure(a as unknown as import('../data').Adventure);
     setScreen('adventure-detail');
   }
 
@@ -108,7 +107,7 @@ export function AIGenerator(): React.ReactElement {
                         : 'glass text-white/60 hover:text-white'
                     }`}
                   >
-                    <Icon name={opt.icon} size={14} />
+                    <Icon name="Clock" size={14} />
                     {opt.label}
                   </button>
                 );
@@ -160,7 +159,7 @@ export function AIGenerator(): React.ReactElement {
                         : 'glass text-white/60 hover:text-white'
                     }`}
                   >
-                    <Icon name={opt.icon} size={14} />
+                    <Icon name="Clock" size={14} />
                     {opt.label}
                   </button>
                 );

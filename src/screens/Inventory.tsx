@@ -54,7 +54,7 @@ const RARITY_ORDER: Record<CosmeticRarity, number> = {
 export function Inventory(): React.ReactElement {
   const {
     profile,
-    ownedItems,
+    ownedItemEntries: ownedItems,
     toggleFavourite,
     equipTrail,
     equipPet,

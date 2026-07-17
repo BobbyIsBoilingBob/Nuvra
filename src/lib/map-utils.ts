@@ -33,6 +33,43 @@ export function estimateWalkMinutes(meters: number): number {
   return Math.max(1, Math.round(meters / 80));
 }
 
+export function checkpointsToLatLngs(
+  checkpoints: { id: string; x: number; y: number; label: string; kind: string }[],
+  center: LatLng,
+  spanMeters = 800,
+): { id: string; label: string; kind: string; latlng: LatLng }[] {
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((center.lat * Math.PI) / 180);
+  const halfSpan = spanMeters / 2;
+  return checkpoints.map((c) => ({
+    id: c.id,
+    label: c.label,
+    kind: c.kind,
+    latlng: {
+      lat: center.lat + ((c.y - 50) / 50) * (halfSpan / metersPerDegLat),
+      lng: center.lng + ((c.x - 50) / 50) * (halfSpan / metersPerDegLng),
+    },
+  }));
+}
+
+export function treasuresToLatLngs(
+  treasures: { id: string; x: number; y: number; rarity: string }[],
+  center: LatLng,
+  spanMeters = 800,
+): { id: string; rarity: string; latlng: LatLng }[] {
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((center.lat * Math.PI) / 180);
+  const halfSpan = spanMeters / 2;
+  return treasures.map((t) => ({
+    id: t.id,
+    rarity: t.rarity,
+    latlng: {
+      lat: center.lat + ((t.y - 50) / 50) * (halfSpan / metersPerDegLat),
+      lng: center.lng + ((t.x - 50) / 50) * (halfSpan / metersPerDegLng),
+    },
+  }));
+}
+
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;

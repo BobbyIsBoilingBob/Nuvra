@@ -1,10 +1,27 @@
 import { useState, useEffect, type ReactNode, type CSSProperties } from 'react';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import {
+  Activity, AlertCircle, ArrowLeft, ArrowRight, Award, Bell, BookOpen,
+  CalendarClock, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Coins,
+  Compass, Crown, Eye, Flame, Footprints, Gem, Gift, Grid, History, Home,
+  Info, Lock, LogOut, Mail, Map, MapPin, Package, Palette, Pause, PenTool,
+  Play, RefreshCw, Rocket, RotateCcw, Route, Search, Settings, Shield,
+  ShoppingBag, Sparkles, Star, Swords, Target, Trash2, TrendingUp, Trophy,
+  User, UserPlus, Users, Vibrate, Volume2, X, Zap, Circle, type LucideIcon,
+} from 'lucide-react';
 import { APP_NAME, getLevelInfo, type LevelInfo } from '../data';
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  Activity, AlertCircle, ArrowLeft, ArrowRight, Award, Bell, BookOpen,
+  CalendarClock, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Coins,
+  Compass, Crown, Eye, Flame, Footprints, Gem, Gift, Grid, History, Home,
+  Info, Lock, LogOut, Mail, Map, MapPin, Package, Palette, Pause, PenTool,
+  Play, RefreshCw, Rocket, RotateCcw, Route, Search, Settings, Shield,
+  ShoppingBag, Sparkles, Star, Swords, Target, Trash2, TrendingUp, Trophy,
+  User, UserPlus, Users, Vibrate, Volume2, X, Zap, Circle,
+};
+
 export function Icon({ name, size = 20, className = '', style }: { name: string; size?: number; className?: string; style?: CSSProperties }) {
-  const Comp = (LucideIcons as unknown as Record<string, LucideIcon>)[name] ?? LucideIcons.Circle;
+  const Comp = ICON_MAP[name] ?? Circle;
   return <Comp size={size} className={className} style={style} />;
 }
 
@@ -12,24 +29,26 @@ export function GlassCard({ children, className = '', onClick }: { children: Rea
   return <div onClick={onClick} className={`glass rounded-2xl ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''} ${className}`}>{children}</div>;
 }
 
-export function ProgressBar({ value, max, className = '', colorClass = 'from-zeviqo-400 to-zeviqo-500' }: { value: number; max: number; className?: string; colorClass?: string }) {
+export function ProgressBar({ value, max, className = '', colorClass = 'from-zeviqo-400 to-zeviqo-500', accent, height }: { value: number; max: number; className?: string; colorClass?: string; accent?: string; height?: number }) {
   const pct = Math.min(100, Math.max(0, max > 0 ? (value / max) * 100 : 0));
-  return <div className={`h-2 rounded-full bg-white/10 overflow-hidden ${className}`}><div className={`h-full rounded-full bg-gradient-to-r ${colorClass} transition-all duration-500`} style={{ width: `${pct}%` }} /></div>;
+  const h = height ? `${height}px` : '0.5rem';
+  return <div className={`rounded-full bg-white/10 overflow-hidden ${className}`} style={{ height: h }}><div className={`h-full rounded-full bg-gradient-to-r ${accent ?? colorClass} transition-all duration-500`} style={{ width: `${pct}%` }} /></div>;
 }
 
-export function Pill({ children, icon, accent = 'text-white/60 border-white/10' }: { children: ReactNode; icon?: string; accent?: string }) {
-  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${accent} bg-white/5`}>{icon && <Icon name={icon} size={10} />}{children}</span>;
+export function Pill({ children, icon, accent = 'text-white/60 border-white/10', className = '' }: { children: ReactNode; icon?: string; accent?: string; className?: string }) {
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${accent} bg-white/5 ${className}`}>{icon && <Icon name={icon} size={10} />}{children}</span>;
 }
 
 export function Button({ children, onClick, variant = 'primary', size = 'md', fullWidth = false, icon, disabled = false, className = '', type = 'button' }: {
-  children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold';
   size?: 'sm' | 'md' | 'lg'; fullWidth?: boolean; icon?: string; disabled?: boolean; className?: string; type?: 'button' | 'submit';
 }) {
   const variants = {
     primary: 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950 font-bold shadow-lg shadow-zeviqo-500/20',
     secondary: 'glass-strong text-white font-bold border-white/10',
     ghost: 'text-white/60 font-semibold hover:text-white/90',
-    danger: 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30'
+    danger: 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30',
+    gold: 'bg-gradient-to-r from-gold-300 to-ember-500 text-ink-950 font-bold shadow-lg shadow-gold-500/20',
   };
   const sizes = { sm: 'px-3 py-1.5 text-xs rounded-lg gap-1', md: 'px-4 py-2.5 text-sm rounded-xl gap-1.5', lg: 'px-6 py-3 text-base rounded-xl gap-2' };
   return <button type={type} onClick={onClick} disabled={disabled} className={`inline-flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}>{icon && <Icon name={icon} size={size === 'sm' ? 14 : 16} />}{children}</button>;
@@ -98,4 +117,42 @@ export function ZeviqoLogo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const sizes = { sm: { box: 'w-8 h-8', text: 'text-lg', icon: 16 }, md: { box: 'w-12 h-12', text: 'text-2xl', icon: 24 }, lg: { box: 'w-20 h-20', text: 'text-4xl', icon: 40 } };
   const s = sizes[size];
   return <div className={`flex items-center gap-2.5 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}><div className={`${s.box} rounded-2xl bg-gradient-to-br from-zeviqo-400 via-zeviqo-500 to-plasma-500 flex items-center justify-center shadow-lg shadow-zeviqo-500/30 relative overflow-hidden`}><div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-shimmer" /><Icon name="Compass" size={s.icon} className="text-ink-950 relative z-10" /></div><span className={`font-display font-extrabold ${s.text} text-gradient-zeviqo tracking-tight`}>{APP_NAME}</span></div>;
+}
+
+export function SectionTitle({ children, icon, accent = 'text-white/60', action }: { children: ReactNode; icon?: string; accent?: string; action?: ReactNode }) {
+  return <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2">{icon && <Icon name={icon} size={16} className={accent} />}<h3 className="text-sm font-bold text-white">{children}</h3></div>{action}</div>;
+}
+
+export function RarityBadge({ rarity, size = 'md', showLabel = true }: { rarity: string; size?: 'sm' | 'md'; showLabel?: boolean }) {
+  const colors: Record<string, string> = {
+    common: 'text-slate-400 border-slate-500/30',
+    uncommon: 'text-green-400 border-green-500/30',
+    rare: 'text-nova-300 border-nova-500/30',
+    epic: 'text-plasma-300 border-plasma-500/30',
+    legendary: 'text-gold-300 border-gold-500/30',
+    mythic: 'text-rose-300 border-rose-500/30',
+  };
+  const labels: Record<string, string> = {
+    common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic',
+  };
+  const cls = colors[rarity] ?? colors.common;
+  const label = labels[rarity] ?? rarity;
+  return <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${cls} bg-white/5 ${size === 'sm' ? 'text-[8px]' : ''}`}>{showLabel && label}</span>;
+}
+
+export function RarityBorder({ children, rarity, active = false, className = '' }: { children: ReactNode; rarity: string; active?: boolean; className?: string }) {
+  const borders: Record<string, string> = {
+    common: 'border-slate-500/30',
+    uncommon: 'border-green-500/40',
+    rare: 'border-nova-500/50',
+    epic: 'border-plasma-500/50',
+    legendary: 'border-gold-500/50',
+    mythic: 'border-rose-500/50',
+  };
+  const cls = borders[rarity] ?? borders.common;
+  return <div className={`rounded-2xl border ${cls} ${active ? 'ring-2 ring-zeviqo-400/40' : ''} ${className}`}>{children}</div>;
+}
+
+export function AvatarDisplay({ emoji, color, size = 64, ring = false }: { emoji: string; color: string; size?: number; ring?: boolean }) {
+  return <div className={`rounded-2xl flex items-center justify-center ${ring ? 'ring-2 ring-zeviqo-400/40' : ''}`} style={{ width: size, height: size, background: `${color}22`, border: `1px solid ${color}44`, fontSize: size * 0.5 }}>{emoji}</div>;
 }

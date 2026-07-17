@@ -2,7 +2,7 @@ import { Icon } from './ui';
 import { useStore, type Screen } from '../store';
 import { useAuth } from '../lib/auth';
 
-export function TopBar({ title, showBack = false, showCurrencies = true }: { title: string; showBack?: boolean; showCurrencies?: boolean }) {
+export function TopBar({ title = '', showBack = false, showCurrencies = true }: { title?: string; showBack?: boolean; showCurrencies?: boolean }) {
   const { goBack } = useStore();
   const { profile } = useAuth();
   return (

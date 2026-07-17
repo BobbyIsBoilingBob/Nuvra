@@ -5,7 +5,7 @@ import { TopBar } from '../components/BottomNav';
 import { MapView, type MapMarkerData, type MapRouteData } from '../components/MapView';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useStore } from '../store';
-import { CHALLENGES, ADVENTURE_TYPE_META, TREASURE_RARITY_MAP } from '../data';
+import { CHALLENGES, ADVENTURE_TYPE_META, TREASURE_RARITY_MAP, type Adventure as AdvModel } from '../adventure-model';
 import {
   routeToLatLngs,
   checkpointsToLatLngs,
@@ -19,32 +19,32 @@ import {
 const ROUTE_SPAN_M = 800;
 
 export function AdventurePreview(): React.ReactElement {
-  const { selectedAdventure, setScreen, addAdventure } = useStore();
+  const { selectedAdventureObj, setScreen, addAdventure } = useStore();
   const geo = useGeolocation(false);
   const [saved, setSaved] = useState(false);
 
   const center: LatLng = geo.position ?? DEFAULT_CENTER;
 
   const routeLatLngs = useMemo(() => {
-    if (!selectedAdventure) return [];
-    return routeToLatLngs(selectedAdventure.routePath, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, center]);
+    if (!selectedAdventureObj) return [];
+    return routeToLatLngs((selectedAdventureObj as unknown as AdvModel).routePath, center, ROUTE_SPAN_M);
+  }, [selectedAdventureObj, center]);
 
   const checkpointLatLngs = useMemo(() => {
-    if (!selectedAdventure) return [];
-    return checkpointsToLatLngs(selectedAdventure.checkpoints, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, center]);
+    if (!selectedAdventureObj) return [];
+    return checkpointsToLatLngs((selectedAdventureObj as unknown as AdvModel).checkpoints, center, ROUTE_SPAN_M);
+  }, [selectedAdventureObj, center]);
 
   const treasureLatLngs = useMemo(() => {
-    if (!selectedAdventure) return [];
-    return treasuresToLatLngs(selectedAdventure.treasures, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, center]);
+    if (!selectedAdventureObj) return [];
+    return treasuresToLatLngs((selectedAdventureObj as unknown as AdvModel).treasures, center, ROUTE_SPAN_M);
+  }, [selectedAdventureObj, center]);
 
   const totalDistanceKm = useMemo(() => routeLengthMeters(routeLatLngs) / 1000, [routeLatLngs]);
   const walkMinutes = useMemo(() => estimateWalkMinutes(totalDistanceKm * 1000), [totalDistanceKm]);
 
   const markers: MapMarkerData[] = useMemo(() => {
-    if (!selectedAdventure) return [];
+    if (!selectedAdventureObj) return [];
     const result: MapMarkerData[] = [];
 
     for (const c of checkpointLatLngs) {
@@ -60,7 +60,7 @@ export function AdventurePreview(): React.ReactElement {
     }
 
     for (const t of treasureLatLngs) {
-      const rarity = TREASURE_RARITY_MAP[t.rarity];
+      const rarity = TREASURE_RARITY_MAP[t.rarity as keyof typeof TREASURE_RARITY_MAP];
       result.push({
         id: t.id,
         position: t.latlng,
@@ -72,7 +72,7 @@ export function AdventurePreview(): React.ReactElement {
     }
 
     return result;
-  }, [selectedAdventure, checkpointLatLngs, treasureLatLngs]);
+  }, [selectedAdventureObj, checkpointLatLngs, treasureLatLngs]);
 
   const routes: MapRouteData[] = useMemo(() => {
     if (routeLatLngs.length < 2) return [];
@@ -90,13 +90,13 @@ export function AdventurePreview(): React.ReactElement {
   }, [setScreen]);
 
   const handleSave = useCallback(() => {
-    if (selectedAdventure && !saved) {
-      addAdventure(selectedAdventure);
+    if (selectedAdventureObj && !saved) {
+      addAdventure(selectedAdventureObj);
       setSaved(true);
     }
-  }, [selectedAdventure, addAdventure, saved]);
+  }, [selectedAdventureObj, addAdventure, saved]);
 
-  if (!selectedAdventure) {
+  if (!selectedAdventureObj) {
     return (
       <div className="relative min-h-screen w-full overflow-hidden">
         <AdventureBg />
@@ -114,7 +114,7 @@ export function AdventurePreview(): React.ReactElement {
     );
   }
 
-  const adv = selectedAdventure;
+  const adv = selectedAdventureObj as unknown as AdvModel;
   const typeMeta = ADVENTURE_TYPE_META[adv.type];
   const challengeDefs = adv.challenges
     .map((id) => CHALLENGES.find((c) => c.id === id))
@@ -199,7 +199,7 @@ export function AdventurePreview(): React.ReactElement {
             <SectionTitle icon="Gem" accent="text-gold-300">Treasures</SectionTitle>
             <div className="mt-2 flex flex-col gap-2">
               {adv.treasures.map((t) => {
-                const rarity = TREASURE_RARITY_MAP[t.rarity];
+                const rarity = TREASURE_RARITY_MAP[t.rarity as keyof typeof TREASURE_RARITY_MAP];
                 return (
                   <GlassCard key={t.id} className="p-3 flex items-center gap-3">
                     <div className="text-2xl flex-shrink-0">{rarity.emoji}</div>

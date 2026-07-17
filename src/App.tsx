@@ -1,23 +1,25 @@
+import { lazy, Suspense } from 'react';
 import { useAuth } from './lib/auth';
 import { useStore } from './store';
 import { LoadingScreen } from './components/ui';
 import { Auth } from './screens/Auth';
 import { BottomNav } from './components/BottomNav';
 import { Home } from './screens/Home';
-import { Adventures } from './screens/Adventures';
-import { AdventureDetail } from './screens/AdventureDetail';
-import { AdventureMap } from './screens/AdventureMap';
-import { Quests } from './screens/Quests';
-import { Achievements } from './screens/Achievements';
-import { DailyRewards } from './screens/DailyRewards';
-import { Profile } from './screens/Profile';
-import { Challenges } from './screens/Challenges';
-import { Community } from './screens/Community';
-import { Friends } from './screens/Friends';
-import { Party } from './screens/Party';
-import { Shop } from './screens/Shop';
-import { Settings } from './screens/Settings';
-import { History } from './screens/History';
+
+const Adventures = lazy(() => import('./screens/Adventures').then(m => ({ default: m.Adventures })));
+const AdventureDetail = lazy(() => import('./screens/AdventureDetail').then(m => ({ default: m.AdventureDetail })));
+const AdventureMap = lazy(() => import('./screens/AdventureMap').then(m => ({ default: m.AdventureMap })));
+const Quests = lazy(() => import('./screens/Quests').then(m => ({ default: m.Quests })));
+const Achievements = lazy(() => import('./screens/Achievements').then(m => ({ default: m.Achievements })));
+const DailyRewards = lazy(() => import('./screens/DailyRewards').then(m => ({ default: m.DailyRewards })));
+const Profile = lazy(() => import('./screens/Profile').then(m => ({ default: m.Profile })));
+const Challenges = lazy(() => import('./screens/Challenges').then(m => ({ default: m.Challenges })));
+const Community = lazy(() => import('./screens/Community').then(m => ({ default: m.Community })));
+const Friends = lazy(() => import('./screens/Friends').then(m => ({ default: m.Friends })));
+const Party = lazy(() => import('./screens/Party').then(m => ({ default: m.Party })));
+const Shop = lazy(() => import('./screens/Shop').then(m => ({ default: m.Shop })));
+const Settings = lazy(() => import('./screens/Settings').then(m => ({ default: m.Settings })));
+const History = lazy(() => import('./screens/History').then(m => ({ default: m.History })));
 
 export default function App() {
   const { session, profile, loading } = useAuth();
@@ -43,12 +45,14 @@ export default function App() {
     party: <Party />,
     shop: <Shop />,
     settings: <Settings />,
-    history: <History />
+    history: <History />,
   };
 
   return (
     <div className="max-w-md mx-auto min-h-screen relative">
-      {screens[currentScreen] ?? <Home />}
+      <Suspense fallback={<LoadingScreen />}>
+        {screens[currentScreen] ?? <Home />}
+      </Suspense>
       {showBottomNav && <BottomNav />}
     </div>
   );
