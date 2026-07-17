@@ -1,402 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * {
-    -webkit-tap-highlight-color: transparent;
-  }
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-  body {
-    @apply bg-ink-950 text-white font-sans;
-    overscroll-behavior: none;
-    touch-action: manipulation;
-  }
-  /* Focus visible for keyboard navigation */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-nova-400/60 ring-offset-2 ring-offset-ink-950;
-  }
-  /* Custom scrollbar */
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+:root {
+  --nova-400: #33ffd6;
+  --nova-500: #00ffcc;
+  --plasma-400: #7a33ff;
+  --plasma-500: #5c00e6;
+  --gold-400: #ffcc33;
+  --gold-500: #ffbf00;
+  --ember-400: #ff8433;
+  --ember-500: #ff6600;
+  --ink-950: #070713;
+  --ink-900: #0a0a1a;
+  --ink-800: #0f0f23;
+  --ink-700: #161630;
 }
 
-@layer components {
-  .glass {
-    @apply bg-white/[0.06] backdrop-blur-md border border-white/[0.08] shadow-glass;
-  }
-  .glass-strong {
-    @apply bg-white/[0.1] backdrop-blur-xl border border-white/[0.12] shadow-glass-strong;
-  }
-  .btn-glow {
-    @apply transition-all duration-300 active:scale-95;
-  }
-  .chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border;
-  }
-  .hud-pill {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold;
-  }
-  .section-title {
-    @apply text-lg font-bold text-white tracking-tight;
-  }
-  .touch-target {
-    @apply min-w-[44px] min-h-[44px];
-  }
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
-@layer utilities {
-  .bg-grid {
-    background-image:
-      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-  .bg-radial-fade {
-    background: radial-gradient(ellipse at 50% 0%, rgba(64,245,203,0.08), transparent 60%);
-  }
-  .shimmer-text {
-    background: linear-gradient(90deg, #fff 0%, #40f5cb 25%, #fff 50%, #40f5cb 75%, #fff 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shimmer-text 3s ease-in-out infinite;
-  }
-  .shine-overlay {
-    position: relative;
-    overflow: hidden;
-  }
-  .shine-overlay::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    transform: translateX(-100%);
-    animation: shine-sweep 2.5s ease-in-out infinite;
-  }
-  .stagger-1 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.05s forwards; opacity: 0; }
-  .stagger-2 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s forwards; opacity: 0; }
-  .stagger-3 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.15s forwards; opacity: 0; }
-  .stagger-4 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.2s forwards; opacity: 0; }
-  .stagger-5 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.25s forwards; opacity: 0; }
-  .stagger-6 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s forwards; opacity: 0; }
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
 
-  /* High contrast mode */
-  .hc-mode {
-    --hc-border: 2px;
-  }
-  .hc-mode .glass,
-  .hc-mode .glass-strong {
-    @apply border-white/30 bg-white/[0.12];
-  }
-  .hc-mode .text-white\/40 { color: rgba(255,255,255,0.7) !important; }
-  .hc-mode .text-white\/50 { color: rgba(255,255,255,0.8) !important; }
-  .hc-mode .text-white\/60 { color: rgba(255,255,255,0.85) !important; }
-  .hc-mode .text-white\/30 { color: rgba(255,255,255,0.6) !important; }
+body {
+  background: var(--ink-950);
+  color: white;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
 
-  /* Reduced motion */
-  .reduce-motion *,
-  .reduce-motion *::before,
-  .reduce-motion *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+#root {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 
-  /* Large text */
-  .large-text { font-size: 1.15em; }
-  .large-text .text-xs { font-size: 0.875rem; }
-  .large-text .text-sm { font-size: 1rem; }
-  .large-text .text-base { font-size: 1.125rem; }
-  .large-text .text-lg { font-size: 1.25rem; }
-  .large-text .text-xl { font-size: 1.375rem; }
-  .large-text .text-2xl { font-size: 1.625rem; }
+/* Glass morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
 
-  /* Color-blind indicators */
-  .cb-indicator::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    margin-right: 4px;
-  }
-  .cb-common::before { background: #94a3b8; }
-  .cb-uncommon::before { background: #4ade80; box-shadow: 0 0 0 1px #fff; }
-  .cb-rare::before { background: #40f5cb; box-shadow: 0 0 0 1px #fff; }
-  .cb-epic::before { background: #a78bfa; box-shadow: 0 0 0 1px #fff; }
-  .cb-legendary::before { background: #fbbf24; box-shadow: 0 0 0 1px #fff; }
-  .cb-mythic::before { background: #f43f5e; box-shadow: 0 0 0 1px #fff; }
+.glass-strong {
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 
-  /* Skeleton loading */
-  .skeleton {
-    @apply bg-white/[0.06] rounded-xl;
-    animation: skeleton 1.5s ease-in-out infinite;
-  }
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
-  .safe-top { padding-top: env(safe-area-inset-top); }
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+/* Safe area */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 
-  /* --- Leaflet map overrides --- */
-  .leaflet-container {
-    background: #0a0e1a;
-    font-family: inherit;
-  }
-  .leaflet-control-attribution {
-    background: rgba(10, 14, 26, 0.7) !important;
-    color: rgba(255, 255, 255, 0.4) !important;
-    font-size: 9px !important;
-    backdrop-filter: blur(8px);
-    border-radius: 6px 0 0 0;
-  }
-  .leaflet-control-attribution a {
-    color: rgba(64, 245, 203, 0.6) !important;
-  }
-  .leaflet-bar a {
-    background: rgba(10, 14, 26, 0.8) !important;
-    color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(12px);
-  }
-  .leaflet-bar a:hover {
-    background: rgba(64, 245, 203, 0.2) !important;
-  }
-  .leaflet-tooltip {
-    background: rgba(10, 14, 26, 0.9) !important;
-    color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    backdrop-filter: blur(12px);
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 8px;
-  }
+/* Touch targets */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
 
-  /* --- Player marker --- */
-  .nuvra-player-marker {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform: rotate(var(--player-rot, 0deg));
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-  .nuvra-player-dot {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #40f5cb, #22d3ee);
-    border: 3px solid #0a0e1a;
-    box-shadow: 0 0 12px rgba(64, 245, 203, 0.6);
-    z-index: 3;
-  }
-  .nuvra-player-pulse {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: rgba(64, 245, 203, 0.3);
-    animation: nuvra-pulse 2s ease-out infinite;
-    z-index: 1;
-  }
-  .nuvra-player-pulse-2 {
-    animation-delay: 1s;
-  }
-  @keyframes nuvra-pulse {
-    0% { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(3.5); opacity: 0; }
-  }
+/* No select */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
 
-  /* --- Checkpoint markers --- */
-  .nuvra-cp-marker {
-    position: relative;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    transition: transform 0.2s ease;
-  }
-  .nuvra-cp-marker:hover {
-    transform: scale(1.15);
-  }
-  .nuvra-cp-emoji {
-    font-size: 14px;
-    line-height: 1;
-  }
-  .nuvra-cp-pulse {
-    animation: nuvra-cp-pulse-anim 2s ease-in-out infinite;
-  }
-  @keyframes nuvra-cp-pulse-anim {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(64, 245, 203, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(64, 245, 203, 0); }
-  }
-  .nuvra-cp-check {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #22c55e;
-    color: white;
-    font-size: 9px;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #0a0e1a;
-  }
+/* No scrollbar */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
-  /* --- Treasure markers --- */
-  .nuvra-treasure-marker {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    border: 2px solid rgba(251, 191, 36, 0.5);
-  }
-  .nuvra-treasure-glow {
-    background: rgba(251, 191, 36, 0.15);
-    animation: nuvra-treasure-glow-anim 1.5s ease-in-out infinite;
-  }
-  @keyframes nuvra-treasure-glow-anim {
-    0%, 100% { box-shadow: 0 0 4px rgba(251, 191, 36, 0.4); transform: scale(1); }
-    50% { box-shadow: 0 0 16px rgba(251, 191, 36, 0.8); transform: scale(1.1); }
-  }
-  .nuvra-treasure-collected {
-    background: rgba(34, 197, 94, 0.2);
-    border-color: rgba(34, 197, 94, 0.5);
-    font-size: 12px;
-    color: #22c55e;
-  }
+/* Text gradient */
+.text-gradient {
+  background: linear-gradient(135deg, var(--nova-400), var(--plasma-400));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
-  /* --- Coin markers --- */
-  .nuvra-coin-marker {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #fbbf24, #fb923c);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    color: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
-  }
-  .nuvra-coin-collected {
-    display: none;
-  }
-
-  /* --- Event markers --- */
-  .nuvra-event-marker {
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    background: rgba(10, 14, 26, 0.8);
-    border: 2px solid;
-    backdrop-filter: blur(8px);
-    animation: nuvra-event-bounce 3s ease-in-out infinite;
-  }
-  @keyframes nuvra-event-bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
-  }
-
-  /* --- Route animation --- */
-  .leaflet-overlay-pane path.nuvra-route-draw {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 1000;
-    animation: nuvra-route-draw 1.5s ease-out forwards;
-  }
-  @keyframes nuvra-route-draw {
-    to { stroke-dashoffset: 0; }
-  }
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes slide-up {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-
-  /* Reduced motion for map */
-  .reduce-motion .nuvra-player-pulse,
-  .reduce-motion .nuvra-cp-pulse,
-  .reduce-motion .nuvra-treasure-glow,
-  .reduce-motion .nuvra-event-marker {
-    animation: none !important;
-  }
-
-  /* --- Multiplayer player markers --- */
-  .nuvra-mp-marker {
-    position: relative;
-    width: 44px;
-    height: 56px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: transform 0.3s ease-out;
-  }
-  .nuvra-mp-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #a78bfa, #40f5cb);
-    border: 2px solid rgba(10, 14, 26, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-  .nuvra-mp-badge {
-    position: absolute;
-    top: -2px;
-    right: 0px;
-    background: rgba(64, 245, 203, 0.9);
-    color: #0a0e1a;
-    font-size: 8px;
-    font-weight: 900;
-    padding: 1px 4px;
-    border-radius: 6px;
-    line-height: 1;
-  }
-  .nuvra-mp-name {
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(10, 14, 26, 0.8);
-    color: white;
-    font-size: 9px;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
-    backdrop-filter: blur(4px);
-  }
+/* Line clamp */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

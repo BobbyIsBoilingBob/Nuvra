@@ -1,162 +1,121 @@
-import { Icon, GlassCard, Button, Pill, SectionTitle } from '../components/ui';
+import { useMemo } from 'react';
+import { Icon, GlassCard, Pill, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
-import { CHALLENGES, ADVENTURE_TYPE_META, TREASURE_RARITY_MAP } from '../data';
+import { ADVENTURES } from '../data';
 
 export function AdventureDetail(): React.ReactElement {
-  const { selectedAdventure, setScreen } = useStore();
+  const { selectedAdventureId, setScreen, recordAdventureComplete } = useStore();
+  const adventure = useMemo(() => ADVENTURES.find((a) => a.id === selectedAdventureId), [selectedAdventureId]);
 
-  if (!selectedAdventure) {
+  if (!adventure) {
     return (
       <div className="relative min-h-screen w-full overflow-hidden">
         <AdventureBg />
-        <TopBar showBack showCurrencies />
-        <div className="relative z-10 px-4 max-w-md mx-auto flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-4 text-white/40">
-            <Icon name="Compass" size={32} />
+        <div className="relative z-10">
+          <TopBar showBack title="Adventure" />
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm text-white/40">Adventure not found</p>
+            <Button variant="secondary" className="mt-4" onClick={() => setScreen('adventures')}>Back to Adventures</Button>
           </div>
-          <h3 className="text-base font-bold text-white mb-1">No adventure selected</h3>
-          <p className="text-sm text-white/50 mb-5">Choose an adventure to view its details.</p>
-          <Button variant="secondary" icon="ArrowLeft" onClick={() => setScreen('adventures')}>
-            Browse Adventures
-          </Button>
         </div>
       </div>
     );
   }
 
-  const adv = selectedAdventure;
-  const typeMeta = ADVENTURE_TYPE_META[adv.type];
-  const challengeDefs = adv.challenges
-    .map((id) => CHALLENGES.find((c) => c.id === id))
-    .filter((c): c is NonNullable<typeof c> => c != null);
+  const handleStart = () => {
+    setScreen('adventure-map');
+  };
 
-  const stats = [
-    { icon: 'Footprints', label: 'Distance', value: `${adv.distanceKm} km`, accent: 'text-nova-300' },
-    { icon: 'Clock', label: 'Duration', value: `${adv.durationMin} min`, accent: 'text-cyan-300' },
-    { icon: 'Zap', label: 'XP', value: `+${adv.xpReward}`, accent: 'text-gold-300' },
-    { icon: 'Coins', label: 'Coins', value: `+${adv.coinReward}`, accent: 'text-ember-300' },
-  ];
+  const handleQuickComplete = () => {
+    recordAdventureComplete(adventure.id, adventure.xpReward, adventure.coinReward, adventure.gemReward, false);
+    setScreen('home');
+  };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#40f5cb" />
-
+      <AdventureBg accent="#33ffd6" />
       <div className="relative z-10">
-        <TopBar showBack showCurrencies />
+        <TopBar showBack title="Adventure" showCurrencies />
 
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-5">
-          {/* Hero image */}
-          <div className="relative h-56 rounded-2xl overflow-hidden">
-            <img
-              src={adv.image}
-              alt={adv.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent" />
-            <div className="absolute top-3 left-3 flex gap-2">
-              <Pill icon={typeMeta.icon} accent={`text-white border-white/20 bg-ink-950/60`}>
-                {typeMeta.label}
-              </Pill>
-              <Pill icon="Flame" accent="text-ember-300 border-ember-500/40 bg-ink-950/60">
-                {adv.difficulty}
-              </Pill>
+        <div className="px-4 max-w-md mx-auto flex flex-col gap-4">
+          {/* Hero */}
+          <GlassCard className="p-6 text-center">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-plasma-400 to-nova-500 flex items-center justify-center text-5xl mx-auto mb-4 shadow-glow">
+              {adventure.emoji}
             </div>
-            <div className="absolute bottom-3 left-3 right-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-2xl">{adv.emoji}</span>
-                <h2 className="text-xl font-extrabold text-white">{adv.name}</h2>
+            <h2 className="text-xl font-black text-white">{adventure.name}</h2>
+            <p className="text-sm text-white/50 mt-2 leading-relaxed">{adventure.description}</p>
+          </GlassCard>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-2">
+            <GlassCard className="p-3 flex items-center gap-2">
+              <Icon name="MapPin" size={18} className="text-cyan-300" />
+              <div>
+                <div className="text-[10px] font-bold uppercase text-white/40">Distance</div>
+                <div className="text-sm font-black text-white">{adventure.distanceKm} km</div>
               </div>
-            </div>
+            </GlassCard>
+            <GlassCard className="p-3 flex items-center gap-2">
+              <Icon name="Clock" size={18} className="text-white/60" />
+              <div>
+                <div className="text-[10px] font-bold uppercase text-white/40">Duration</div>
+                <div className="text-sm font-black text-white">{adventure.durationMin} min</div>
+              </div>
+            </GlassCard>
+            <GlassCard className="p-3 flex items-center gap-2">
+              <Icon name="Gauge" size={18} className="text-ember-300" />
+              <div>
+                <div className="text-[10px] font-bold uppercase text-white/40">Difficulty</div>
+                <div className="text-sm font-black text-white">{adventure.difficulty}</div>
+              </div>
+            </GlassCard>
+            <GlassCard className="p-3 flex items-center gap-2">
+              <Icon name="Tag" size={18} className="text-plasma-300" />
+              <div>
+                <div className="text-[10px] font-bold uppercase text-white/40">Theme</div>
+                <div className="text-sm font-black text-white capitalize">{adventure.theme}</div>
+              </div>
+            </GlassCard>
           </div>
 
-          {/* Description */}
-          <p className="text-sm text-white/70 leading-relaxed">{adv.description}</p>
-
-          {/* Stats grid */}
-          <div className="grid grid-cols-4 gap-3">
-            {stats.map((s) => (
-              <div key={s.label} className="flex flex-col items-center gap-1.5 text-center">
-                <div className={`w-9 h-9 rounded-xl glass flex items-center justify-center ${s.accent}`}>
-                  <Icon name={s.icon} size={16} />
-                </div>
-                <div className="text-sm font-bold text-white">{s.value}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">{s.label}</div>
+          {/* Rewards */}
+          <GlassCard className="p-4">
+            <div className="text-xs font-black uppercase tracking-wider text-white/60 mb-3">Rewards</div>
+            <div className="flex items-center justify-around">
+              <div className="flex items-center gap-2">
+                <Icon name="Zap" size={20} className="text-nova-300" />
+                <span className="text-sm font-black text-white">+{adventure.xpReward}</span>
+                <span className="text-xs text-white/40">XP</span>
               </div>
-            ))}
+              <div className="w-px h-8 bg-white/10" />
+              <div className="flex items-center gap-2">
+                <Icon name="Coins" size={20} className="text-gold-300" />
+                <span className="text-sm font-black text-white">+{adventure.coinReward}</span>
+              </div>
+              {adventure.gemReward > 0 && (
+                <>
+                  <div className="w-px h-8 bg-white/10" />
+                  <div className="flex items-center gap-2">
+                    <Icon name="Gem" size={20} className="text-plasma-400" />
+                    <span className="text-sm font-black text-white">+{adventure.gemReward}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </GlassCard>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            <Button variant="primary" size="lg" fullWidth icon="Play" onClick={handleStart}>
+              Start Adventure
+            </Button>
+            <Button variant="secondary" size="md" fullWidth icon="Users" onClick={() => setScreen('party')}>
+              Create Party
+            </Button>
           </div>
-
-          {/* Challenges */}
-          {challengeDefs.length > 0 && (
-            <div>
-              <SectionTitle icon="Swords" accent="text-ember-300">
-                Challenges
-              </SectionTitle>
-              <div className="mt-3 flex flex-col gap-2">
-                {challengeDefs.map((c) => (
-                  <GlassCard key={c.id} className="p-3 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.accent} flex items-center justify-center flex-shrink-0`}>
-                      <Icon name={c.icon} size={18} className="text-ink-950" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-white">{c.title}</h4>
-                      <p className="text-xs text-white/50 truncate">{c.description}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Pill accent="text-ember-300 border-ember-500/30">{c.difficulty}</Pill>
-                      <span className="text-xs font-bold text-gold-300">+{c.baseReward}</span>
-                    </div>
-                  </GlassCard>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Rewards preview */}
-          {adv.treasures.length > 0 && (
-            <div>
-              <SectionTitle icon="Gem" accent="text-gold-300">
-                Rewards Preview
-              </SectionTitle>
-              <div className="mt-3 flex flex-col gap-2">
-                {adv.treasures.map((t) => {
-                  const rarity = TREASURE_RARITY_MAP[t.rarity];
-                  return (
-                    <GlassCard key={t.id} className="p-3 flex items-center gap-3">
-                      <div className="text-2xl flex-shrink-0">{rarity.emoji}</div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-white capitalize">{t.rarity} Treasure</h4>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-gold-300 font-bold">+{t.coins} coins</span>
-                          <span className="text-xs text-white/30">·</span>
-                          <span className="text-xs text-nova-300 font-bold">+{t.xp} XP</span>
-                        </div>
-                      </div>
-                      <span
-                        className="px-2.5 py-1 rounded-full text-xs font-bold border"
-                        style={{ color: rarity.color, borderColor: `${rarity.color}40` }}
-                      >
-                        {rarity.label}
-                      </span>
-                    </GlassCard>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Start button */}
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            icon="Play"
-            onClick={() => setScreen('adventure-preview')}
-          >
-            Preview & Start
-          </Button>
         </div>
       </div>
     </div>

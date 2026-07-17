@@ -1,5 +1,5 @@
 // ============================================================
-// Nuvra Data Layer — Core Types, Game Data, Phase 7+9+10
+// Nuvra Data Layer — Core Types, Game Data, Progression
 // ============================================================
 
 // --- Screen Type ---
@@ -7,9 +7,41 @@ export type Screen =
   | 'landing' | 'onboarding' | 'home' | 'adventures' | 'adventure-detail'
   | 'adventure-preview' | 'adventure-map' | 'ai-generator' | 'challenges' | 'rewards' | 'community'
   | 'creator' | 'profile' | 'customise' | 'shop' | 'inventory' | 'seasonal'
-  | 'settings' | 'friends' | 'party';
+  | 'settings' | 'friends' | 'party' | 'quests' | 'achievements' | 'daily-rewards';
 
-// --- AI Adventure Preferences ---
+// --- Level / XP System ---
+export interface LevelInfo {
+  level: number;
+  xp: number;
+  xpForNext: number;
+  xpIntoLevel: number;
+  progress: number;
+  title: string;
+}
+
+const LEVEL_TITLES = [
+  'Wanderer', 'Explorer', 'Trailblazer', 'Pathfinder', 'Adventurer',
+  'Voyager', 'Pioneer', 'Trail Seeker', 'Journeyman', 'Cartographer',
+  'Wayfinder', 'Nomad', 'Ranger', 'Scout', 'Guide',
+  'Trail Master', 'Expeditionist', 'Path Lord', 'Legend', 'Mythic Explorer',
+];
+
+export function getLevelInfo(totalXp: number): LevelInfo {
+  const level = Math.floor(Math.sqrt(totalXp / 100)) + 1;
+  const xpForCurrent = (level - 1) ** 2 * 100;
+  const xpForNext = level ** 2 * 100;
+  const xpIntoLevel = totalXp - xpForCurrent;
+  const xpNeeded = xpForNext - xpForCurrent;
+  const progress = (xpIntoLevel / xpNeeded) * 100;
+  const title = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)] ?? 'Mythic Explorer';
+  return { level, xp: totalXp, xpForNext: xpForNext, xpIntoLevel, progress, title };
+}
+
+export function xpForLevel(level: number): number {
+  return (level - 1) ** 2 * 100;
+}
+
+// --- Adventure Types ---
 export type AdventureLength = '10-15' | '20-30' | '30-45' | '45-60' | '60+';
 export type AdventureStylePref = 'explorer' | 'treasure_hunter' | 'relaxed' | 'fitness' | 'story' | 'challenge';
 export type DifficultyPref = 'Relaxed' | 'Easy' | 'Medium' | 'Hard' | 'Extreme';
@@ -23,10 +55,10 @@ export interface AdventurePreferences {
 }
 
 export const LENGTH_OPTIONS = [
-  { id: '10-15' as const, label: '10–15 min', icon: 'Zap' },
-  { id: '20-30' as const, label: '20–30 min', icon: 'Clock' },
-  { id: '30-45' as const, label: '30–45 min', icon: 'Clock' },
-  { id: '45-60' as const, label: '45–60 min', icon: 'Clock' },
+  { id: '10-15' as const, label: '10-15 min', icon: 'Zap' },
+  { id: '20-30' as const, label: '20-30 min', icon: 'Clock' },
+  { id: '30-45' as const, label: '30-45 min', icon: 'Clock' },
+  { id: '45-60' as const, label: '45-60 min', icon: 'Clock' },
   { id: '60+' as const, label: '60+ min', icon: 'Mountain' },
 ];
 
@@ -58,698 +90,268 @@ export const REWARD_PRIORITY_OPTIONS = [
 // --- Adventure Themes ---
 export interface AdventureTheme {
   id: string; name: string; emoji: string; accent: string;
-  challengeTypes: ChallengeCategory[]; rewardBias: RewardPriority;
-  namePrefixes: string[]; nameSuffixes: string[]; descTemplates: string[];
 }
 
 export const ADVENTURE_THEMES: AdventureTheme[] = [
-  {
-    id: 'lost_explorer', name: 'Lost Explorer', emoji: '🧭', accent: 'from-nova-400 to-cyan-500',
-    challengeTypes: ['explorer', 'precision'], rewardBias: 'exploration',
-    namePrefixes: ['Forgotten', 'Hidden', 'Lost', 'Ancient', 'Mystic'],
-    nameSuffixes: ['Trail', 'Path', 'Route', 'Way', 'Passage'],
-    descTemplates: [
-      'A forgotten route through uncharted territory awaits.',
-      'Legends speak of a path lost to time. Will you find it?',
-      'Explore the unknown and discover what lies beyond.',
-    ],
-  },
-  {
-    id: 'hidden_treasure', name: 'Hidden Treasure', emoji: '💎', accent: 'from-gold-300 to-ember-500',
-    challengeTypes: ['treasure', 'precision'], rewardBias: 'rare_items',
-    namePrefixes: ['Golden', 'Jeweled', 'Secret', 'Buried', 'Cursed'],
-    nameSuffixes: ['Cache', 'Vault', 'Stash', 'Hoard', 'Treasure'],
-    descTemplates: [
-      'A legendary treasure lies hidden somewhere nearby.',
-      'Follow the clues to uncover a fortune in gems.',
-      'X marks the spot — but can you reach it?',
-    ],
-  },
-  {
-    id: 'mountain_expedition', name: 'Mountain Expedition', emoji: '⛰️', accent: 'from-slate-400 to-nova-500',
-    challengeTypes: ['endurance', 'balance', 'speed'], rewardBias: 'xp',
-    namePrefixes: ['Summit', 'Peak', 'Alpine', 'Highland', 'Ridge'],
-    nameSuffixes: ['Ascent', 'Climb', 'Trek', 'Expedition', 'Challenge'],
-    descTemplates: [
-      'Conquer the mountain on this challenging expedition.',
-      'The summit calls — will you answer?',
-      'A breathtaking climb with rewards to match.',
-    ],
-  },
-  {
-    id: 'city_discovery', name: 'City Discovery', emoji: '🏙️', accent: 'from-plasma-400 to-nova-500',
-    challengeTypes: ['explorer', 'speed', 'decision'], rewardBias: 'balanced',
-    namePrefixes: ['Urban', 'Neon', 'Metro', 'Downtown', 'City'],
-    nameSuffixes: ['Maze', 'Circuit', 'Loop', 'Hunt', 'Discovery'],
-    descTemplates: [
-      'Discover the hidden gems of your city.',
-      'Every street has a story. What will you find?',
-      'Navigate the urban jungle on this discovery adventure.',
-    ],
-  },
-  {
-    id: 'nature_escape', name: 'Nature Escape', emoji: '🌿', accent: 'from-green-400 to-nova-500',
-    challengeTypes: ['explorer', 'balance'], rewardBias: 'exploration',
-    namePrefixes: ['Forest', 'Meadow', 'River', 'Wild', 'Green'],
-    nameSuffixes: ['Walk', 'Trail', 'Wander', 'Escape', 'Retreat'],
-    descTemplates: [
-      'Escape into nature on this peaceful trail.',
-      'Breathe deep and let nature guide you.',
-      'A serene journey through green landscapes.',
-    ],
-  },
-  {
-    id: 'weekend_wanderer', name: 'Weekend Wanderer', emoji: '🚶', accent: 'from-nova-400 to-cyan-400',
-    challengeTypes: ['explorer', 'decision'], rewardBias: 'balanced',
-    namePrefixes: ['Weekend', 'Casual', 'Easy', 'Sunday', 'Leisure'],
-    nameSuffixes: ['Stroll', 'Wander', 'Walk', 'Loop', 'Ramble'],
-    descTemplates: [
-      'A perfect weekend wander for the casual explorer.',
-      'Take it easy on this leisurely stroll.',
-      'No pressure, no rush — just you and the path.',
-    ],
-  },
-  {
-    id: 'sunset_journey', name: 'Sunset Journey', emoji: '🌅', accent: 'from-ember-400 to-rose-500',
-    challengeTypes: ['explorer', 'endurance'], rewardBias: 'xp',
-    namePrefixes: ['Sunset', 'Golden', 'Twilight', 'Dusk', 'Evening'],
-    nameSuffixes: ['Journey', 'Walk', 'Promenade', 'Drift', 'Voyage'],
-    descTemplates: [
-      'Chase the sunset on this golden hour journey.',
-      'The sky is painted gold — perfect for a walk.',
-      'End your day with a breathtaking sunset adventure.',
-    ],
-  },
-  {
-    id: 'ancient_route', name: 'Ancient Route', emoji: '🏛️', accent: 'from-gold-400 to-ember-600',
-    challengeTypes: ['explorer', 'treasure', 'decision'], rewardBias: 'rare_items',
-    namePrefixes: ['Ancient', 'Old', 'Historic', 'Forgotten', 'Eternal'],
-    nameSuffixes: ['Route', 'Road', 'Way', 'Path', 'Pilgrimage'],
-    descTemplates: [
-      'Walk in the footsteps of ancients on this historic route.',
-      'Centuries of history await on this ancient path.',
-      'Discover ruins and relics on this timeless journey.',
-    ],
-  },
-  {
-    id: 'urban_treasure_hunt', name: 'Urban Treasure Hunt', emoji: '🔍', accent: 'from-plasma-400 to-gold-500',
-    challengeTypes: ['treasure', 'speed', 'precision'], rewardBias: 'rare_items',
-    namePrefixes: ['Urban', 'Street', 'Alley', 'Rooftop', 'Underground'],
-    nameSuffixes: ['Hunt', 'Search', 'Quest', 'Pursuit', 'Chase'],
-    descTemplates: [
-      'A fast-paced treasure hunt through city streets.',
-      'Clues are everywhere — can you piece them together?',
-      'Race against time to claim the urban treasure.',
-    ],
-  },
-  {
-    id: 'morning_sprint', name: 'Morning Sprint', emoji: '☀️', accent: 'from-gold-300 to-ember-400',
-    challengeTypes: ['speed', 'endurance'], rewardBias: 'xp',
-    namePrefixes: ['Morning', 'Dawn', 'Sunrise', 'Early', 'Fresh'],
-    nameSuffixes: ['Sprint', 'Dash', 'Burst', 'Charge', 'Run'],
-    descTemplates: [
-      'Start your day with an energizing morning sprint.',
-      'Beat the sunrise on this fast-paced adventure.',
-      'A quick burst of exploration to wake you up.',
-    ],
-  },
+  { id: 'forest', name: 'Forest Trail', emoji: '🌲', accent: '#22c55e' },
+  { id: 'urban', name: 'Urban Explorer', emoji: '🏙️', accent: '#3b82f6' },
+  { id: 'coastal', name: 'Coastal Path', emoji: '🌊', accent: '#06b6d4' },
+  { id: 'mountain', name: 'Mountain Trek', emoji: '⛰️', accent: '#a78bfa' },
+  { id: 'park', name: 'Park Walk', emoji: '🌿', accent: '#84cc16' },
+  { id: 'mystery', name: 'Mystery Route', emoji: '🔍', accent: '#f59e0b' },
 ];
 
-// --- Challenge System (Phase 7) ---
-export type ChallengeCategory = 'explorer' | 'collector' | 'adventure' | 'community' | 'seasonal' | 'master' | 'balance' | 'treasure' | 'speed' | 'precision' | 'endurance' | 'decision';
-
-export interface ChallengeCategoryMeta {
-  id: ChallengeCategory; label: string; icon: string; accent: string;
-}
-
-export const CHALLENGE_CATEGORIES: ChallengeCategoryMeta[] = [
-  { id: 'explorer', label: 'Explorer', icon: 'Compass', accent: 'from-nova-400 to-cyan-500' },
-  { id: 'collector', label: 'Collector', icon: 'Gem', accent: 'from-gold-300 to-ember-500' },
-  { id: 'adventure', label: 'Adventure', icon: 'Swords', accent: 'from-ember-400 to-rose-500' },
-  { id: 'community', label: 'Community', icon: 'Users', accent: 'from-plasma-400 to-nova-500' },
-  { id: 'seasonal', label: 'Seasonal', icon: 'CalendarStar', accent: 'from-green-400 to-nova-500' },
-  { id: 'master', label: 'Master', icon: 'Crown', accent: 'from-rose-400 to-plasma-500' },
-];
-
-export interface ChallengeDef {
-  id: string; title: string; description: string;
-  category: ChallengeCategory; difficulty: 'Easy' | 'Medium' | 'Hard' | 'Epic';
-  baseReward: number; icon: string; accent: string;
-  reward?: number;
-}
-
-export const CHALLENGES: ChallengeDef[] = [
-  { id: 'ch1', title: 'First Steps', description: 'Complete your first adventure', category: 'explorer', difficulty: 'Easy', baseReward: 100, icon: 'Footprints', accent: 'from-nova-400 to-cyan-400' },
-  { id: 'ch2', title: 'Pathfinder', description: 'Explore 5 different routes', category: 'explorer', difficulty: 'Medium', baseReward: 250, icon: 'Compass', accent: 'from-nova-400 to-cyan-500' },
-  { id: 'ch3', title: 'Cartographer', description: 'Complete 10 unique adventures', category: 'explorer', difficulty: 'Hard', baseReward: 500, icon: 'Map', accent: 'from-nova-400 to-cyan-600' },
-  { id: 'ch4', title: 'Treasure Seeker', description: 'Find your first treasure chest', category: 'collector', difficulty: 'Easy', baseReward: 150, icon: 'Gem', accent: 'from-gold-300 to-ember-400' },
-  { id: 'ch5', title: 'Treasure Hunter', description: 'Find 10 treasure chests', category: 'collector', difficulty: 'Medium', baseReward: 400, icon: 'Gem', accent: 'from-gold-300 to-ember-500' },
-  { id: 'ch6', title: 'Treasure Lord', description: 'Find a Legendary treasure', category: 'collector', difficulty: 'Epic', baseReward: 1000, icon: 'Crown', accent: 'from-gold-300 to-ember-600' },
-  { id: 'ch7', title: 'Combo Starter', description: 'Achieve a 5x combo', category: 'adventure', difficulty: 'Easy', baseReward: 200, icon: 'Flame', accent: 'from-ember-400 to-rose-400' },
-  { id: 'ch8', title: 'Combo Master', description: 'Achieve a 15x combo', category: 'adventure', difficulty: 'Hard', baseReward: 600, icon: 'Flame', accent: 'from-ember-400 to-rose-500' },
-  { id: 'ch9', title: 'Combo Legend', description: 'Achieve a 25x combo', category: 'adventure', difficulty: 'Epic', baseReward: 1200, icon: 'Zap', accent: 'from-ember-500 to-rose-600' },
-  { id: 'ch10', title: 'Social Walker', description: 'Add your first friend', category: 'community', difficulty: 'Easy', baseReward: 100, icon: 'UserPlus', accent: 'from-plasma-400 to-nova-400' },
-  { id: 'ch11', title: 'Route Sharer', description: 'Share an adventure with the community', category: 'community', difficulty: 'Medium', baseReward: 300, icon: 'Share2', accent: 'from-plasma-400 to-nova-500' },
-  { id: 'ch12', title: 'Event Participant', description: 'Join a seasonal event', category: 'seasonal', difficulty: 'Easy', baseReward: 200, icon: 'CalendarStar', accent: 'from-green-400 to-nova-400' },
-  { id: 'ch13', title: 'Event Champion', description: 'Complete all seasonal event challenges', category: 'seasonal', difficulty: 'Epic', baseReward: 800, icon: 'Trophy', accent: 'from-green-400 to-nova-500' },
-  { id: 'ch14', title: 'Speed Runner', description: 'Complete an adventure in record time', category: 'adventure', difficulty: 'Hard', baseReward: 500, icon: 'Gauge', accent: 'from-ember-400 to-gold-500' },
-  { id: 'ch15', title: 'Marathon Walker', description: 'Walk 50 km total', category: 'adventure', difficulty: 'Hard', baseReward: 700, icon: 'Activity', accent: 'from-nova-400 to-cyan-500' },
-  { id: 'ch16', title: 'Master Explorer', description: 'Reach Level 10', category: 'master', difficulty: 'Epic', baseReward: 1500, icon: 'Crown', accent: 'from-rose-400 to-plasma-500' },
-  { id: 'ch17', title: 'Collector Supreme', description: 'Own 20 cosmetic items', category: 'collector', difficulty: 'Hard', baseReward: 600, icon: 'Sparkles', accent: 'from-gold-300 to-plasma-500' },
-  { id: 'ch18', title: 'Daily Devotee', description: 'Login 7 days in a row', category: 'master', difficulty: 'Medium', baseReward: 400, icon: 'CalendarCheck', accent: 'from-rose-400 to-plasma-400' },
-  { id: 'ch19', title: 'Adventure Creator', description: 'Create and share a custom adventure', category: 'community', difficulty: 'Medium', baseReward: 350, icon: 'PenTool', accent: 'from-plasma-400 to-nova-500' },
-];
-
-// --- Challenge Zones ---
-export type ChallengeZoneType = 'balance' | 'explorer' | 'treasure' | 'speed' | 'precision' | 'endurance' | 'decision';
-
-export interface ChallengeZone {
-  id: string; type: ChallengeZoneType; label: string;
-  x: number; y: number; radius: number; icon: string; accent: string; color: string;
-}
-
-export const ZONE_META: Record<ChallengeZoneType, { label: string; icon: string; accent: string; color: string }> = {
-  balance: { label: 'Balance Challenge', icon: 'Scale', accent: 'from-nova-400 to-nova-600', color: '#1fe3b0' },
-  explorer: { label: 'Explorer Zone', icon: 'Compass', accent: 'from-cyan-300 to-nova-500', color: '#40f5cb' },
-  treasure: { label: 'Treasure Zone', icon: 'Gem', accent: 'from-gold-400 to-ember-500', color: '#fbbf24' },
-  speed: { label: 'Speed Zone', icon: 'Gauge', accent: 'from-ember-400 to-ember-600', color: '#fb923c' },
-  precision: { label: 'Precision Zone', icon: 'Crosshair', accent: 'from-cyan-300 to-nova-400', color: '#22d3ee' },
-  endurance: { label: 'Endurance Zone', icon: 'Activity', accent: 'from-ember-400 to-gold-500', color: '#f97316' },
-  decision: { label: 'Decision Point', icon: 'GitFork', accent: 'from-plasma-400 to-nova-500', color: '#a78bfa' },
-};
-
-// --- Treasure System ---
-export type TreasureRarity = 'common' | 'rare' | 'epic' | 'legendary';
-
-export interface TreasureRarityMeta {
-  id: TreasureRarity; label: string; coinMult: number; xpMult: number;
-  color: string; emoji: string; glow: string;
-}
-
-export const TREASURE_RARITIES: TreasureRarityMeta[] = [
-  { id: 'common', label: 'Common', coinMult: 1, xpMult: 1, color: '#94a3b8', emoji: '📦', glow: '' },
-  { id: 'rare', label: 'Rare', coinMult: 1.5, xpMult: 1.3, color: '#40f5cb', emoji: '💎', glow: 'shadow-glow' },
-  { id: 'epic', label: 'Epic', coinMult: 2, xpMult: 1.6, color: '#a78bfa', emoji: '🔮', glow: 'shadow-glow-plasma' },
-  { id: 'legendary', label: 'Legendary', coinMult: 3, xpMult: 2, color: '#fbbf24', emoji: '👑', glow: 'shadow-glow-gold' },
-];
-
-export const TREASURE_RARITY_MAP: Record<TreasureRarity, TreasureRarityMeta> = Object.fromEntries(
-  TREASURE_RARITIES.map((r) => [r.id, r]),
-) as Record<TreasureRarity, TreasureRarityMeta>;
-
-// --- Mystery Events ---
-export type MysteryEventType = 'double_coins' | 'double_xp' | 'rare_boost' | 'time_warp' | 'lucky_chest' | 'ghost_route' | 'bonus_challenge';
-
-export interface MysteryEventDef {
-  id: MysteryEventType; label: string; icon: string; color: string; duration: number;
-}
-
-export const MYSTERY_EVENTS: MysteryEventDef[] = [
-  { id: 'double_coins', label: 'Double Coins!', icon: 'Coins', color: '#fbbf24', duration: 30 },
-  { id: 'double_xp', label: 'Double XP!', icon: 'Zap', color: '#40f5cb', duration: 30 },
-  { id: 'rare_boost', label: 'Rare Boost!', icon: 'Gem', color: '#a78bfa', duration: 20 },
-  { id: 'time_warp', label: 'Time Warp!', icon: 'Clock', color: '#22d3ee', duration: 15 },
-  { id: 'lucky_chest', label: 'Lucky Chest!', icon: 'Gift', color: '#f43f5e', duration: 0 },
-  { id: 'ghost_route', label: 'Ghost Route!', icon: 'Ghost', color: '#94a3b8', duration: 25 },
-  { id: 'bonus_challenge', label: 'Bonus Challenge!', icon: 'Swords', color: '#fb923c', duration: 20 },
-];
-
-// --- Combo System ---
-export type ComboTier = { threshold: number; label: string; xpMult: number; coinMult: number; rareChance: number; accent: string };
-
-export const COMBO_TIERS: ComboTier[] = [
-  { threshold: 1, label: 'No Combo', xpMult: 1, coinMult: 1, rareChance: 0.04, accent: 'from-slate-400 to-slate-600' },
-  { threshold: 2, label: '2x Combo', xpMult: 1.1, coinMult: 1.1, rareChance: 0.06, accent: 'from-nova-300 to-nova-500' },
-  { threshold: 5, label: '5x Combo', xpMult: 1.25, coinMult: 1.25, rareChance: 0.10, accent: 'from-ember-400 to-gold-500' },
-  { threshold: 10, label: '10x Combo', xpMult: 1.5, coinMult: 1.5, rareChance: 0.15, accent: 'from-plasma-400 to-ember-500' },
-  { threshold: 15, label: '15x Combo', xpMult: 1.75, coinMult: 1.75, rareChance: 0.22, accent: 'from-gold-300 to-rose-500' },
-  { threshold: 20, label: '20x Combo', xpMult: 2, coinMult: 2, rareChance: 0.30, accent: 'from-rose-400 to-plasma-500' },
-];
-
-export function getComboTier(combo: number): ComboTier {
-  let tier = COMBO_TIERS[0];
-  for (const t of COMBO_TIERS) if (combo >= t.threshold) tier = t;
-  return tier;
-}
-
-// --- Encouragement Messages ---
-export const ENCOURAGEMENT_MESSAGES = [
-  { text: 'Amazing work!', icon: 'Sparkles' },
-  { text: 'You are on fire!', icon: 'Flame' },
-  { text: 'Keep going strong!', icon: 'Zap' },
-  { text: 'Incredible pace!', icon: 'Gauge' },
-  { text: 'You are a natural explorer!', icon: 'Compass' },
-  { text: 'Legendary skills!', icon: 'Crown' },
-  { text: 'Unstoppable!', icon: 'Rocket' },
-  { text: 'Trail blazer!', icon: 'Footprints' },
-  { text: 'Treasure hunter extraordinaire!', icon: 'Gem' },
-  { text: 'Combo master!', icon: 'Flame' },
-  { text: 'Adventure awaits!', icon: 'Compass' },
-  { text: 'You are making progress!', icon: 'TrendingUp' },
-];
-
-// --- Decision Routes ---
-export interface DecisionRoute { id: string; label: string; icon: string; risk: 'safe' | 'medium' | 'high'; reward: number }
-export const DECISION_ROUTES: DecisionRoute[] = [
-  { id: 'safe', label: 'Safe Path', icon: 'Shield', risk: 'safe', reward: 100 },
-  { id: 'medium', label: 'Scenic Detour', icon: 'MapPin', risk: 'medium', reward: 200 },
-  { id: 'high', label: 'Dangerous Shortcut', icon: 'Skull', risk: 'high', reward: 400 },
-  { id: 'mystery', label: 'Unknown Route', icon: 'Question', risk: 'high', reward: 500 },
-];
-
-// --- Accessibility Settings (Phase 10 extended) ---
-export interface AccessibilitySettings {
-  relaxedMode: boolean;
-  reducedChallengeFrequency: boolean;
-  disableChallengeAnimations: boolean;
-  skipChallenges: boolean;
-  highContrast: boolean;
-  reducedMotion: boolean;
-  largeText: boolean;
-  colorblindMode: boolean;
-  screenReaderLabels: boolean;
-  minTouchTarget: boolean;
-}
-
-export const DEFAULT_ACCESSIBILITY: AccessibilitySettings = {
-  relaxedMode: false,
-  reducedChallengeFrequency: false,
-  disableChallengeAnimations: false,
-  skipChallenges: false,
-  highContrast: false,
-  reducedMotion: false,
-  largeText: false,
-  colorblindMode: false,
-  screenReaderLabels: false,
-  minTouchTarget: false,
-};
-
-// --- Notification Settings (Phase 10) ---
-export interface NotificationSettings {
-  dailyRewards: boolean;
-  seasonalEvents: boolean;
-  friendActivity: boolean;
-  adventureReminders: boolean;
-  achievementUnlocks: boolean;
-  communityUpdates: boolean;
-}
-
-export const DEFAULT_NOTIFICATIONS: NotificationSettings = {
-  dailyRewards: true,
-  seasonalEvents: true,
-  friendActivity: false,
-  adventureReminders: true,
-  achievementUnlocks: true,
-  communityUpdates: false,
-};
-
-// --- Privacy Settings (Phase 10) ---
-export interface PrivacySettings {
-  locationSharing: boolean;
-  profileVisibility: 'public' | 'friends' | 'private';
-  friendRequests: 'everyone' | 'friends_of_friends' | 'nobody';
-  activitySharing: boolean;
-  publicAdventures: boolean;
-}
-
-export const DEFAULT_PRIVACY: PrivacySettings = {
-  locationSharing: true,
-  profileVisibility: 'friends',
-  friendRequests: 'everyone',
-  activitySharing: true,
-  publicAdventures: true,
-};
-
-// --- Active State Types ---
-export interface ActiveChallenge { challengeId: string; progress: number; target: number; completed: boolean }
-export interface ActiveMysteryEvent { type: MysteryEventType; label: string; icon: string; color: string; timeRemaining: number; duration: number }
-
-// --- Avatar ---
-export interface Avatar { id: string; name: string; emoji: string; color: string }
-export const AVATARS: Avatar[] = [
-  { id: 'av1', name: 'Nova', emoji: '🧭', color: 'from-nova-400 to-cyan-500' },
-  { id: 'av2', name: 'Ember', emoji: '🔥', color: 'from-ember-400 to-rose-500' },
-  { id: 'av3', name: 'Gold', emoji: '⭐', color: 'from-gold-300 to-ember-500' },
-  { id: 'av4', name: 'Plasma', emoji: '🔮', color: 'from-plasma-400 to-nova-500' },
-  { id: 'av5', name: 'Rose', emoji: '🌸', color: 'from-rose-400 to-plasma-500' },
-  { id: 'av6', name: 'Leaf', emoji: '🌿', color: 'from-green-400 to-nova-500' },
-];
-
-// --- Adventure Styles ---
-export type AdventureStyle = 'explorer' | 'treasure_hunter' | 'relaxed' | 'fitness' | 'story' | 'challenge';
-export const ADVENTURE_STYLES = [
-  { id: 'explorer' as const, label: 'Explorer', icon: 'Compass', desc: 'Discover hidden routes' },
-  { id: 'treasure_hunter' as const, label: 'Treasure Hunter', icon: 'Gem', desc: 'Find rare loot' },
-  { id: 'relaxed' as const, label: 'Relaxed', icon: 'Leaf', desc: 'Easy-going walks' },
-  { id: 'fitness' as const, label: 'Fitness', icon: 'Activity', desc: 'Push your limits' },
-  { id: 'story' as const, label: 'Story', icon: 'BookOpen', desc: 'Narrative adventures' },
-  { id: 'challenge' as const, label: 'Challenge', icon: 'Swords', desc: 'Test your skills' },
-];
-
-// --- Profile ---
-export interface Profile {
-  playerId: string;
-  username: string;
-  avatar: Avatar;
-  style: AdventureStyle;
-  xp: number;
-  level: number;
-  coins: number;
-  gems: number;
-  streak: number;
-  lastDailyClaim: string | null;
-  dailyStreak: number;
+// --- Adventure Definition ---
+export interface Adventure {
+  id: string;
+  name: string;
+  emoji: string;
+  difficulty: DifficultyPref;
   distanceKm: number;
-  adventuresCompleted: number;
-  challengesCompleted: number;
-  challengesFailed: number;
-  bestCombo: number;
-  equippedTrail: string | null;
-  equippedPet: string | null;
-  equippedTheme: string | null;
-  equippedStickers: string[];
-  equippedBadges: string[];
-  units: 'km' | 'mi';
-  language: string;
+  durationMin: number;
+  theme: string;
+  description: string;
+  xpReward: number;
+  coinReward: number;
+  gemReward: number;
+  tags: string[];
 }
 
-export const DEFAULT_PROFILE: Profile = {
-  playerId: 'p_' + Math.random().toString(36).slice(2, 12),
-  username: 'Explorer',
-  avatar: AVATARS[0],
-  style: 'explorer',
-  xp: 0,
-  level: 1,
-  coins: 500,
-  gems: 10,
-  streak: 0,
-  lastDailyClaim: null,
-  dailyStreak: 0,
-  distanceKm: 0,
-  adventuresCompleted: 0,
-  challengesCompleted: 0,
-  challengesFailed: 0,
-  bestCombo: 0,
-  equippedTrail: null,
-  equippedPet: null,
-  equippedTheme: null,
-  equippedStickers: [],
-  equippedBadges: [],
-  units: 'km',
-  language: 'en',
-};
-
-// --- Level System ---
-export interface LevelInfo { level: number; title: string; minXp: number; maxXp: number; emoji: string }
-export const LEVELS: LevelInfo[] = [
-  { level: 1, title: 'Trailhead', minXp: 0, maxXp: 500, emoji: '🚶' },
-  { level: 2, title: 'Wanderer', minXp: 500, maxXp: 1200, emoji: '🧭' },
-  { level: 3, title: 'Explorer', minXp: 1200, maxXp: 2200, emoji: '🗺️' },
-  { level: 4, title: 'Adventurer', minXp: 2200, maxXp: 3500, emoji: '⛰️' },
-  { level: 5, title: 'Pathfinder', minXp: 3500, maxXp: 5200, emoji: '🧗' },
-  { level: 6, title: 'Trailblazer', minXp: 5200, maxXp: 7500, emoji: '🔥' },
-  { level: 7, title: 'Cartographer', minXp: 7500, maxXp: 10500, emoji: '📐' },
-  { level: 8, title: 'Voyager', minXp: 10500, maxXp: 14500, emoji: '🚀' },
-  { level: 9, title: 'Conqueror', minXp: 14500, maxXp: 20000, emoji: '⚔️' },
-  { level: 10, title: 'Legend', minXp: 20000, maxXp: 999999, emoji: '👑' },
+export const ADVENTURES: Adventure[] = [
+  {
+    id: 'forest-grove', name: 'Whispering Grove', emoji: '🌲', difficulty: 'Easy',
+    distanceKm: 2.5, durationMin: 20, theme: 'forest',
+    description: 'A gentle walk through ancient trees. Listen for the whispers of the forest.',
+    xpReward: 120, coinReward: 50, gemReward: 0, tags: ['nature', 'relaxed'],
+  },
+  {
+    id: 'urban-maze', name: 'Urban Maze', emoji: '🏙️', difficulty: 'Medium',
+    distanceKm: 4.0, durationMin: 35, theme: 'urban',
+    description: 'Navigate the city streets and discover hidden urban gems.',
+    xpReward: 200, coinReward: 80, gemReward: 1, tags: ['urban', 'exploration'],
+  },
+  {
+    id: 'coastal-breeze', name: 'Coastal Breeze', emoji: '🌊', difficulty: 'Easy',
+    distanceKm: 3.0, durationMin: 25, theme: 'coastal',
+    description: 'Feel the salty air as you walk along the scenic coastline.',
+    xpReward: 150, coinReward: 60, gemReward: 0, tags: ['scenic', 'relaxed'],
+  },
+  {
+    id: 'mountain-ascent', name: 'Mountain Ascent', emoji: '⛰️', difficulty: 'Hard',
+    distanceKm: 6.5, durationMin: 55, theme: 'mountain',
+    description: 'Challenge yourself with a steep climb. The view is worth it.',
+    xpReward: 350, coinReward: 150, gemReward: 2, tags: ['fitness', 'challenge'],
+  },
+  {
+    id: 'park-loop', name: 'Park Loop', emoji: '🌿', difficulty: 'Relaxed',
+    distanceKm: 1.5, durationMin: 15, theme: 'park',
+    description: 'A peaceful loop through your local park. Perfect for a quick break.',
+    xpReward: 80, coinReward: 30, gemReward: 0, tags: ['nature', 'quick'],
+  },
+  {
+    id: 'mystery-trail', name: 'Mystery Trail', emoji: '🔍', difficulty: 'Medium',
+    distanceKm: 3.5, durationMin: 30, theme: 'mystery',
+    description: 'A route filled with hidden treasures and unexpected discoveries.',
+    xpReward: 220, coinReward: 100, gemReward: 1, tags: ['treasure', 'exploration'],
+  },
+  {
+    id: 'night-patrol', name: 'Night Patrol', emoji: '🌙', difficulty: 'Hard',
+    distanceKm: 5.0, durationMin: 45, theme: 'urban',
+    description: 'Explore the city after dark. Stay alert for rare nighttime treasures.',
+    xpReward: 300, coinReward: 120, gemReward: 2, tags: ['night', 'challenge'],
+  },
+  {
+    id: 'extreme-summit', name: 'Extreme Summit', emoji: '🏔️', difficulty: 'Extreme',
+    distanceKm: 8.0, durationMin: 70, theme: 'mountain',
+    description: 'Only for the bravest explorers. A grueling trek to the peak.',
+    xpReward: 500, coinReward: 250, gemReward: 3, tags: ['fitness', 'extreme'],
+  },
 ];
 
-export function getLevelInfo(level: number): LevelInfo {
-  return LEVELS[Math.min(level - 1, LEVELS.length - 1)];
+// --- Quest System ---
+export type QuestType = 'daily' | 'weekly';
+export type QuestCategory = 'distance' | 'adventures' | 'coins' | 'xp' | 'streak' | 'challenges' | 'friends' | 'multiplayer';
+
+export interface Quest {
+  id: string;
+  type: QuestType;
+  category: QuestCategory;
+  title: string;
+  description: string;
+  icon: string;
+  target: number;
+  unit: string;
+  xpReward: number;
+  coinReward: number;
+  gemReward: number;
 }
 
-export function getLevelProgress(xp: number): { info: LevelInfo; current: number; needed: number; pct: number } {
-  const info = LEVELS.find((l) => xp >= l.minXp && xp < l.maxXp) ?? LEVELS[LEVELS.length - 1];
-  const current = xp - info.minXp;
-  const needed = info.maxXp - info.minXp;
-  return { info, current, needed, pct: current / needed };
-}
-
-// --- Daily Missions ---
-export interface DailyMission {
-  id: string; title: string; detail: string; icon: string;
-  target: number; current: number; unit: string; xp: number;
-}
-
-export const DAILY_MISSIONS: DailyMission[] = [
-  { id: 'dm1', title: 'Walk 1 km', detail: 'Explore your surroundings', icon: 'Footprints', target: 1, current: 0.4, unit: 'km', xp: 50 },
-  { id: 'dm2', title: 'Collect 10 coins', detail: 'Find coins on your adventure', icon: 'Coins', target: 10, current: 4, unit: 'coins', xp: 30 },
-  { id: 'dm3', title: 'Complete 1 challenge', detail: 'Test your skills', icon: 'Swords', target: 1, current: 0, unit: 'done', xp: 80 },
-  { id: 'dm4', title: 'Find a treasure', detail: 'Open a treasure chest', icon: 'Gem', target: 1, current: 0, unit: 'found', xp: 60 },
-  { id: 'dm5', title: 'Maintain a 5x combo', detail: 'Chain your achievements', icon: 'Flame', target: 5, current: 0, unit: 'x', xp: 100 },
+export const DAILY_QUESTS: Quest[] = [
+  { id: 'd-walk-1km', type: 'daily', category: 'distance', title: 'Morning Walk', description: 'Walk 1 km today', icon: 'Footprints', target: 1000, unit: 'm', xpReward: 50, coinReward: 20, gemReward: 0 },
+  { id: 'd-walk-3km', type: 'daily', category: 'distance', title: 'Distance Runner', description: 'Walk 3 km today', icon: 'Route', target: 3000, unit: 'm', xpReward: 100, coinReward: 40, gemReward: 1 },
+  { id: 'd-adventure-1', type: 'daily', category: 'adventures', title: 'Daily Adventure', description: 'Complete 1 adventure', icon: 'Flag', target: 1, unit: '', xpReward: 80, coinReward: 30, gemReward: 0 },
+  { id: 'd-coins-100', type: 'daily', category: 'coins', title: 'Coin Collector', description: 'Collect 100 coins today', icon: 'Coins', target: 100, unit: '', xpReward: 60, coinReward: 0, gemReward: 0 },
+  { id: 'd-xp-200', type: 'daily', category: 'xp', title: 'XP Grinder', description: 'Earn 200 XP today', icon: 'Zap', target: 200, unit: '', xpReward: 0, coinReward: 50, gemReward: 1 },
+  { id: 'd-challenge-1', type: 'daily', category: 'challenges', title: 'Challenge Taker', description: 'Complete 1 challenge', icon: 'Swords', target: 1, unit: '', xpReward: 70, coinReward: 25, gemReward: 0 },
 ];
 
-// --- Achievements ---
-export type AchievementCategory = 'Explorer' | 'Collector' | 'Adventure' | 'Community' | 'Seasonal' | 'Master';
+export const WEEKLY_QUESTS: Quest[] = [
+  { id: 'w-walk-15km', type: 'weekly', category: 'distance', title: 'Weekly Wanderer', description: 'Walk 15 km this week', icon: 'Footprints', target: 15000, unit: 'm', xpReward: 300, coinReward: 150, gemReward: 2 },
+  { id: 'w-adventures-5', type: 'weekly', category: 'adventures', title: 'Adventure Seeker', description: 'Complete 5 adventures this week', icon: 'Compass', target: 5, unit: '', xpReward: 400, coinReward: 200, gemReward: 3 },
+  { id: 'w-coins-500', type: 'weekly', category: 'coins', title: 'Treasure Hunter', description: 'Collect 500 coins this week', icon: 'Gem', target: 500, unit: '', xpReward: 250, coinReward: 0, gemReward: 2 },
+  { id: 'w-streak-5', type: 'weekly', category: 'streak', title: 'Consistency King', description: 'Maintain a 5-day walking streak', icon: 'Flame', target: 5, unit: ' days', xpReward: 350, coinReward: 100, gemReward: 3 },
+  { id: 'w-multiplayer-2', type: 'weekly', category: 'multiplayer', title: 'Party Animal', description: 'Complete 2 multiplayer adventures', icon: 'Users', target: 2, unit: '', xpReward: 300, coinReward: 150, gemReward: 2 },
+  { id: 'w-friends-3', type: 'weekly', category: 'friends', title: 'Social Butterfly', description: 'Add 3 friends this week', icon: 'UserPlus', target: 3, unit: '', xpReward: 200, coinReward: 100, gemReward: 1 },
+];
 
-export const ACHIEVEMENT_CATEGORIES: AchievementCategory[] = ['Explorer', 'Collector', 'Adventure', 'Community', 'Seasonal', 'Master'];
+// --- Achievement System ---
+export type AchievementCategory = 'distance' | 'adventures' | 'streaks' | 'friends' | 'multiplayer' | 'coins' | 'xp' | 'challenges';
 
 export interface Achievement {
-  id: string; title: string; description: string;
-  category: AchievementCategory; tier: 'bronze' | 'silver' | 'gold' | 'legendary';
-  icon: string; unlocked: boolean; date?: string;
+  id: string;
+  category: AchievementCategory;
+  title: string;
+  description: string;
+  icon: string;
+  target: number;
+  unit: string;
+  xpReward: number;
+  gemReward: number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: 'ach1', title: 'First Adventure', description: 'Complete your first adventure', category: 'Explorer', tier: 'bronze', icon: 'Footprints', unlocked: true, date: '2 days ago' },
-  { id: 'ach2', title: 'Pathfinder', description: 'Complete 5 adventures', category: 'Explorer', tier: 'silver', icon: 'Compass', unlocked: true, date: '1 day ago' },
-  { id: 'ach3', title: 'Cartographer', description: 'Complete 25 adventures', category: 'Explorer', tier: 'gold', icon: 'Map', unlocked: false },
-  { id: 'ach4', title: 'Treasure Seeker', description: 'Find your first treasure', category: 'Collector', tier: 'bronze', icon: 'Gem', unlocked: true, date: '2 days ago' },
-  { id: 'ach5', title: 'Treasure Hunter', description: 'Find 50 treasures', category: 'Collector', tier: 'silver', icon: 'Gem', unlocked: false },
-  { id: 'ach6', title: 'Treasure Lord', description: 'Find a Legendary treasure', category: 'Collector', tier: 'legendary', icon: 'Crown', unlocked: false },
-  { id: 'ach7', title: 'Combo Starter', description: 'Achieve a 5x combo', category: 'Adventure', tier: 'bronze', icon: 'Flame', unlocked: true, date: '3 days ago' },
-  { id: 'ach8', title: 'Combo Master', description: 'Achieve a 20x combo', category: 'Adventure', tier: 'gold', icon: 'Zap', unlocked: false },
-  { id: 'ach9', title: 'Social Walker', description: 'Add 5 friends', category: 'Community', tier: 'silver', icon: 'Users', unlocked: false },
-  { id: 'ach10', title: 'Route Sharer', description: 'Share 3 adventures', category: 'Community', tier: 'bronze', icon: 'Share2', unlocked: false },
-  { id: 'ach11', title: 'Event Participant', description: 'Join a seasonal event', category: 'Seasonal', tier: 'bronze', icon: 'CalendarStar', unlocked: false },
-  { id: 'ach12', title: 'Master Explorer', description: 'Reach Level 10', category: 'Master', tier: 'legendary', icon: 'Crown', unlocked: false },
+  // Distance
+  { id: 'dist-1km', category: 'distance', title: 'First Steps', description: 'Walk 1 km total', icon: 'Footprints', target: 1000, unit: 'm', xpReward: 50, gemReward: 1 },
+  { id: 'dist-10km', category: 'distance', title: 'Trail Walker', description: 'Walk 10 km total', icon: 'Route', target: 10000, unit: 'm', xpReward: 150, gemReward: 2 },
+  { id: 'dist-50km', category: 'distance', title: 'Pathfinder', description: 'Walk 50 km total', icon: 'MapPin', target: 50000, unit: 'm', xpReward: 400, gemReward: 5 },
+  { id: 'dist-100km', category: 'distance', title: 'Cartographer', description: 'Walk 100 km total', icon: 'Map', target: 100000, unit: 'm', xpReward: 800, gemReward: 10 },
+  { id: 'dist-500km', category: 'distance', title: 'Legend', description: 'Walk 500 km total', icon: 'Mountain', target: 500000, unit: 'm', xpReward: 2000, gemReward: 25 },
+  // Adventures
+  { id: 'adv-1', category: 'adventures', title: 'Adventure Begins', description: 'Complete your first adventure', icon: 'Flag', target: 1, unit: '', xpReward: 50, gemReward: 1 },
+  { id: 'adv-10', category: 'adventures', title: 'Seasoned Explorer', description: 'Complete 10 adventures', icon: 'Compass', target: 10, unit: '', xpReward: 200, gemReward: 3 },
+  { id: 'adv-50', category: 'adventures', title: 'Adventure Veteran', description: 'Complete 50 adventures', icon: 'Award', target: 50, unit: '', xpReward: 600, gemReward: 8 },
+  { id: 'adv-100', category: 'adventures', title: 'Centurion', description: 'Complete 100 adventures', icon: 'Trophy', target: 100, unit: '', xpReward: 1500, gemReward: 15 },
+  // Streaks
+  { id: 'streak-3', category: 'streaks', title: 'Getting Started', description: 'Maintain a 3-day streak', icon: 'Flame', target: 3, unit: ' days', xpReward: 100, gemReward: 2 },
+  { id: 'streak-7', category: 'streaks', title: 'Week Warrior', description: 'Maintain a 7-day streak', icon: 'Flame', target: 7, unit: ' days', xpReward: 250, gemReward: 4 },
+  { id: 'streak-30', category: 'streaks', title: 'Unstoppable', description: 'Maintain a 30-day streak', icon: 'Zap', target: 30, unit: ' days', xpReward: 1000, gemReward: 12 },
+  { id: 'streak-100', category: 'streaks', title: 'Eternal Flame', description: 'Maintain a 100-day streak', icon: 'Crown', target: 100, unit: ' days', xpReward: 5000, gemReward: 50 },
+  // Friends
+  { id: 'friends-1', category: 'friends', title: 'Friendly', description: 'Add your first friend', icon: 'UserPlus', target: 1, unit: '', xpReward: 50, gemReward: 1 },
+  { id: 'friends-5', category: 'friends', title: 'Social Circle', description: 'Add 5 friends', icon: 'Users', target: 5, unit: '', xpReward: 200, gemReward: 3 },
+  { id: 'friends-20', category: 'friends', title: 'Popular', description: 'Add 20 friends', icon: 'Heart', target: 20, unit: '', xpReward: 500, gemReward: 8 },
+  // Multiplayer
+  { id: 'mp-1', category: 'multiplayer', title: 'Party Starter', description: 'Complete 1 multiplayer adventure', icon: 'Users', target: 1, unit: '', xpReward: 100, gemReward: 2 },
+  { id: 'mp-10', category: 'multiplayer', title: 'Team Player', description: 'Complete 10 multiplayer adventures', icon: 'Users', target: 10, unit: '', xpReward: 400, gemReward: 6 },
+  { id: 'mp-25', category: 'multiplayer', title: 'Party Legend', description: 'Complete 25 multiplayer adventures', icon: 'Crown', target: 25, unit: '', xpReward: 1000, gemReward: 15 },
+  // Coins
+  { id: 'coins-500', category: 'coins', title: 'Pocket Change', description: 'Earn 500 coins total', icon: 'Coins', target: 500, unit: '', xpReward: 100, gemReward: 2 },
+  { id: 'coins-5000', category: 'coins', title: 'Coin Hoarder', description: 'Earn 5,000 coins total', icon: 'Gem', target: 5000, unit: '', xpReward: 400, gemReward: 5 },
+  { id: 'coins-25000', category: 'coins', title: 'Treasure Vault', description: 'Earn 25,000 coins total', icon: 'Banknote', target: 25000, unit: '', xpReward: 1200, gemReward: 15 },
+  // XP
+  { id: 'xp-1000', category: 'xp', title: 'Rising Star', description: 'Earn 1,000 XP total', icon: 'Star', target: 1000, unit: '', xpReward: 0, gemReward: 3 },
+  { id: 'xp-10000', category: 'xp', title: 'XP Master', description: 'Earn 10,000 XP total', icon: 'TrendingUp', target: 10000, unit: '', xpReward: 0, gemReward: 10 },
+  { id: 'xp-50000', category: 'xp', title: 'XP Legend', description: 'Earn 50,000 XP total', icon: 'Sparkles', target: 50000, unit: '', xpReward: 0, gemReward: 25 },
+  // Challenges
+  { id: 'chal-5', category: 'challenges', title: 'Challenger', description: 'Complete 5 challenges', icon: 'Swords', target: 5, unit: '', xpReward: 150, gemReward: 2 },
+  { id: 'chal-25', category: 'challenges', title: 'Challenge Master', description: 'Complete 25 challenges', icon: 'Swords', target: 25, unit: '', xpReward: 500, gemReward: 8 },
+  { id: 'chal-100', category: 'challenges', title: 'Challenge Grandmaster', description: 'Complete 100 challenges', icon: 'Crown', target: 100, unit: '', xpReward: 1500, gemReward: 20 },
 ];
 
-// --- Badges ---
-export interface Badge { id: string; label: string; icon: string; color: string }
-export const BADGES: Badge[] = [
-  { id: 'bg1', label: 'Early Bird', icon: 'Sunrise', color: 'from-ember-400 to-gold-500' },
-  { id: 'bg2', label: 'Night Owl', icon: 'Moon', color: 'from-plasma-500 to-ink-700' },
-  { id: 'bg3', label: 'Trail Master', icon: 'Mountain', color: 'from-nova-400 to-cyan-500' },
-  { id: 'bg4', label: 'Treasure Lord', icon: 'Gem', color: 'from-gold-300 to-ember-500' },
-  { id: 'bg5', label: 'Combo King', icon: 'Flame', color: 'from-ember-400 to-rose-500' },
-  { id: 'bg6', label: 'Legend', icon: 'Crown', color: 'from-rose-400 to-plasma-500' },
-];
-
-// --- Community Data ---
-export interface LeaderboardEntry { rank: number; name: string; avatar: string; xp: number; you?: boolean }
-export const LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, name: 'TrailBlazer99', avatar: '🧭', xp: 24500 },
-  { rank: 2, name: 'MountainGoat', avatar: '🐐', xp: 18900 },
-  { rank: 3, name: 'NovaSeeker', avatar: '✨', xp: 15200 },
-  { rank: 4, name: 'You', avatar: '🧭', xp: 3200, you: true },
-  { rank: 5, name: 'Wanderlust', avatar: '🚶', xp: 2100 },
-  { rank: 6, name: 'PathFinder', avatar: '🗺️', xp: 1800 },
-];
-
-export interface Friend { id: string; name: string; avatar: string; status: 'online' | 'offline' | 'on_adventure'; distance: string }
-export const FRIENDS: Friend[] = [
-  { id: 'f1', name: 'Alex', avatar: '🧑', status: 'on_adventure', distance: '2.3 km away' },
-  { id: 'f2', name: 'Sam', avatar: '👩', status: 'online', distance: '0.8 km away' },
-  { id: 'f3', name: 'Jordan', avatar: '🧔', status: 'offline', distance: '5.1 km away' },
-];
-
-export interface PopularRoute { id: string; name: string; author: string; distance: string; rating: number; plays: number; emoji: string; accent: string }
-export const POPULAR_ROUTES: PopularRoute[] = [
-  { id: 'pr1', name: 'Riverside Stroll', author: 'TrailBlazer99', distance: '2.1 km', rating: 4.8, plays: 1240, emoji: '🌊', accent: 'from-cyan-400 to-nova-500' },
-  { id: 'pr2', name: 'Old Town Quest', author: 'HistoryBuff', distance: '1.5 km', rating: 4.6, plays: 890, emoji: '🏛️', accent: 'from-gold-400 to-ember-500' },
-  { id: 'pr3', name: 'Park Explorer', author: 'NatureFan', distance: '3.0 km', rating: 4.9, plays: 2100, emoji: '🌳', accent: 'from-green-400 to-nova-500' },
-];
-
-// --- Map Entity Types ---
-export interface MapPoint { x: number; y: number }
-export interface MapCheckpoint { id: string; label: string; kind: 'start' | 'challenge' | 'treasure' | 'finish'; x: number; y: number; reward: number; done: boolean }
-export interface MapTreasure { id: string; x: number; y: number; coins: number; xp: number; opened: boolean; rarity: TreasureRarity }
-export interface MapCoin { id: string; x: number; y: number; collected: boolean }
-
-// --- Adventure Types ---
-export type AdventureType = 'explorer' | 'treasure_hunt' | 'relaxed_walk' | 'challenge_run';
-export type Difficulty = 'Easy' | 'Medium' | 'Hard' | 'Epic';
-
-export const ADVENTURE_TYPE_META: Record<AdventureType, { label: string; icon: string; accent: string }> = {
-  explorer: { label: 'Explorer', icon: 'Compass', accent: 'from-nova-400 to-cyan-500' },
-  treasure_hunt: { label: 'Treasure Hunt', icon: 'Gem', accent: 'from-gold-300 to-ember-500' },
-  relaxed_walk: { label: 'Relaxed Walk', icon: 'Leaf', accent: 'from-green-400 to-nova-500' },
-  challenge_run: { label: 'Challenge Run', icon: 'Swords', accent: 'from-ember-400 to-rose-500' },
-};
-
-export interface Adventure {
-  id: string; name: string; description: string;
-  type: AdventureType; difficulty: Difficulty;
-  distanceKm: number; durationMin: number;
-  xpReward: number; coinReward: number;
-  accent: string; emoji: string; image: string;
-  challenges: string[];
-  routePath: MapPoint[];
-  checkpoints: MapCheckpoint[];
-  treasures: MapTreasure[];
-  coins: MapCoin[];
-  zones: ChallengeZone[];
-  themeId?: string;
-  isAIGenerated?: boolean;
-  isDaily?: boolean;
-  isWeekly?: boolean;
-  bonusMultiplier?: number;
-  plays: number;
-  rating: number;
+// --- Daily Login Rewards ---
+export interface DailyReward {
+  day: number;
+  coins: number;
+  gems: number;
+  xp: number;
+  label: string;
 }
 
-export function buildAdventure(p: Partial<Adventure> & { id: string; name: string; type: AdventureType; difficulty: Difficulty; accent: string; emoji: string; image: string }): Adventure {
-  return {
-    description: '', distanceKm: 1, durationMin: 30, xpReward: 100, coinReward: 50,
-    challenges: [], routePath: [], checkpoints: [], treasures: [], coins: [], zones: [],
-    plays: 0, rating: 0, ...p,
-  };
-}
-
-// --- Pre-built Adventures ---
-const IMG = 'https://images.pexels.com/photos';
-export const ADVENTURES: Adventure[] = [
-  buildAdventure({
-    id: 'adv1', name: 'Mystic Forest Trail', description: 'A serene walk through ancient woodland.',
-    type: 'explorer', difficulty: 'Easy', distanceKm: 1.2, durationMin: 20,
-    xpReward: 120, coinReward: 80, accent: 'from-green-400 to-nova-500', emoji: '🌲',
-    image: `${IMG}/1366919/pexels-photo-1366919.jpeg?auto=compress&cs=tinysrgb&w=800`,
-    challenges: ['ch1', 'ch2'], routePath: [{ x: 15, y: 75 }, { x: 50, y: 50 }, { x: 85, y: 25 }],
-    checkpoints: [
-      { id: 'cp1', label: 'Trailhead', kind: 'start', x: 15, y: 75, reward: 0, done: false },
-      { id: 'cp2', label: 'Hidden Grove', kind: 'treasure', x: 50, y: 50, reward: 200, done: false },
-      { id: 'cp3', label: 'Ancient Oak', kind: 'finish', x: 85, y: 25, reward: 300, done: false },
-    ],
-    treasures: [{ id: 't1', x: 50, y: 50, coins: 100, xp: 50, opened: false, rarity: 'rare' }],
-    coins: [{ id: 'co1', x: 30, y: 60, collected: false }, { id: 'co2', x: 70, y: 40, collected: false }],
-    zones: [], plays: 342, rating: 4.7,
-  }),
-  buildAdventure({
-    id: 'adv2', name: 'Urban Discovery', description: 'Find hidden gems in the city.',
-    type: 'explorer', difficulty: 'Medium', distanceKm: 2.5, durationMin: 35,
-    xpReward: 200, coinReward: 150, accent: 'from-plasma-400 to-nova-500', emoji: '🏙️',
-    image: `${IMG}/1108101/pexels-photo-1108101.jpeg?auto=compress&cs=tinysrgb&w=800`,
-    challenges: ['ch2', 'ch7'], routePath: [{ x: 12, y: 80 }, { x: 35, y: 55 }, { x: 60, y: 40 }, { x: 88, y: 20 }],
-    checkpoints: [
-      { id: 'cp1', label: 'Start', kind: 'start', x: 12, y: 80, reward: 0, done: false },
-      { id: 'cp2', label: 'Plaza', kind: 'challenge', x: 35, y: 55, reward: 150, done: false },
-      { id: 'cp3', label: 'Alley Cache', kind: 'treasure', x: 60, y: 40, reward: 250, done: false },
-      { id: 'cp4', label: 'Rooftop', kind: 'finish', x: 88, y: 20, reward: 350, done: false },
-    ],
-    treasures: [{ id: 't1', x: 60, y: 40, coins: 200, xp: 100, opened: false, rarity: 'epic' }],
-    coins: [{ id: 'co1', x: 25, y: 65, collected: false }, { id: 'co2', x: 50, y: 45, collected: false }, { id: 'co3', x: 75, y: 30, collected: false }],
-    zones: [], plays: 521, rating: 4.5,
-  }),
-  buildAdventure({
-    id: 'adv3', name: 'Treasure Cove', description: 'Hunt for legendary treasure.',
-    type: 'treasure_hunt', difficulty: 'Hard', distanceKm: 3.0, durationMin: 45,
-    xpReward: 350, coinReward: 250, accent: 'from-gold-300 to-ember-500', emoji: '💎',
-    image: `${IMG}/1010659/pexels-photo-1010659.jpeg?auto=compress&cs=tinysrgb&w=800`,
-    challenges: ['ch4', 'ch5', 'ch7'], routePath: [{ x: 10, y: 85 }, { x: 30, y: 60 }, { x: 55, y: 45 }, { x: 80, y: 25 }, { x: 90, y: 15 }],
-    checkpoints: [
-      { id: 'cp1', label: 'Beach Start', kind: 'start', x: 10, y: 85, reward: 0, done: false },
-      { id: 'cp2', label: 'Clue Point', kind: 'challenge', x: 30, y: 60, reward: 200, done: false },
-      { id: 'cp3', label: 'Hidden Cave', kind: 'treasure', x: 55, y: 45, reward: 400, done: false },
-      { id: 'cp4', label: 'X Marks Spot', kind: 'finish', x: 90, y: 15, reward: 500, done: false },
-    ],
-    treasures: [
-      { id: 't1', x: 55, y: 45, coins: 300, xp: 150, opened: false, rarity: 'epic' },
-      { id: 't2', x: 80, y: 25, coins: 500, xp: 250, opened: false, rarity: 'legendary' },
-    ],
-    coins: [{ id: 'co1', x: 20, y: 70, collected: false }, { id: 'co2', x: 45, y: 50, collected: false }, { id: 'co3', x: 70, y: 30, collected: false }],
-    zones: [], plays: 189, rating: 4.9,
-  }),
-  buildAdventure({
-    id: 'adv4', name: 'Mountain Challenge', description: 'Test your endurance on this mountain trek.',
-    type: 'challenge_run', difficulty: 'Epic', distanceKm: 5.0, durationMin: 60,
-    xpReward: 500, coinReward: 350, accent: 'from-slate-400 to-nova-500', emoji: '⛰️',
-    image: `${IMG}/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800`,
-    challenges: ['ch3', 'ch8', 'ch14', 'ch15'], routePath: [{ x: 15, y: 85 }, { x: 35, y: 65 }, { x: 50, y: 45 }, { x: 70, y: 25 }, { x: 85, y: 10 }],
-    checkpoints: [
-      { id: 'cp1', label: 'Base Camp', kind: 'start', x: 15, y: 85, reward: 0, done: false },
-      { id: 'cp2', label: 'Switchback', kind: 'challenge', x: 35, y: 65, reward: 300, done: false },
-      { id: 'cp3', label: 'Ridge Cache', kind: 'treasure', x: 50, y: 45, reward: 500, done: false },
-      { id: 'cp4', label: 'Final Push', kind: 'challenge', x: 70, y: 25, reward: 400, done: false },
-      { id: 'cp5', label: 'Summit', kind: 'finish', x: 85, y: 10, reward: 800, done: false },
-    ],
-    treasures: [{ id: 't1', x: 50, y: 45, coins: 400, xp: 200, opened: false, rarity: 'legendary' }],
-    coins: [{ id: 'co1', x: 25, y: 75, collected: false }, { id: 'co2', x: 45, y: 55, collected: false }, { id: 'co3', x: 65, y: 35, collected: false }, { id: 'co4', x: 80, y: 18, collected: false }],
-    zones: [], plays: 95, rating: 4.8,
-  }),
-  buildAdventure({
-    id: 'adv5', name: 'Sunset Promenade', description: 'A relaxing golden-hour stroll.',
-    type: 'relaxed_walk', difficulty: 'Easy', distanceKm: 0.8, durationMin: 15,
-    xpReward: 80, coinReward: 60, accent: 'from-ember-400 to-rose-500', emoji: '🌅',
-    image: `${IMG}/1029604/pexels-photo-1029604.jpeg?auto=compress&cs=tinysrgb&w=800`,
-    challenges: ['ch1'], routePath: [{ x: 20, y: 70 }, { x: 50, y: 50 }, { x: 80, y: 30 }],
-    checkpoints: [
-      { id: 'cp1', label: 'Start', kind: 'start', x: 20, y: 70, reward: 0, done: false },
-      { id: 'cp2', label: 'Viewpoint', kind: 'treasure', x: 50, y: 50, reward: 150, done: false },
-      { id: 'cp3', label: 'End', kind: 'finish', x: 80, y: 30, reward: 200, done: false },
-    ],
-    treasures: [{ id: 't1', x: 50, y: 50, coins: 80, xp: 40, opened: false, rarity: 'common' }],
-    coins: [{ id: 'co1', x: 35, y: 60, collected: false }, { id: 'co2', x: 65, y: 40, collected: false }],
-    zones: [], plays: 678, rating: 4.6,
-  }),
-  buildAdventure({
-    id: 'adv6', name: 'Ancient Ruins Quest', description: 'Discover the secrets of a lost civilization.',
-    type: 'explorer', difficulty: 'Medium', distanceKm: 2.0, durationMin: 30,
-    xpReward: 180, coinReward: 140, accent: 'from-gold-400 to-ember-600', emoji: '🏛️',
-    image: `${IMG}/1004584/pexels-photo-1004584.jpeg?auto=compress&cs=tinysrgb&w=800`,
-    challenges: ['ch2', 'ch4', 'ch10'], routePath: [{ x: 12, y: 78 }, { x: 38, y: 52 }, { x: 62, y: 38 }, { x: 88, y: 22 }],
-    checkpoints: [
-      { id: 'cp1', label: 'Temple Gate', kind: 'start', x: 12, y: 78, reward: 0, done: false },
-      { id: 'cp2', label: 'Relic Chamber', kind: 'treasure', x: 38, y: 52, reward: 250, done: false },
-      { id: 'cp3', label: 'Inner Sanctum', kind: 'challenge', x: 62, y: 38, reward: 200, done: false },
-      { id: 'cp4', label: 'Throne Room', kind: 'finish', x: 88, y: 22, reward: 400, done: false },
-    ],
-    treasures: [{ id: 't1', x: 38, y: 52, coins: 250, xp: 120, opened: false, rarity: 'rare' }],
-    coins: [{ id: 'co1', x: 25, y: 65, collected: false }, { id: 'co2', x: 50, y: 45, collected: false }, { id: 'co3', x: 75, y: 30, collected: false }],
-    zones: [], plays: 234, rating: 4.7,
-  }),
+export const DAILY_LOGIN_REWARDS: DailyReward[] = [
+  { day: 1, coins: 50, gems: 0, xp: 20, label: 'Day 1' },
+  { day: 2, coins: 75, gems: 0, xp: 30, label: 'Day 2' },
+  { day: 3, coins: 100, gems: 1, xp: 50, label: 'Day 3' },
+  { day: 4, coins: 125, gems: 0, xp: 60, label: 'Day 4' },
+  { day: 5, coins: 150, gems: 1, xp: 80, label: 'Day 5' },
+  { day: 6, coins: 200, gems: 2, xp: 100, label: 'Day 6' },
+  { day: 7, coins: 500, gems: 5, xp: 250, label: 'Week Bonus!' },
 ];
 
-export const DAILY_ADVENTURE_SEED: Adventure = {
-  ...ADVENTURES[0],
-  id: 'daily-seed', name: 'Daily Explorer', isDaily: true, bonusMultiplier: 2,
-  xpReward: 240, coinReward: 160,
-};
+// --- Challenges ---
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+  coinReward: number;
+  difficulty: DifficultyPref;
+}
 
-export const WEEKLY_ADVENTURE_SEED: Adventure = {
-  ...ADVENTURES[2],
-  id: 'weekly-seed', name: 'Weekly Treasure Hunt', isWeekly: true, bonusMultiplier: 3,
-  xpReward: 1050, coinReward: 750,
-};
-
-// --- Recommendation Engine ---
-export interface Recommendation { condition: (p: Profile) => boolean; text: string; icon: string }
-export const RECOMMENDATION_TEMPLATES: Recommendation[] = [
-  { condition: (p) => p.streak === 0, text: 'Start your first adventure today!', icon: 'Rocket' },
-  { condition: (p) => p.streak > 0 && p.streak < 3, text: 'Keep your streak going!', icon: 'Flame' },
-  { condition: (p) => p.streak >= 3, text: 'You are on fire! Keep exploring!', icon: 'TrendingUp' },
-  { condition: (p) => p.adventuresCompleted === 0, text: 'Your first adventure awaits!', icon: 'Compass' },
-  { condition: (p) => p.adventuresCompleted > 0 && p.bestCombo < 5, text: 'Try a challenge to build your combo!', icon: 'Swords' },
+export const CHALLENGES: Challenge[] = [
+  { id: 'speed-1', title: 'Speed Demon', description: 'Complete an adventure in under 15 minutes', icon: 'Zap', xpReward: 100, coinReward: 50, difficulty: 'Medium' },
+  { id: 'treasure-3', title: 'Treasure Hunter', description: 'Find 3 treasures in one adventure', icon: 'Gem', xpReward: 120, coinReward: 60, difficulty: 'Medium' },
+  { id: 'no-rest', title: 'Unstoppable', description: 'Complete an adventure without pausing', icon: 'Activity', xpReward: 80, coinReward: 40, difficulty: 'Easy' },
+  { id: 'night-owl', title: 'Night Owl', description: 'Complete an adventure after 8 PM', icon: 'Moon', xpReward: 100, coinReward: 50, difficulty: 'Medium' },
+  { id: 'early-bird', title: 'Early Bird', description: 'Complete an adventure before 7 AM', icon: 'Sunrise', xpReward: 100, coinReward: 50, difficulty: 'Medium' },
+  { id: 'long-haul', title: 'Long Haul', description: 'Complete an adventure longer than 45 minutes', icon: 'Mountain', xpReward: 150, coinReward: 75, difficulty: 'Hard' },
 ];
 
 // --- Loading Tips ---
 export const LOADING_TIPS = [
-  'Tip: Walk near parks to find more treasures!',
-  'Did you know? Combos increase your XP and coin rewards.',
-  'Tip: Login daily for bigger rewards each day.',
-  'Fun fact: Explorers walk an average of 5 km per week.',
-  'Tip: Equip a trail to leave a unique mark on the map.',
-  'Did you know? Pets follow you on every adventure.',
-  'Tip: Higher difficulty means better rewards.',
-  'Fun fact: The longest Nuvra adventure is over 10 km!',
-  'Tip: Check the shop for new cosmetics every day.',
-  'Did you know? Seasonal events offer exclusive items.',
+  'Walking with friends earns bonus XP!',
+  'Daily streaks multiply your rewards!',
+  'Check your quests before starting an adventure!',
+  'Treasures are more common in harder adventures!',
+  'Level up to unlock new adventure types!',
+  'Multiplayer adventures give extra coins!',
+  'Don\'t break your streak — walk every day!',
+  'Weekly quests reset every Monday!',
+  'Higher difficulty means better rewards!',
+  'Use gems to unlock rare cosmetic items!',
 ];
 
-export const LOADING_FACTS = [
-  'Walking 10,000 steps burns approximately 300-400 calories.',
-  'A brisk 30-minute walk can boost your mood for up to 2 hours.',
-  'Walking can improve creativity by up to 60%.',
-  'Regular walking can reduce the risk of heart disease by 35%.',
-  'The average person walks about 150,000 km in their lifetime.',
+// --- Combo System ---
+export function getComboTier(combo: number): { name: string; multiplier: number; color: string } {
+  if (combo >= 20) return { name: 'Mythic', multiplier: 3.0, color: '#f59e0b' };
+  if (combo >= 15) return { name: 'Legendary', multiplier: 2.5, color: '#a78bfa' };
+  if (combo >= 10) return { name: 'Epic', multiplier: 2.0, color: '#7a33ff' };
+  if (combo >= 5) return { name: 'Rare', multiplier: 1.5, color: '#33ffd6' };
+  if (combo >= 2) return { name: 'Common', multiplier: 1.2, color: '#22d3ee' };
+  return { name: 'None', multiplier: 1.0, color: '#ffffff' };
+}
+
+// --- Cosmetic System ---
+export type CosmeticRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+
+export const COSMETIC_RARITY_MAP: Record<CosmeticRarity, { color: string; label: string; glow: string }> = {
+  common: { color: 'text-white/60', label: 'Common', glow: '' },
+  rare: { color: 'text-cyan-300', label: 'Rare', glow: 'shadow-[0_0_10px_rgba(34,211,238,0.3)]' },
+  epic: { color: 'text-plasma-300', label: 'Epic', glow: 'shadow-[0_0_10px_rgba(122,51,255,0.3)]' },
+  legendary: { color: 'text-gold-300', label: 'Legendary', glow: 'shadow-[0_0_15px_rgba(255,204,51,0.4)]' },
+  mythic: { color: 'text-ember-300', label: 'Mythic', glow: 'shadow-[0_0_20px_rgba(255,132,51,0.5)]' },
+};
+
+export interface CosmeticItem {
+  id: string;
+  name: string;
+  emoji: string;
+  rarity: CosmeticRarity;
+  price: number;
+  category: 'avatar' | 'trail' | 'frame' | 'effect';
+}
+
+export const SHOP_ITEMS: CosmeticItem[] = [
+  { id: 'avatar-fox', name: 'Fox', emoji: '🦊', rarity: 'common', price: 100, category: 'avatar' },
+  { id: 'avatar-cat', name: 'Cat', emoji: '🐱', rarity: 'common', price: 100, category: 'avatar' },
+  { id: 'avatar-owl', name: 'Owl', emoji: '🦉', rarity: 'rare', price: 300, category: 'avatar' },
+  { id: 'avatar-dragon', name: 'Dragon', emoji: '🐉', rarity: 'epic', price: 800, category: 'avatar' },
+  { id: 'avatar-unicorn', name: 'Unicorn', emoji: '🦄', rarity: 'legendary', price: 2000, category: 'avatar' },
+  { id: 'avatar-phoenix', name: 'Phoenix', emoji: '🔥', rarity: 'mythic', price: 5000, category: 'avatar' },
+  { id: 'trail-stars', name: 'Star Trail', emoji: '✨', rarity: 'rare', price: 250, category: 'trail' },
+  { id: 'trail-fire', name: 'Fire Trail', emoji: '🔥', rarity: 'epic', price: 600, category: 'trail' },
+  { id: 'trail-rainbow', name: 'Rainbow Trail', emoji: '🌈', rarity: 'legendary', price: 1500, category: 'trail' },
+  { id: 'frame-gold', name: 'Gold Frame', emoji: '🟡', rarity: 'rare', price: 200, category: 'frame' },
+  { id: 'frame-plasma', name: 'Plasma Frame', emoji: '🟣', rarity: 'epic', price: 500, category: 'frame' },
+  { id: 'effect-sparkle', name: 'Sparkle Effect', emoji: '💫', rarity: 'epic', price: 700, category: 'effect' },
 ];

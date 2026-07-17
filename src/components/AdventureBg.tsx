@@ -1,46 +1,50 @@
-import React from 'react';
+import { useMemo } from 'react';
 
 interface AdventureBgProps {
+  variant?: 'default' | 'cyber' | 'forest' | 'ocean' | 'mountain';
   accent?: string;
-  variant?: 'default' | 'forest' | 'space' | 'ocean' | 'mountain' | 'cyber' | 'volcano' | 'temple' | 'winter';
-  children?: React.ReactNode;
 }
 
-const VARIANTS: Record<string, string> = {
-  default: 'from-ink-950 via-ink-900 to-ink-950',
-  forest: 'from-green-950 via-green-900 to-ink-950',
-  space: 'from-ink-950 via-plasma-950 to-ink-950',
-  ocean: 'from-cyan-950 via-cyan-900 to-ink-950',
-  mountain: 'from-slate-800 via-ink-800 to-ink-950',
-  cyber: 'from-plasma-950 via-ink-900 to-ink-950',
-  volcano: 'from-ember-950 via-ember-900 to-ink-950',
-  temple: 'from-gold-950 via-ink-800 to-ink-950',
-  winter: 'from-cyan-800 via-blue-900 to-ink-950',
-};
+export function AdventureBg({ variant = 'default', accent = '#33ffd6' }: AdventureBgProps): React.ReactElement {
+  const blobs = useMemo(() => {
+    const seed = variant;
+    const arr: Array<{ x: number; y: number; size: number; delay: number }> = [];
+    for (let i = 0; i < 5; i++) {
+      const hash = (seed.charCodeAt(i % seed.length) || 65) * (i + 1);
+      arr.push({
+        x: (hash * 37) % 100,
+        y: (hash * 53) % 100,
+        size: 200 + (hash % 300),
+        delay: (hash % 10) * 0.5,
+      });
+    }
+    return arr;
+  }, [variant]);
 
-export function AdventureBg({ accent = '#40f5cb', variant = 'default', children }: AdventureBgProps) {
   return (
-    <div className={`fixed inset-0 bg-gradient-to-b ${VARIANTS[variant]} -z-10`}>
-      <div className="absolute inset-0 bg-grid opacity-30" />
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 bg-ink-950" />
+      {blobs.map((b, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full opacity-[0.07] blur-3xl animate-pulse"
+          style={{
+            left: `${b.x}%`,
+            top: `${b.y}%`,
+            width: `${b.size}px`,
+            height: `${b.size}px`,
+            background: accent,
+            animationDelay: `${b.delay}s`,
+            animationDuration: '4s',
+          }}
+        />
+      ))}
       <div
-        className="absolute inset-0"
-        style={{ background: `radial-gradient(ellipse at 50% 0%, ${accent}15, transparent 60%)` }}
+        className="absolute inset-0 opacity-30"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${accent}15 0%, transparent 50%)`,
+        }}
       />
-      <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-white/20 animate-float-slow"
-            style={{
-              left: `${10 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
-              animationDelay: `${i * 0.8}s`,
-              animationDuration: `${4 + (i % 3)}s`,
-            }}
-          />
-        ))}
-      </div>
-      {children}
     </div>
   );
 }
