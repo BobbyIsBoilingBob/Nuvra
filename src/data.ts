@@ -1,6 +1,9 @@
 // ============================================================
-// Nuvra Data Layer — Core Types, Game Data, Progression
+// Zeviqo Data Layer — Core Types, Game Data, Progression
 // ============================================================
+
+export const APP_NAME = 'Zeviqo';
+export const APP_TAGLINE = 'Walking Adventures';
 
 export type Screen =
   | 'landing' | 'onboarding' | 'home' | 'adventures' | 'adventure-detail'
@@ -74,7 +77,7 @@ export const REWARD_PRIORITY_OPTIONS = [
   { id: 'balanced' as const, label: 'Balanced', icon: 'Scale' },
 ];
 
-// --- Adventure Themes (expanded for variety) ---
+// --- Adventure Themes ---
 export interface AdventureTheme {
   id: string; name: string; emoji: string; accent: string; terrain: string;
 }
@@ -94,8 +97,8 @@ export const ADVENTURE_THEMES: AdventureTheme[] = [
 
 // --- Adventure Generation System ---
 export type AdventureType =
-  | 'treasure_hunt' | 'exploration' | 'speed_walk' | 'nature_trail'
-  | 'city_discovery' | 'mystery' | 'challenge_run' | 'relaxing_walk';
+  | 'treasure_hunt' | 'nature_walk' | 'mystery' | 'explorer_route'
+  | 'speed_challenge' | 'scenic_walk' | 'fitness_adventure' | 'community_adventure';
 
 export interface AdventureTypeMeta {
   id: AdventureType; label: string; emoji: string; icon: string; desc: string; baseXp: number; baseCoins: number;
@@ -103,19 +106,21 @@ export interface AdventureTypeMeta {
 
 export const ADVENTURE_TYPES: AdventureTypeMeta[] = [
   { id: 'treasure_hunt', label: 'Treasure Hunt', emoji: '💎', icon: 'Gem', desc: 'Find hidden treasures along the route', baseXp: 150, baseCoins: 80 },
-  { id: 'exploration', label: 'Exploration', emoji: '🧭', icon: 'Compass', desc: 'Discover new paths and landmarks', baseXp: 120, baseCoins: 60 },
-  { id: 'speed_walk', label: 'Speed Walk', emoji: '⚡', icon: 'Zap', desc: 'Complete the route as fast as you can', baseXp: 180, baseCoins: 70 },
-  { id: 'nature_trail', label: 'Nature Trail', emoji: '🌿', icon: 'Leaf', desc: 'Enjoy the beauty of nature', baseXp: 100, baseCoins: 50 },
-  { id: 'city_discovery', label: 'City Discovery', emoji: '🏙️', icon: 'Building', desc: 'Explore urban hidden gems', baseXp: 130, baseCoins: 65 },
+  { id: 'nature_walk', label: 'Nature Walk', emoji: '🌿', icon: 'Leaf', desc: 'Enjoy the beauty of nature', baseXp: 100, baseCoins: 50 },
   { id: 'mystery', label: 'Mystery Adventure', emoji: '🔍', icon: 'Search', desc: 'An unpredictable journey awaits', baseXp: 200, baseCoins: 100 },
-  { id: 'challenge_run', label: 'Challenge Run', emoji: '🏆', icon: 'Swords', desc: 'Push your limits with tough objectives', baseXp: 250, baseCoins: 120 },
-  { id: 'relaxing_walk', label: 'Relaxing Walk', emoji: '🍃', icon: 'Wind', desc: 'A calm, stress-free stroll', baseXp: 80, baseCoins: 40 },
+  { id: 'explorer_route', label: 'Explorer Route', emoji: '🧭', icon: 'Compass', desc: 'Discover new paths and landmarks', baseXp: 120, baseCoins: 60 },
+  { id: 'speed_challenge', label: 'Speed Challenge', emoji: '⚡', icon: 'Zap', desc: 'Complete the route as fast as you can', baseXp: 180, baseCoins: 70 },
+  { id: 'scenic_walk', label: 'Scenic Walk', emoji: '🌅', icon: 'Camera', desc: 'Take in beautiful views', baseXp: 110, baseCoins: 55 },
+  { id: 'fitness_adventure', label: 'Fitness Adventure', emoji: '💪', icon: 'Activity', desc: 'Push your limits with tough terrain', baseXp: 250, baseCoins: 120 },
+  { id: 'community_adventure', label: 'Community Adventure', emoji: '👥', icon: 'Users', desc: 'Walk together with friends', baseXp: 160, baseCoins: 90 },
 ];
 
 // --- Adventure Definition ---
 export interface AdventureObjective {
   id: string; label: string; icon: string; target: number; unit: string; type: 'distance' | 'time' | 'treasure' | 'speed' | 'landmark' | 'combo';
 }
+
+export interface RoutePoint { lat: number; lng: number }
 
 export interface Adventure {
   id: string; name: string; emoji: string; difficulty: DifficultyPref;
@@ -128,13 +133,11 @@ export interface Adventure {
   routePreview?: RoutePoint[];
 }
 
-export interface RoutePoint { lat: number; lng: number; }
-
 // --- Static Adventures (curated) ---
 export const ADVENTURES: Adventure[] = [
   {
     id: 'forest-grove', name: 'Whispering Grove', emoji: '🌲', difficulty: 'Easy',
-    distanceKm: 2.5, durationMin: 20, theme: 'forest', terrain: 'Forest', type: 'nature_trail',
+    distanceKm: 2.5, durationMin: 20, theme: 'forest', terrain: 'Forest', type: 'nature_walk',
     description: 'A gentle walk through ancient trees. Listen for the whispers of the forest.',
     xpReward: 120, coinReward: 50, gemReward: 0, caloriesEstimate: 120, tags: ['nature','relaxed'],
     objectives: [
@@ -144,7 +147,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'urban-maze', name: 'Urban Maze', emoji: '🏙️', difficulty: 'Medium',
-    distanceKm: 4.0, durationMin: 35, theme: 'urban', terrain: 'City Streets', type: 'city_discovery',
+    distanceKm: 4.0, durationMin: 35, theme: 'urban', terrain: 'City Streets', type: 'explorer_route',
     description: 'Navigate the city streets and discover hidden urban gems.',
     xpReward: 200, coinReward: 80, gemReward: 1, caloriesEstimate: 200, tags: ['urban','exploration'],
     objectives: [
@@ -154,7 +157,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'coastal-breeze', name: 'Coastal Breeze', emoji: '🌊', difficulty: 'Easy',
-    distanceKm: 3.0, durationMin: 25, theme: 'coastal', terrain: 'Coastline', type: 'relaxing_walk',
+    distanceKm: 3.0, durationMin: 25, theme: 'coastal', terrain: 'Coastline', type: 'scenic_walk',
     description: 'Feel the salty air as you walk along the scenic coastline.',
     xpReward: 150, coinReward: 60, gemReward: 0, caloriesEstimate: 150, tags: ['scenic','relaxed'],
     objectives: [
@@ -164,7 +167,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'mountain-ascent', name: 'Mountain Ascent', emoji: '⛰️', difficulty: 'Hard',
-    distanceKm: 6.5, durationMin: 55, theme: 'mountain', terrain: 'Mountain', type: 'challenge_run',
+    distanceKm: 6.5, durationMin: 55, theme: 'mountain', terrain: 'Mountain', type: 'fitness_adventure',
     description: 'Challenge yourself with a steep climb. The view is worth it.',
     xpReward: 350, coinReward: 150, gemReward: 2, caloriesEstimate: 400, tags: ['fitness','challenge'],
     objectives: [
@@ -175,7 +178,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'park-loop', name: 'Park Loop', emoji: '🌿', difficulty: 'Relaxed',
-    distanceKm: 1.5, durationMin: 15, theme: 'park', terrain: 'Park', type: 'relaxing_walk',
+    distanceKm: 1.5, durationMin: 15, theme: 'park', terrain: 'Park', type: 'nature_walk',
     description: 'A peaceful loop through your local park. Perfect for a quick break.',
     xpReward: 80, coinReward: 30, gemReward: 0, caloriesEstimate: 75, tags: ['nature','quick'],
     objectives: [
@@ -195,7 +198,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'night-patrol', name: 'Night Patrol', emoji: '🌙', difficulty: 'Hard',
-    distanceKm: 5.0, durationMin: 45, theme: 'night', terrain: 'Night City', type: 'exploration',
+    distanceKm: 5.0, durationMin: 45, theme: 'night', terrain: 'Night City', type: 'explorer_route',
     description: 'Explore the city after dark. Stay alert for rare nighttime treasures.',
     xpReward: 300, coinReward: 120, gemReward: 2, caloriesEstimate: 250, tags: ['night','challenge'],
     objectives: [
@@ -206,7 +209,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'extreme-summit', name: 'Extreme Summit', emoji: '🏔️', difficulty: 'Extreme',
-    distanceKm: 8.0, durationMin: 70, theme: 'mountain', terrain: 'Mountain', type: 'challenge_run',
+    distanceKm: 8.0, durationMin: 70, theme: 'mountain', terrain: 'Mountain', type: 'fitness_adventure',
     description: 'Only for the bravest explorers. A grueling trek to the peak.',
     xpReward: 500, coinReward: 250, gemReward: 3, caloriesEstimate: 500, tags: ['fitness','extreme'],
     objectives: [
@@ -218,7 +221,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'riverside-stroll', name: 'Riverside Stroll', emoji: '🏞️', difficulty: 'Relaxed',
-    distanceKm: 2.0, durationMin: 20, theme: 'riverside', terrain: 'Riverside', type: 'relaxing_walk',
+    distanceKm: 2.0, durationMin: 20, theme: 'riverside', terrain: 'Riverside', type: 'scenic_walk',
     description: 'A calming walk along the river. Watch the water flow as you explore.',
     xpReward: 90, coinReward: 35, gemReward: 0, caloriesEstimate: 100, tags: ['scenic','relaxed'],
     objectives: [
@@ -228,7 +231,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'historic-quarter', name: 'Historic Quarter', emoji: '🏛️', difficulty: 'Medium',
-    distanceKm: 3.0, durationMin: 30, theme: 'historic', terrain: 'Historic', type: 'city_discovery',
+    distanceKm: 3.0, durationMin: 30, theme: 'historic', terrain: 'Historic', type: 'explorer_route',
     description: 'Step back in time through the historic streets of the old quarter.',
     xpReward: 180, coinReward: 90, gemReward: 1, caloriesEstimate: 150, tags: ['historic','exploration'],
     objectives: [
@@ -238,7 +241,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'sunset-boulevard', name: 'Sunset Boulevard', emoji: '🌅', difficulty: 'Easy',
-    distanceKm: 2.5, durationMin: 25, theme: 'sunset', terrain: 'Open Road', type: 'exploration',
+    distanceKm: 2.5, durationMin: 25, theme: 'sunset', terrain: 'Open Road', type: 'scenic_walk',
     description: 'Walk into the sunset along this scenic boulevard.',
     xpReward: 130, coinReward: 55, gemReward: 0, caloriesEstimate: 125, tags: ['scenic','sunset'],
     objectives: [
@@ -248,7 +251,7 @@ export const ADVENTURES: Adventure[] = [
   },
   {
     id: 'speed-circuit', name: 'Speed Circuit', emoji: '⚡', difficulty: 'Hard',
-    distanceKm: 4.5, durationMin: 30, theme: 'urban', terrain: 'City Streets', type: 'speed_walk',
+    distanceKm: 4.5, durationMin: 30, theme: 'urban', terrain: 'City Streets', type: 'speed_challenge',
     description: 'A fast-paced circuit through the city. Beat the clock!',
     xpReward: 280, coinReward: 110, gemReward: 1, caloriesEstimate: 280, tags: ['fitness','speed'],
     objectives: [
@@ -266,58 +269,63 @@ export interface GenerationParams {
   preferredLength?: AdventureLength; preferredStyle?: AdventureStylePref;
 }
 
-const ADJECTIVES = ['Hidden','Secret','Lost','Ancient','Golden','Mystic','Forgotten','Crystal','Emerald','Silver','Wandering','Endless','Twilight','Dawn','Midnight','Crimson','Azure','Radiant','Shadow','Frost'];
-const NOUNS = ['Path','Trail','Way','Route','Circuit','Loop','Journey','Quest','Expedition','Voyage','Trek','Hike','Walk','Stroll','Odyssey','Passage','Corridor','Labyrinth','Maze','Trail'];
+const ADJECTIVES = ['Hidden','Secret','Lost','Ancient','Golden','Mystic','Forgotten','Crystal','Emerald','Silver','Wandering','Endless','Twilight','Dawn','Midnight','Crimson','Azure','Radiant','Shadow','Frost','Silent','Roaring','Gentle','Wild','Sacred'];
+const NOUNS = ['Path','Trail','Way','Route','Circuit','Loop','Journey','Quest','Expedition','Voyage','Trek','Hike','Walk','Stroll','Odyssey','Passage','Corridor','Labyrinth','Maze','Trail','Ridge','Valley','Canyon','Harbor','Garden'];
 
 const OBJECTIVE_TEMPLATES: Record<AdventureType, Array<{ label: string; icon: string; type: AdventureObjective['type']; unit: string }>> = {
   treasure_hunt: [
     { label: 'Find {n} hidden treasures', icon: 'Gem', type: 'treasure', unit: '' },
     { label: 'Collect {n} rare gems', icon: 'Diamond', type: 'treasure', unit: '' },
     { label: 'Unlock {n} treasure chests', icon: 'Key', type: 'treasure', unit: '' },
+    { label: 'Recover {n} lost artifacts', icon: 'Crown', type: 'treasure', unit: '' },
   ],
-  exploration: [
-    { label: 'Discover {n} landmarks', icon: 'MapPin', type: 'landmark', unit: '' },
-    { label: 'Explore {n} new areas', icon: 'Compass', type: 'landmark', unit: '' },
-    { label: 'Uncover {n} hidden paths', icon: 'Route', type: 'landmark', unit: '' },
-  ],
-  speed_walk: [
-    { label: 'Complete in under {n} minutes', icon: 'Zap', type: 'speed', unit: 'min' },
-    { label: 'Maintain {n}x speed combo', icon: 'Activity', type: 'combo', unit: 'x' },
-    { label: 'Beat the target pace of {n} min/km', icon: 'Gauge', type: 'speed', unit: 'min/km' },
-  ],
-  nature_trail: [
+  nature_walk: [
     { label: 'Spot {n} wildlife species', icon: 'Bird', type: 'treasure', unit: '' },
-    { label: 'Walk {n}m through nature', icon: 'Leaf', type: 'distance', unit: 'm' },
     { label: 'Find {n} scenic viewpoints', icon: 'Mountain', type: 'landmark', unit: '' },
-  ],
-  city_discovery: [
-    { label: 'Discover {n} urban landmarks', icon: 'Building', type: 'landmark', unit: '' },
-    { label: 'Visit {n} hidden cafes', icon: 'Coffee', type: 'landmark', unit: '' },
-    { label: 'Find {n} street art pieces', icon: 'Palette', type: 'treasure', unit: '' },
+    { label: 'Identify {n} plant species', icon: 'Flower', type: 'treasure', unit: '' },
+    { label: 'Reach {n} peaceful clearings', icon: 'Leaf', type: 'landmark', unit: '' },
   ],
   mystery: [
     { label: 'Solve the mystery', icon: 'Search', type: 'landmark', unit: '' },
     { label: 'Find {n} clues', icon: 'HelpCircle', type: 'treasure', unit: '' },
     { label: 'Uncover {n} secrets', icon: 'Eye', type: 'treasure', unit: '' },
+    { label: 'Decode {n} cryptic messages', icon: 'MessageCircle', type: 'treasure', unit: '' },
   ],
-  challenge_run: [
+  explorer_route: [
+    { label: 'Discover {n} landmarks', icon: 'MapPin', type: 'landmark', unit: '' },
+    { label: 'Explore {n} new areas', icon: 'Compass', type: 'landmark', unit: '' },
+    { label: 'Uncover {n} hidden paths', icon: 'Route', type: 'landmark', unit: '' },
+    { label: 'Map {n} uncharted zones', icon: 'Map', type: 'landmark', unit: '' },
+  ],
+  speed_challenge: [
+    { label: 'Complete in under {n} minutes', icon: 'Zap', type: 'speed', unit: 'min' },
+    { label: 'Maintain {n}x speed combo', icon: 'Activity', type: 'combo', unit: 'x' },
+    { label: 'Beat the target pace of {n} min/km', icon: 'Gauge', type: 'speed', unit: 'min/km' },
+    { label: 'Sprint {n} sections', icon: 'Wind', type: 'combo', unit: '' },
+  ],
+  scenic_walk: [
+    { label: 'Capture {n} scenic photos', icon: 'Camera', type: 'treasure', unit: '' },
+    { label: 'Visit {n} viewpoints', icon: 'Mountain', type: 'landmark', unit: '' },
+    { label: 'Enjoy {n} peaceful moments', icon: 'Heart', type: 'landmark', unit: '' },
+    { label: 'Find {n} hidden lookouts', icon: 'Eye', type: 'landmark', unit: '' },
+  ],
+  fitness_adventure: [
     { label: 'Reach the summit', icon: 'Mountain', type: 'landmark', unit: '' },
     { label: 'Maintain {n}x combo', icon: 'Zap', type: 'combo', unit: 'x' },
-    { label: 'Complete {n} bonus challenges', icon: 'Swords', type: 'landmark', unit: '' },
+    { label: 'Complete {n} hill climbs', icon: 'TrendingUp', type: 'landmark', unit: '' },
+    { label: 'Burn {n} calories', icon: 'Flame', type: 'combo', unit: '' },
   ],
-  relaxing_walk: [
-    { label: 'Walk {n}m at your own pace', icon: 'Footprints', type: 'distance', unit: 'm' },
-    { label: 'Enjoy the scenery for {n} min', icon: 'Wind', type: 'time', unit: 'min' },
-    { label: 'Find {n} peaceful spots', icon: 'Heart', type: 'landmark', unit: '' },
+  community_adventure: [
+    { label: 'Walk together for {n} minutes', icon: 'Users', type: 'time', unit: 'min' },
+    { label: 'Find {n} group treasures', icon: 'Gem', type: 'treasure', unit: '' },
+    { label: 'Reach {n} meeting points', icon: 'MapPin', type: 'landmark', unit: '' },
+    { label: 'Complete {n} team challenges', icon: 'Swords', type: 'landmark', unit: '' },
   ],
 };
 
 function seededRandom(seed: number): () => number {
   let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
+  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
 }
 
 function pick<T>(arr: T[], rng: () => number): T { return arr[Math.floor(rng() * arr.length)]; }
@@ -336,7 +344,7 @@ function lengthToDistance(len: AdventureLength): number {
 
 function generateRoute(distanceKm: number, rng: () => number): RoutePoint[] {
   const points: RoutePoint[] = [];
-  const numPoints = Math.max(6, Math.min(12, Math.floor(distanceKm * 1.5)));
+  const numPoints = Math.max(6, Math.min(14, Math.floor(distanceKm * 1.8)));
   const baseLat = 51.5074 + (rng() - 0.5) * 0.05;
   const baseLng = -0.1278 + (rng() - 0.5) * 0.05;
   const angleStep = (Math.PI * 2) / numPoints;
@@ -344,8 +352,8 @@ function generateRoute(distanceKm: number, rng: () => number): RoutePoint[] {
 
   for (let i = 0; i <= numPoints; i++) {
     const angle = angleStep * i;
-    const wobble = (rng() - 0.5) * 0.3;
-    const r = radius * (1 + wobble);
+    const wobble = (rng() - 0.5) * 0.35;
+    const r = Math.max(0.001, radius * (1 + wobble));
     points.push({
       lat: baseLat + Math.sin(angle) * r,
       lng: baseLng + Math.cos(angle) * r,
@@ -382,8 +390,6 @@ export function generateAdventure(params: GenerationParams): Adventure {
   const length: AdventureLength = params.preferredLength ?? pick(LENGTH_OPTIONS, rng).id;
   const durationMin = lengthToMinutes(length);
   let distanceKm = lengthToDistance(length);
-
-  // Adjust distance for difficulty
   distanceKm *= difficultyMultiplier(difficulty) * 0.85 + 0.15;
   distanceKm = Math.round(distanceKm * 10) / 10;
 
@@ -403,7 +409,7 @@ export function generateAdventure(params: GenerationParams): Adventure {
   const coinReward = Math.round(typeMeta.baseCoins * diffMult * distMult * playerBonus);
   const gemReward = Math.floor(diffMult * distMult * 0.5);
 
-  // Calories: ~50 cal per km walking, more for harder terrain
+  // Calories
   const caloriesEstimate = Math.round(distanceKm * 50 * (difficulty === 'Hard' || difficulty === 'Extreme' ? 1.3 : 1.0));
 
   // Objectives: pick 2-3 unique templates
@@ -412,7 +418,6 @@ export function generateAdventure(params: GenerationParams): Adventure {
   const usedTemplates = new Set<number>();
   const objectives: AdventureObjective[] = [];
 
-  // Always include a distance objective
   objectives.push({
     id: 'obj-dist', label: `Walk ${distanceKm} km`, icon: 'Footprints',
     target: Math.round(distanceKm * 1000), unit: 'm', type: 'distance',
@@ -438,41 +443,49 @@ export function generateAdventure(params: GenerationParams): Adventure {
       'Search for hidden treasures scattered along this exciting route.',
       'Ancient treasures await discovery. Can you find them all?',
       'A legendary cache of treasures is rumored to be hidden along this path.',
+      'Follow the clues to uncover a fortune in hidden gems.',
     ],
-    exploration: [
-      'Chart unknown territory and discover what lies beyond the familiar.',
-      'New landmarks await your discovery on this uncharted route.',
-      'Explore the unexplored. Every corner holds something new.',
-    ],
-    speed_walk: [
-      'Push your pace and complete this circuit in record time!',
-      'Race against the clock on this high-energy speed route.',
-      'Fast feet, sharp focus. Beat your personal best!',
-    ],
-    nature_trail: [
+    nature_walk: [
       'Immerse yourself in nature. Breathe deep and enjoy the wild.',
       'A serene path through natural beauty. Listen to the birds.',
       'Connect with the outdoors on this refreshing nature walk.',
-    ],
-    city_discovery: [
-      'Uncover the hidden gems of the city on this urban adventure.',
-      'Every alley has a story. Discover the city\'s best-kept secrets.',
-      'Navigate the urban jungle and find its hidden treasures.',
+      'Wander through pristine wilderness on this tranquil trail.',
     ],
     mystery: [
       'An enigmatic route full of surprises. What will you uncover?',
       'Something strange is happening on this path. Investigate carefully.',
       'A mysterious adventure where nothing is quite as it seems.',
+      'Decode the riddles and unravel the mystery of this route.',
     ],
-    challenge_run: [
+    explorer_route: [
+      'Chart unknown territory and discover what lies beyond the familiar.',
+      'New landmarks await your discovery on this uncharted route.',
+      'Explore the unexplored. Every corner holds something new.',
+      'Blaze a trail through territory few have dared to explore.',
+    ],
+    speed_challenge: [
+      'Push your pace and complete this circuit in record time!',
+      'Race against the clock on this high-energy speed route.',
+      'Fast feet, sharp focus. Beat your personal best!',
+      'Every second counts on this thrilling speed challenge.',
+    ],
+    scenic_walk: [
+      'Take in breathtaking views on this picturesque route.',
+      'A visual feast awaits. Bring your camera and your sense of wonder.',
+      'Stop and stare — this scenic walk is worth savoring.',
+      'Beautiful vistas and stunning landscapes line this path.',
+    ],
+    fitness_adventure: [
       'Test your limits on this demanding course. Only the strong prevail.',
       'A grueling challenge for experienced explorers. Are you ready?',
       'Push through tough terrain and tough objectives. Prove yourself!',
+      'Sweat, climb, and conquer on this intense fitness adventure.',
     ],
-    relaxing_walk: [
-      'A gentle, calming stroll. No pressure, just pure enjoyment.',
-      'Take it easy on this peaceful path. Relax and unwind.',
-      'A stress-free walk designed for pure pleasure and fresh air.',
+    community_adventure: [
+      'Gather your friends and tackle this route together!',
+      'A social adventure best enjoyed with company.',
+      'Walk, talk, and explore together on this community route.',
+      'Team up for shared treasures and group challenges.',
     ],
   };
   const desc = pick(descriptions[typeMeta.id], rng);
@@ -600,14 +613,15 @@ export const LOADING_TIPS = [
   'Use gems to unlock rare cosmetic items!',
   'Generated adventures adapt to your level!',
   'Longer adventures give proportionally more rewards!',
+  'Zeviqo adventures are never the same twice!',
 ];
 
 // --- Combo System ---
 export function getComboTier(combo: number): { name: string; multiplier: number; color: string } {
   if (combo >= 20) return { name: 'Mythic', multiplier: 3.0, color: '#f59e0b' };
   if (combo >= 15) return { name: 'Legendary', multiplier: 2.5, color: '#a78bfa' };
-  if (combo >= 10) return { name: 'Epic', multiplier: 2.0, color: '#7a33ff' };
-  if (combo >= 5) return { name: 'Rare', multiplier: 1.5, color: '#33ffd6' };
+  if (combo >= 10) return { name: 'Epic', multiplier: 2.0, color: '#7a45ff' };
+  if (combo >= 5) return { name: 'Rare', multiplier: 1.5, color: '#3dd4ff' };
   if (combo >= 2) return { name: 'Common', multiplier: 1.2, color: '#22d3ee' };
   return { name: 'None', multiplier: 1.0, color: '#ffffff' };
 }
@@ -617,10 +631,10 @@ export type CosmeticRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
 
 export const COSMETIC_RARITY_MAP: Record<CosmeticRarity, { color: string; label: string; glow: string }> = {
   common: { color: 'text-white/60', label: 'Common', glow: '' },
-  rare: { color: 'text-cyan-300', label: 'Rare', glow: 'shadow-[0_0_10px_rgba(34,211,238,0.3)]' },
-  epic: { color: 'text-plasma-300', label: 'Epic', glow: 'shadow-[0_0_10px_rgba(122,51,255,0.3)]' },
-  legendary: { color: 'text-gold-300', label: 'Legendary', glow: 'shadow-[0_0_15px_rgba(255,204,51,0.4)]' },
-  mythic: { color: 'text-ember-300', label: 'Mythic', glow: 'shadow-[0_0_20px_rgba(255,132,51,0.5)]' },
+  rare: { color: 'text-zeviqo-300', label: 'Rare', glow: 'shadow-[0_0_10px_rgba(61,212,255,0.3)]' },
+  epic: { color: 'text-plasma-300', label: 'Epic', glow: 'shadow-[0_0_10px_rgba(122,69,255,0.3)]' },
+  legendary: { color: 'text-gold-300', label: 'Legendary', glow: 'shadow-[0_0_15px_rgba(255,204,26,0.4)]' },
+  mythic: { color: 'text-ember-300', label: 'Mythic', glow: 'shadow-[0_0_20px_rgba(255,133,39,0.5)]' },
 };
 
 export interface CosmeticItem { id: string; name: string; emoji: string; rarity: CosmeticRarity; price: number; category: 'avatar' | 'trail' | 'frame' | 'effect' }

@@ -1,15 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --nova-400: #33ffd6; --nova-500: #00ffcc;
-  --plasma-400: #7a33ff; --plasma-500: #5c00e6;
-  --gold-400: #ffcc33; --gold-500: #ffbf00;
-  --ember-400: #ff8433; --ember-500: #ff6600;
-  --ink-950: #070713; --ink-900: #0a0a1a; --ink-800: #0f0f23; --ink-700: #161630;
+  --zeviqo-400: #3dd4ff;
+  --zeviqo-500: #00c4ff;
+  --ember-400: #ff8527;
+  --ember-500: #ff6b00;
+  --gold-400: #ffcc1a;
+  --gold-500: #f5b800;
+  --plasma-500: #7a45ff;
+  --ink-950: #080810;
+  --ink-900: #0c0c18;
+  --ink-800: #12121f;
 }
 
 * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
@@ -27,8 +32,12 @@ body {
   border: 1px solid rgba(255,255,255,0.06);
 }
 .glass-strong {
-  background: rgba(10,10,26,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  background: rgba(12,12,24,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.08);
+}
+.glass-zeviqo {
+  background: rgba(0,196,255,0.06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0,196,255,0.12);
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -44,8 +53,20 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--nova-400), var(--plasma-400));
+  background: linear-gradient(135deg, var(--zeviqo-400), var(--ember-400));
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--gold-400), var(--ember-500));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.font-display { font-family: 'Poppins', 'Inter', sans-serif; }
+
+.shimmer-bg {
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s linear infinite;
 }
 
 .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }

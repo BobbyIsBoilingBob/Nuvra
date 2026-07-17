@@ -19,9 +19,9 @@ export function BottomNav(): React.ReactElement {
           const active = screen === item.id;
           return (
             <button key={item.id} onClick={() => setScreen(item.id)} aria-label={item.label} aria-current={active?'page':undefined}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-300 touch-target ${active?'text-nova-300 bg-nova-500/10':'text-white/40 hover:text-white/70'}`}>
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-300 touch-target ${active?'text-zeviqo-300 bg-zeviqo-500/10':'text-white/40 hover:text-white/70'}`}>
               <Icon name={item.icon} size={22} strokeWidth={active?2.5:2} />
-              <span className={`text-[10px] font-semibold ${active?'text-nova-300':''}`}>{item.label}</span>
+              <span className={`text-[10px] font-semibold ${active?'text-zeviqo-300':''}`}>{item.label}</span>
             </button>
           );
         })}

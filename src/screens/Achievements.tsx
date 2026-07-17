@@ -41,7 +41,7 @@ export function Achievements(): React.ReactElement {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#ffcc33" />
+      <AdventureBg accent="#ffcc1a" />
       <div className="relative z-10">
         <TopBar title="Achievements" showCurrencies />
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4">
@@ -85,7 +85,7 @@ export function Achievements(): React.ReactElement {
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-[10px] text-white/40">{Math.min(progress, a.target).toLocaleString()}/{a.target.toLocaleString()}{a.unit}</span>
                             <div className="flex items-center gap-1.5">
-                              {a.xpReward > 0 && <span className="text-[10px] text-nova-300 font-bold">+{a.xpReward} XP</span>}
+                              {a.xpReward > 0 && <span className="text-[10px] text-zeviqo-300 font-bold">+{a.xpReward} XP</span>}
                               {a.gemReward > 0 && <span className="text-[10px] text-plasma-400 font-bold">+{a.gemReward}💎</span>}
                             </div>
                           </div>
@@ -93,7 +93,7 @@ export function Achievements(): React.ReactElement {
                       )}
                       {unlocked && (
                         <div className="flex items-center gap-1.5 mt-2">
-                          {a.xpReward > 0 && <Pill icon="Zap" accent="text-nova-300 border-nova-500/30">+{a.xpReward} XP</Pill>}
+                          {a.xpReward > 0 && <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{a.xpReward} XP</Pill>}
                           {a.gemReward > 0 && <Pill icon="Gem" accent="text-plasma-400 border-plasma-500/30">+{a.gemReward}</Pill>}
                           <Pill accent="text-gold-300 border-gold-500/30">Unlocked</Pill>
                         </div>

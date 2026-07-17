@@ -89,10 +89,10 @@ export function AdventureMap(): React.ReactElement {
     const coinReward = coins + adventure.coinReward;
     const gemReward = adventure.gemReward;
 
-    recordAdventureComplete(adventure, xpReward, coinReward, gemReward, false, [], distance, elapsed, treasures, maxCombo);
+    recordAdventureComplete(adventure, xpReward, coinReward, gemReward, false, [], distance, elapsed, treasures, maxCombo, 0);
     setPhase('complete');
     setRewardData([
-      { icon: 'Zap', label: 'XP', amount: xpReward, color: 'text-nova-300' },
+      { icon: 'Zap', label: 'XP', amount: xpReward, color: 'text-zeviqo-300' },
       { icon: 'Coins', label: 'Coins', amount: coinReward, color: 'text-gold-300' },
       ...(gemReward > 0 ? [{ icon: 'Gem', label: 'Gems', amount: gemReward, color: 'text-plasma-400' }] : []),
     ]);
@@ -117,12 +117,12 @@ export function AdventureMap(): React.ReactElement {
   if (phase === 'complete') {
     return (
       <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center px-6">
-        <AdventureBg accent="#33ffd6" />
+        <AdventureBg accent="#3dd4ff" />
         <RewardPopup rewards={rewardData} visible={showReward} onClose={() => setShowReward(false)} />
         <div className="relative z-10 flex flex-col items-center gap-6 text-center max-w-sm w-full">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-nova-400 to-plasma-500 flex items-center justify-center text-5xl shadow-glow-lg animate-[bounce-in_0.6s_cubic-bezier(0.68,-0.55,0.265,1.55)]">{adventure.emoji}</div>
+          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-zeviqo-400 to-plasma-500 flex items-center justify-center text-5xl shadow-glow-lg animate-[bounce-in_0.6s_cubic-bezier(0.68,-0.55,0.265,1.55)]">{adventure.emoji}</div>
           <div>
-            <h2 className="text-2xl font-black text-white">Adventure Complete!</h2>
+            <h2 className="text-2xl font-black text-white font-display">Adventure Complete!</h2>
             <p className="text-sm text-white/50 mt-1">{adventure.name}</p>
           </div>
           <GlassCard className="p-5 w-full">
@@ -130,7 +130,7 @@ export function AdventureMap(): React.ReactElement {
               <div className="flex items-center justify-between"><span className="text-xs text-white/40">Distance</span><span className="text-sm font-bold text-white">{formatDistance(distance)}</span></div>
               <div className="flex items-center justify-between"><span className="text-xs text-white/40">Time</span><span className="text-sm font-bold text-white">{formatDuration(elapsed)}</span></div>
               <div className="flex items-center justify-between"><span className="text-xs text-white/40">Treasures</span><span className="text-sm font-bold text-white">{treasures}</span></div>
-              <div className="flex items-center justify-between"><span className="text-xs text-white/40">Max Combo</span><span className="text-sm font-bold text-nova-300">{maxCombo}x</span></div>
+              <div className="flex items-center justify-between"><span className="text-xs text-white/40">Max Combo</span><span className="text-sm font-bold text-zeviqo-300">{maxCombo}x</span></div>
               <div className="flex items-center justify-between"><span className="text-xs text-white/40">Calories</span><span className="text-sm font-bold text-ember-300">~{Math.round(distance/1000*50)}</span></div>
             </div>
           </GlassCard>
@@ -146,18 +146,18 @@ export function AdventureMap(): React.ReactElement {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <AdventureBg accent={adventure.theme === 'forest' ? '#22c55e' : '#33ffd6'} />
+      <AdventureBg accent={adventure.theme === 'forest' ? '#22c55e' : '#3dd4ff'} />
       <div className="relative z-10">
         <TopBar showBack title={adventure.name} showCurrencies={false} />
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4 mt-4">
           <GlassCard className="p-6 flex flex-col items-center gap-3">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-plasma-400/20 to-nova-500/20 flex items-center justify-center text-6xl">{adventure.emoji}</div>
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-plasma-400/20 to-zeviqo-500/20 flex items-center justify-center text-6xl">{adventure.emoji}</div>
             <div className="flex items-center gap-2 text-xs text-white/40"><Icon name="MapPin" size={14} className="text-cyan-300" /><span>GPS tracking active</span></div>
           </GlassCard>
 
           <GlassCard className="p-4">
             <div className="flex items-center justify-between mb-2"><span className="text-xs font-bold text-white/60">Progress</span><span className="text-xs text-white/40">{formatDistance(distance)} / {adventure.distanceKm} km</span></div>
-            <ProgressBar value={progressPct} accent="from-nova-400 to-cyan-300" height={10} />
+            <ProgressBar value={progressPct} accent="from-zeviqo-400 to-cyan-300" height={10} />
           </GlassCard>
 
           <div className="grid grid-cols-3 gap-2">

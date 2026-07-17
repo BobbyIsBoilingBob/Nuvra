@@ -13,7 +13,7 @@ export function Challenges(): React.ReactElement {
   const handleComplete = (id: string, xp: number, coins: number) => {
     recordChallengeComplete(id, xp, coins);
     setRewardData([
-      { icon: 'Zap', label: 'XP', amount: xp, color: 'text-nova-300' },
+      { icon: 'Zap', label: 'XP', amount: xp, color: 'text-zeviqo-300' },
       { icon: 'Coins', label: 'Coins', amount: coins, color: 'text-gold-300' },
     ]);
     setShowReward(true);
@@ -21,7 +21,7 @@ export function Challenges(): React.ReactElement {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#ff6600" />
+      <AdventureBg accent="#ff6b00" />
       <RewardPopup rewards={rewardData} visible={showReward} onClose={() => setShowReward(false)} />
       <div className="relative z-10">
         <TopBar showBack title="Challenges" showCurrencies />
@@ -34,7 +34,7 @@ export function Challenges(): React.ReactElement {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2"><span className="text-sm font-black text-white">{c.title}</span><Pill accent="text-ember-300 border-ember-500/30">{c.difficulty}</Pill></div>
                   <div className="text-xs text-white/50 mt-0.5">{c.description}</div>
-                  <div className="flex items-center gap-2 mt-2"><Pill icon="Zap" accent="text-nova-300 border-nova-500/30">+{c.xpReward} XP</Pill><Pill icon="Coins" accent="text-gold-300 border-gold-500/30">+{c.coinReward}</Pill></div>
+                  <div className="flex items-center gap-2 mt-2"><Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{c.xpReward} XP</Pill><Pill icon="Coins" accent="text-gold-300 border-gold-500/30">+{c.coinReward}</Pill></div>
                 </div>
               </div>
               <Button variant="secondary" size="sm" fullWidth className="mt-3" icon="Check" onClick={() => handleComplete(c.id, c.xpReward, c.coinReward)}>Mark Complete</Button>

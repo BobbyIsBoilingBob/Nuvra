@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 interface AdventureBgProps { variant?: string; accent?: string }
-export function AdventureBg({ variant = 'default', accent = '#33ffd6' }: AdventureBgProps): React.ReactElement {
+export function AdventureBg({ variant = 'default', accent = '#3dd4ff' }: AdventureBgProps): React.ReactElement {
   const blobs = useMemo(() => {
     const arr: Array<{ x: number; y: number; size: number; delay: number }> = [];
     for (let i = 0; i < 5; i++) {

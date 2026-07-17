@@ -1,4 +1,4 @@
-import { Icon, GlassCard, Button, EmptyState } from '../components/ui';
+import { GlassCard, Button, EmptyState } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
@@ -7,7 +7,7 @@ export function Friends(): React.ReactElement {
   const { setScreen } = useStore();
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#33ffd6" />
+      <AdventureBg accent="#3dd4ff" />
       <div className="relative z-10">
         <TopBar showBack title="Friends" />
         <div className="px-4 max-w-md mx-auto">

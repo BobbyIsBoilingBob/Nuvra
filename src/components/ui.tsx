@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { useStore } from '../store';
-import { getLevelInfo, LOADING_TIPS, type LevelInfo } from '../data';
+import { getLevelInfo, LOADING_TIPS, APP_NAME, type LevelInfo } from '../data';
 
 export interface IconProps { name: string; size?: number; className?: string; style?: React.CSSProperties; strokeWidth?: number }
 export function Icon({ name, size = 20, className, style, strokeWidth = 2 }: IconProps): React.ReactElement {
@@ -22,7 +22,7 @@ export function GlassCard({ children, className = '', onClick, style }: GlassCar
 }
 
 export interface ProgressBarProps { value: number; max?: number; accent?: string; height?: number; showShimmer?: boolean }
-export function ProgressBar({ value, max = 100, accent = 'from-nova-400 to-cyan-300', height = 8, showShimmer = true }: ProgressBarProps): React.ReactElement {
+export function ProgressBar({ value, max = 100, accent = 'from-zeviqo-400 to-cyan-300', height = 8, showShimmer = true }: ProgressBarProps): React.ReactElement {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
     <div className="w-full rounded-full bg-white/[0.08] overflow-hidden" style={{ height }}>
@@ -48,7 +48,7 @@ export interface ButtonProps {
 }
 export function Button({ children, variant='primary', size='md', fullWidth=false, icon, onClick, disabled=false, className='', type='button' }: ButtonProps): React.ReactElement {
   const variants = {
-    primary: 'bg-gradient-to-r from-nova-400 to-cyan-400 text-ink-950 hover:shadow-glow',
+    primary: 'bg-gradient-to-r from-zeviqo-400 to-cyan-400 text-ink-950 hover:shadow-glow',
     secondary: 'glass text-white hover:bg-white/10',
     ghost: 'text-white/60 hover:text-white hover:bg-white/5',
     danger: 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30',
@@ -63,7 +63,7 @@ export function Button({ children, variant='primary', size='md', fullWidth=false
 }
 
 export function Spinner({ size = 24, className = '' }: { size?: number; className?: string }): React.ReactElement {
-  return <div className={`animate-spin rounded-full border-2 border-white/10 border-t-nova-400 ${className}`} style={{ width: size, height: size }} />;
+  return <div className={`animate-spin rounded-full border-2 border-white/10 border-t-zeviqo-400 ${className}`} style={{ width: size, height: size }} />;
 }
 
 export interface EmptyStateProps { icon: string; title: string; desc: string; action?: React.ReactNode }
@@ -85,7 +85,8 @@ export function LoadingScreen(): React.ReactElement {
   useEffect(() => { const id = setInterval(() => setTip(t => (t+1)%LOADING_TIPS.length), 3000); return () => clearInterval(id); }, []);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-nova-400 to-plasma-500 flex items-center justify-center text-3xl animate-pulse">🧭</div>
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zeviqo-400 to-plasma-500 flex items-center justify-center text-3xl animate-pulse">🧭</div>
+      <div className="font-display text-lg font-black text-gradient">{APP_NAME}</div>
       <Spinner size={32} />
       <p className="text-xs text-white/40 max-w-xs text-center animate-[fade-in_0.3s_ease-out]">{LOADING_TIPS[tip]}</p>
     </div>
@@ -113,7 +114,7 @@ export function RewardPopup({ rewards, visible, onClose }: RewardPopupProps): Re
 
 export function LevelBadge({ level, size = 'md' }: { level: number; size?: 'sm'|'md'|'lg' }): React.ReactElement {
   const sizes = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-14 h-14 text-lg' };
-  return <div className={`${sizes[size]} rounded-xl bg-gradient-to-br from-nova-400 to-plasma-500 flex items-center justify-center font-black text-ink-950 no-select`}>{level}</div>;
+  return <div className={`${sizes[size]} rounded-xl bg-gradient-to-br from-zeviqo-400 to-plasma-500 flex items-center justify-center font-black text-ink-950 no-select`}>{level}</div>;
 }
 
 export function XpBar({ compact = false }: { compact?: boolean }): React.ReactElement {
@@ -127,7 +128,7 @@ export function XpBar({ compact = false }: { compact?: boolean }): React.ReactEl
           <span className="text-xs text-white/40">{levelInfo.xpIntoLevel} / {levelInfo.xpForNext - (levelInfo.level-1)**2*100} XP</span>
         </div>
       )}
-      <ProgressBar value={levelInfo.progress} accent="from-nova-400 to-cyan-300" height={compact?6:8} />
+      <ProgressBar value={levelInfo.progress} accent="from-zeviqo-400 to-cyan-300" height={compact?6:8} />
     </div>
   );
 }
@@ -151,7 +152,7 @@ export function Modal({ visible, onClose, title, children }: ModalProps): React.
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" />
-      <div className="relative glass-strong rounded-2xl p-5 max-w-sm mx-4 w-full animate-[scale-in_0.2s_ease-out]" onClick={e => e.stopPropagation()}>
+      <div className="relative glass-strong rounded-2xl p-5 max-w-sm mx-4 w-full animate-[scale-in_0.2s_ease-out] max-h-[85vh] overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
         {title && (
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-black text-white">{title}</h3>
@@ -159,6 +160,25 @@ export function Modal({ visible, onClose, title, children }: ModalProps): React.
           </div>
         )}
         {children}
+      </div>
+    </div>
+  );
+}
+
+export function ZeviqoLogo({ size = 'md' }: { size?: 'sm'|'md'|'lg' }): React.ReactElement {
+  const sizes = {
+    sm: { box: 'w-10 h-10 text-xl', text: 'text-lg' },
+    md: { box: 'w-14 h-14 text-2xl', text: 'text-2xl' },
+    lg: { box: 'w-20 h-20 text-4xl', text: 'text-4xl' },
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`${sizes[size].box} rounded-2xl bg-gradient-to-br from-zeviqo-400 to-plasma-500 flex items-center justify-center shadow-glow`}>
+        🧭
+      </div>
+      <div className="flex flex-col">
+        <span className={`font-display font-black tracking-tight text-gradient ${sizes[size].text}`}>{APP_NAME}</span>
+        {size === 'lg' && <span className="text-xs text-white/40 font-medium">Walking Adventures</span>}
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Icon, Button, GlassCard } from '../components/ui';
+import { Icon, Button, GlassCard, ZeviqoLogo } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { useStore } from '../store';
 
 const AVATARS = ['🧭','🦊','🐱','🦉','🐉','🦄','🔥','🌲','🌊','⛰️','🌙','⭐'];
-const COLORS = ['#33ffd6','#7a33ff','#ffcc33','#ff6600','#22d3ee','#a78bfa'];
+const COLORS = ['#3dd4ff','#7a45ff','#ffcc1a','#ff6b00','#22d3ee','#a78bfa'];
 
 export function Onboarding(): React.ReactElement {
   const { completeOnboarding } = useStore();
@@ -20,21 +20,21 @@ export function Onboarding(): React.ReactElement {
       <AdventureBg accent={color} />
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full">
         <div className="flex gap-2 justify-center mb-8">
-          {[0,1,2].map(i => <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i===step?'w-8 bg-nova-400':'w-1.5 bg-white/20'}`} />)}
+          {[0,1,2].map(i => <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i===step?'w-8 bg-zeviqo-400':'w-1.5 bg-white/20'}`} />)}
         </div>
         {step === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center animate-[fade-in_0.3s_ease-out]">
-            <div className="text-5xl">🧭</div>
-            <h2 className="text-2xl font-black text-white">Welcome to Nuvra</h2>
+            <ZeviqoLogo size="md" />
+            <h2 className="text-2xl font-black text-white font-display">Welcome to Zeviqo</h2>
             <p className="text-sm text-white/50 leading-relaxed max-w-xs">Turn your daily walks into epic adventures. Discover treasures, complete challenges, and level up as you explore the world.</p>
             <Button variant="primary" size="lg" fullWidth icon="ArrowRight" onClick={() => setStep(1)}>Continue</Button>
           </div>
         )}
         {step === 1 && (
           <div className="flex-1 flex flex-col gap-4 animate-[fade-in_0.3s_ease-out]">
-            <h2 className="text-xl font-black text-white text-center">Choose Your Avatar</h2>
+            <h2 className="text-xl font-black text-white text-center font-display">Choose Your Avatar</h2>
             <div className="grid grid-cols-4 gap-3">
-              {AVATARS.map(a => <button key={a} onClick={() => setAvatar(a)} className={`aspect-square rounded-2xl flex items-center justify-center text-2xl transition-all duration-200 ${avatar===a?'bg-gradient-to-br from-nova-400 to-plasma-500 scale-105 shadow-glow':'glass'}`}>{a}</button>)}
+              {AVATARS.map(a => <button key={a} onClick={() => setAvatar(a)} className={`aspect-square rounded-2xl flex items-center justify-center text-2xl transition-all duration-200 ${avatar===a?'bg-gradient-to-br from-zeviqo-400 to-plasma-500 scale-105 shadow-glow':'glass'}`}>{a}</button>)}
             </div>
             <h3 className="text-sm font-bold text-white/60 text-center mt-2">Pick a color</h3>
             <div className="flex gap-3 justify-center">
@@ -54,7 +54,7 @@ export function Onboarding(): React.ReactElement {
         )}
         {step === 2 && (
           <div className="flex-1 flex flex-col gap-4 animate-[fade-in_0.3s_ease-out]">
-            <h2 className="text-xl font-black text-white text-center">What's Your Name?</h2>
+            <h2 className="text-xl font-black text-white text-center font-display">What's Your Name?</h2>
             <GlassCard className="p-4">
               <input type="text" value={username} onChange={e => setUsername(e.target.value.slice(0,20))} placeholder="Enter your explorer name..." className="w-full bg-transparent text-white text-lg font-bold placeholder:text-white/30 outline-none text-center" autoFocus maxLength={20} />
             </GlassCard>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Icon, GlassCard, XpBar, LevelBadge, StatChip, Pill, Button } from '../components/ui';
+import { GlassCard, XpBar, LevelBadge, StatChip, Pill, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
@@ -23,7 +23,7 @@ export function Profile(): React.ReactElement {
                 <div className="text-lg font-black text-white truncate">{profile.username}</div>
                 <div className="text-xs text-white/50">{levelInfo.title}</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <Pill icon="TrendingUp" accent="text-nova-300 border-nova-500/30">Lv {levelInfo.level}</Pill>
+                  <Pill icon="TrendingUp" accent="text-zeviqo-300 border-zeviqo-500/30">Lv {levelInfo.level}</Pill>
                   <Pill icon="Flame" accent="text-ember-300 border-ember-500/30">{walkingStreak} days</Pill>
                 </div>
               </div>
@@ -40,14 +40,14 @@ export function Profile(): React.ReactElement {
           <div>
             <h3 className="text-xs font-black uppercase tracking-wider text-white/60 mb-2">Statistics</h3>
             <div className="grid grid-cols-2 gap-2">
-              <StatChip icon="Footprints" label="Total Distance" value={`${(stats.totalDistance/1000).toFixed(1)} km`} color="text-nova-300" />
+              <StatChip icon="Footprints" label="Total Distance" value={`${(stats.totalDistance/1000).toFixed(1)} km`} color="text-zeviqo-300" />
               <StatChip icon="Flag" label="Adventures" value={stats.totalAdventures} color="text-cyan-300" />
               <StatChip icon="Flame" label="Longest Streak" value={`${stats.longestStreak} days`} color="text-ember-300" />
               <StatChip icon="Users" label="Friends" value={stats.friendsAdded} color="text-plasma-300" />
               <StatChip icon="Users" label="Multiplayer" value={stats.multiplayerAdventures} color="text-plasma-300" />
               <StatChip icon="Trophy" label="Achievements" value={`${unlockedAchievements}/${ACHIEVEMENTS.length}`} color="text-gold-300" />
               <StatChip icon="Coins" label="Coins Earned" value={stats.totalCoinsEarned.toLocaleString()} color="text-gold-300" />
-              <StatChip icon="Zap" label="XP Earned" value={stats.totalXpEarned.toLocaleString()} color="text-nova-300" />
+              <StatChip icon="Zap" label="XP Earned" value={stats.totalXpEarned.toLocaleString()} color="text-zeviqo-300" />
               <StatChip icon="Swords" label="Challenges" value={stats.totalChallenges} color="text-ember-300" />
               <StatChip icon="Gem" label="Treasures" value={stats.treasuresFound} color="text-gold-300" />
             </div>

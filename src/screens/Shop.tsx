@@ -19,7 +19,7 @@ export function Shop(): React.ReactElement {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#7a33ff" />
+      <AdventureBg accent="#7a45ff" />
       <div className="relative z-10">
         <TopBar showBack title="Shop" showCurrencies />
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4">
@@ -34,7 +34,7 @@ export function Shop(): React.ReactElement {
                   <div className="text-sm font-bold text-white text-center">{item.name}</div>
                   <Pill accent={`${rarity.color} border-white/10`}>{rarity.label}</Pill>
                   <div className="text-xs text-white/40 capitalize">{item.category}</div>
-                  {isPurchased ? <div className="flex items-center gap-1 text-xs font-bold text-nova-300"><Icon name="CheckCircle" size={14} /> Owned</div>
+                  {isPurchased ? <div className="flex items-center gap-1 text-xs font-bold text-zeviqo-300"><Icon name="CheckCircle" size={14} /> Owned</div>
                     : <Button size="sm" variant="secondary" icon="Coins" onClick={() => handleBuy(item.id, item.price)} disabled={profile.coins < item.price}>{item.price}</Button>}
                 </GlassCard>
               );
