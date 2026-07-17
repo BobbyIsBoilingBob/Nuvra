@@ -1,14 +1,14 @@
-import { createClient, type Session, type User } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const url = import.meta.env.VITE_SUPABASE_URL ?? '';
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(url, anonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
+    detectSessionInUrl: true,
+  },
 });
 
 export type Profile = {
@@ -19,6 +19,7 @@ export type Profile = {
   xp: number;
   level: number;
   coins: number;
+  gems: number;
   distance_walked: number;
   steps: number;
   completed_adventures: number;
@@ -27,30 +28,11 @@ export type Profile = {
   treasure_collected: number;
   exploration_percentage: number;
   last_walk_date: string | null;
+  is_online: boolean;
+  last_seen: string | null;
   settings: Record<string, unknown>;
   created_at: string;
-  is_online: boolean;
-  last_seen: string;
-  bio: string | null;
 };
 
-export type Friendship = {
-  id: string;
-  user_id: string;
-  friend_id: string;
-  status: 'pending' | 'accepted' | 'blocked';
-  created_at: string;
-};
-
-export type AppNotification = {
-  id: string;
-  user_id: string;
-  actor_id: string | null;
-  type: string;
-  title: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-};
-
-export type { Session, User };
+export type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
+export type User = Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'];

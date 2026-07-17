@@ -16,10 +16,18 @@ const Profile = lazy(() => import('./screens/Profile').then(m => ({ default: m.P
 const Challenges = lazy(() => import('./screens/Challenges').then(m => ({ default: m.Challenges })));
 const Community = lazy(() => import('./screens/Community').then(m => ({ default: m.Community })));
 const Friends = lazy(() => import('./screens/Friends').then(m => ({ default: m.Friends })));
-const Party = lazy(() => import('./screens/Party').then(m => ({ default: m.Party })));
+const Party = lazy(() => import('./screens/Friends').then(m => ({ default: m.Party })));
 const Shop = lazy(() => import('./screens/Shop').then(m => ({ default: m.Shop })));
 const Settings = lazy(() => import('./screens/Settings').then(m => ({ default: m.Settings })));
 const History = lazy(() => import('./screens/History').then(m => ({ default: m.History })));
+const AIGenerator = lazy(() => import('./screens/AIGenerator').then(m => ({ default: m.AIGenerator })));
+const AdventurePreview = lazy(() => import('./screens/AdventurePreview').then(m => ({ default: m.AdventurePreview })));
+const Creator = lazy(() => import('./screens/Creator').then(m => ({ default: m.Creator })));
+const Customise = lazy(() => import('./screens/Customise').then(m => ({ default: m.Customise })));
+const Inventory = lazy(() => import('./screens/Inventory').then(m => ({ default: m.Inventory })));
+const Rewards = lazy(() => import('./screens/Rewards').then(m => ({ default: m.Rewards })));
+const Seasonal = lazy(() => import('./screens/Seasonal').then(m => ({ default: m.Seasonal })));
+const Onboarding = lazy(() => import('./screens/Onboarding').then(m => ({ default: m.Onboarding })));
 
 export default function App() {
   const { session, profile, loading } = useAuth();
@@ -28,7 +36,7 @@ export default function App() {
   if (loading) return <LoadingScreen />;
   if (!session || !profile) return <Auth />;
 
-  const showBottomNav = !['adventure-detail', 'adventure-map'].includes(currentScreen);
+  const showBottomNav = !['adventure-detail', 'adventure-map', 'adventure-preview', 'ai-generator', 'creator', 'customise', 'inventory', 'rewards', 'seasonal', 'onboarding', 'daily-rewards', 'challenges', 'achievements', 'history', 'friends', 'party', 'community', 'settings'].includes(currentScreen);
 
   const screens: Record<string, React.ReactNode> = {
     home: <Home />,
@@ -46,6 +54,14 @@ export default function App() {
     shop: <Shop />,
     settings: <Settings />,
     history: <History />,
+    'ai-generator': <AIGenerator />,
+    'adventure-preview': <AdventurePreview />,
+    creator: <Creator />,
+    customise: <Customise />,
+    inventory: <Inventory />,
+    rewards: <Rewards />,
+    seasonal: <Seasonal />,
+    onboarding: <Onboarding />,
   };
 
   return (

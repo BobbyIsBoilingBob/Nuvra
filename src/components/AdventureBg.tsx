@@ -1,3 +1,9 @@
 export function AdventureBg({ accent = '#00c4ff', variant }: { accent?: string; variant?: string }) {
-  return <div className="fixed inset-0 overflow-hidden pointer-events-none"><div className="absolute -top-20 -left-20 w-72 h-72 rounded-full opacity-20 blur-3xl animate-float" style={{ background: accent }} /><div className="absolute top-1/3 -right-20 w-64 h-64 rounded-full opacity-15 blur-3xl animate-float" style={{ background: '#7a45ff', animationDelay: '2s' }} /><div className="absolute -bottom-20 left-1/3 w-80 h-80 rounded-full opacity-10 blur-3xl animate-float" style={{ background: '#00c4ff', animationDelay: '4s' }} /></div>;
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full opacity-20 blur-3xl animate-float" style={{ background: accent }} />
+      <div className="absolute top-1/3 -right-20 w-64 h-64 rounded-full opacity-15 blur-3xl animate-float" style={{ background: '#7c3aed', animationDelay: '2s' }} />
+      <div className="absolute -bottom-20 left-1/3 w-80 h-80 rounded-full opacity-10 blur-3xl animate-float" style={{ background: '#00c4ff', animationDelay: '4s' }} />
+    </div>
+  );
 }

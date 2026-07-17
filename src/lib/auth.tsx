@@ -27,82 +27,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileCache = useRef<Profile | null>(null);
 
   const loadProfile = useCallback(async (uid: string): Promise<Profile | null> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', uid)
-      .maybeSingle();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
     if (error || !data) {
-      // Retry once — trigger may not have fired yet
       await new Promise(r => setTimeout(r, 600));
-      const { data: retry } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', uid)
-        .maybeSingle();
-      if (retry) {
-        profileCache.current = retry as Profile;
-        setProfile(retry as Profile);
-        return retry as Profile;
-      }
+      const { data: retry } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
+      if (retry) { profileCache.current = retry as Profile; setProfile(retry as Profile); return retry as Profile; }
       return null;
     }
-    profileCache.current = data as Profile;
-    setProfile(data as Profile);
-    return data as Profile;
+    profileCache.current = data as Profile; setProfile(data as Profile); return data as Profile;
   }, []);
 
-  // Update online status on mount and cleanup on unmount
   const updateOnlineStatus = useCallback(async (uid: string, online: boolean) => {
-    await supabase.from('profiles').update({
-      is_online: online,
-      last_seen: new Date().toISOString()
-    }).eq('id', uid);
+    await supabase.from('profiles').update({ is_online: online, last_seen: new Date().toISOString() }).eq('id', uid);
   }, []);
 
   useEffect(() => {
     let mounted = true;
-
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (!mounted) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        loadProfile(s.user.id).finally(() => { if (mounted) setLoading(false); });
-        updateOnlineStatus(s.user.id, true);
-      } else {
-        setLoading(false);
-      }
+      setSession(s); setUser(s?.user ?? null);
+      if (s?.user) { loadProfile(s.user.id).finally(() => { if (mounted) setLoading(false); }); updateOnlineStatus(s.user.id, true); }
+      else setLoading(false);
     });
-
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      // Wrap async work to avoid deadlock
+      setSession(s); setUser(s?.user ?? null);
       (async () => {
         if (s?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           await loadProfile(s.user.id);
           if (event === 'SIGNED_IN') updateOnlineStatus(s.user.id, true);
         } else if (event === 'SIGNED_OUT') {
           if (user) updateOnlineStatus(user.id, false);
-          profileCache.current = null;
-          setProfile(null);
+          profileCache.current = null; setProfile(null);
         }
       })();
     });
-
-    const handleBeforeUnload = () => {
-      if (user) updateOnlineStatus(user.id, false);
-    };
+    const handleBeforeUnload = () => { if (user) updateOnlineStatus(user.id, false); };
     window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (user) updateOnlineStatus(user.id, false);
-    };
+    return () => { mounted = false; sub.subscription.unsubscribe(); window.removeEventListener('beforeunload', handleBeforeUnload); if (user) updateOnlineStatus(user.id, false); };
   }, [loadProfile, updateOnlineStatus, user]);
 
   const validateSignup = (email: string, password: string, username: string): string | null => {
@@ -118,31 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(async (email: string, password: string, username: string): Promise<{ error: string | null }> => {
     const validation = validateSignup(email, password, username);
     if (validation) return { error: validation };
-
-    // Check username uniqueness
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('username', username)
-      .maybeSingle();
+    const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
     if (existing) return { error: 'That username is already taken. Please choose another.' };
-
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { username } }
-    });
-
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
     if (error) {
-      if (error.message.includes('already registered') || error.message.includes('already been registered')) {
-        return { error: 'An account with this email already exists. Try logging in instead.' };
-      }
+      if (error.message.includes('already registered') || error.message.includes('already been registered')) return { error: 'An account with this email already exists. Try logging in instead.' };
       return { error: error.message };
     }
-
-    if (data.user) {
-      await loadProfile(data.user.id);
-      updateOnlineStatus(data.user.id, true);
-    }
+    if (data.user) { await loadProfile(data.user.id); updateOnlineStatus(data.user.id, true); }
     return { error: null };
   }, [loadProfile, updateOnlineStatus]);
 
@@ -150,36 +95,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return { error: 'Please enter a valid email address.' };
     if (!password) return { error: 'Please enter your password.' };
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
-      if (error.message.includes('Invalid login') || error.message.includes('invalid')) {
-        return { error: 'Incorrect email or password. Please check your credentials and try again.' };
-      }
-      if (error.message.includes('not confirmed') || error.message.includes('Email not confirmed')) {
-        return { error: 'Your email has not been verified. Please check your inbox for a confirmation link.' };
-      }
-      if (error.message.includes('disabled') || error.message.includes('banned')) {
-        return { error: 'This account has been disabled. Please contact support.' };
-      }
+      if (error.message.includes('Invalid login') || error.message.includes('invalid')) return { error: 'Incorrect email or password. Please check your credentials and try again.' };
+      if (error.message.includes('not confirmed') || error.message.includes('Email not confirmed')) return { error: 'Your email has not been verified. Please check your inbox for a confirmation link.' };
       return { error: error.message };
     }
-
-    if (data.user) {
-      await loadProfile(data.user.id);
-      updateOnlineStatus(data.user.id, true);
-    }
+    if (data.user) { await loadProfile(data.user.id); updateOnlineStatus(data.user.id, true); }
     return { error: null };
   }, [loadProfile, updateOnlineStatus]);
 
   const signOut = useCallback(async () => {
     if (user) updateOnlineStatus(user.id, false);
     await supabase.auth.signOut();
-    profileCache.current = null;
-    setProfile(null);
-    setSession(null);
-    setUser(null);
+    profileCache.current = null; setProfile(null); setSession(null); setUser(null);
   }, [user, updateOnlineStatus]);
 
   const resetPassword = useCallback(async (email: string): Promise<{ error: string | null }> => {
@@ -207,36 +136,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = useCallback(async (): Promise<{ error: string | null }> => {
     if (!user) return { error: 'Not signed in.' };
-    // Delete profile row — cascades to friends, notifications, blocks via FK
     const { error: profileErr } = await supabase.from('profiles').delete().eq('id', user.id);
     if (profileErr) return { error: profileErr.message };
     await signOut();
     return { error: null };
   }, [user, signOut]);
 
-  const refreshProfile = useCallback(async () => {
-    if (user) await loadProfile(user.id);
-  }, [user, loadProfile]);
+  const refreshProfile = useCallback(async () => { if (user) await loadProfile(user.id); }, [user, loadProfile]);
 
   const updateProfile = useCallback(async (partial: Partial<Profile>): Promise<{ error: string | null }> => {
     if (!user) return { error: 'Not signed in.' };
     const { error } = await supabase.from('profiles').update(partial).eq('id', user.id);
     if (error) return { error: error.message };
-    setProfile(prev => {
-      const updated = prev ? { ...prev, ...partial } : prev;
-      profileCache.current = updated;
-      return updated;
-    });
+    setProfile(prev => { const updated = prev ? { ...prev, ...partial } : prev; profileCache.current = updated; return updated; });
     return { error: null };
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{
-      session, user, profile, loading,
-      signUp, signIn, signOut,
-      resetPassword, updatePassword, updateEmail, deleteAccount,
-      refreshProfile, updateProfile
-    }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, resetPassword, updatePassword, updateEmail, deleteAccount, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

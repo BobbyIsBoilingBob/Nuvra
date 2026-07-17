@@ -1,261 +1,82 @@
 import { useState } from 'react';
-import { Icon, GlassCard, Button, SectionTitle, Spinner } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
-import {
-  LENGTH_OPTIONS,
-  STYLE_PREF_OPTIONS,
-  DIFFICULTY_PREF_OPTIONS,
-  REWARD_PRIORITY_OPTIONS,
-  ADVENTURE_THEMES,
-  ADVENTURE_TYPE_META,
-  type AdventurePreferences,
-  type Adventure,
-  type AdventureLength,
-  type AdventureStylePref,
-  type DifficultyPref,
-  type RewardPriority,
-} from '../adventure-model';
-import { generateAdventureOptions } from '../generator';
+import { TopBar } from '../components/BottomNav';
+import { GlassCard, Icon, Button, Pill, SectionTitle } from '../components/ui';
+import { AdventureBg } from '../components/AdventureBg';
+import { generateAdventure, ADVENTURE_TYPES, DIFFICULTY_LABELS, type AdventureType, type Difficulty } from '../data';
 
-export function AIGenerator(): React.ReactElement {
-  const { aiPrefs, setAiPrefs, setScreen, addAdventure } = useStore();
+export function AIGenerator() {
+  const { setSelectedAdventureObj, setScreen } = useStore();
+  const [type, setType] = useState<AdventureType>('explorer');
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [generating, setGenerating] = useState(false);
-  const [results, setResults] = useState<Adventure[]>([]);
+  const [result, setResult] = useState<ReturnType<typeof generateAdventure> | null>(null);
 
-  const themeOptions = [
-    { id: 'random', name: 'Random', emoji: '🎲', accent: 'from-plasma-400 to-nova-500' },
-    ...ADVENTURE_THEMES.slice(0, 5),
-  ];
-  const [selectedTheme, setSelectedTheme] = useState<string>('random');
-
-  function updatePref<K extends keyof AdventurePreferences>(key: K, value: AdventurePreferences[K]): void {
-    setAiPrefs({ ...aiPrefs, [key]: value });
-  }
-
-  function handleGenerate(): void {
+  function handleGenerate() {
     setGenerating(true);
-    setResults([]);
-    window.setTimeout(() => {
-      const prefs: AdventurePreferences = {
-        length: aiPrefs.length,
-        style: aiPrefs.style,
-        difficulty: aiPrefs.difficulty,
-        rewardPriority: aiPrefs.rewardPriority,
-      };
-      const generated = generateAdventureOptions(prefs, 3);
-      setResults(generated);
+    setTimeout(() => {
+      const seed = Math.floor(Math.random() * 100000);
+      const adv = generateAdventure(seed, type, difficulty);
+      setResult(adv);
       setGenerating(false);
-    }, 1200);
+    }, 800);
   }
 
-  function openAdventure(a: Adventure): void {
-    addAdventure(a as unknown as import('../data').Adventure);
-    setScreen('adventure-detail');
+  function handleStart() {
+    if (result) { setSelectedAdventureObj(result); setScreen('adventure-preview'); }
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg variant="space" accent="#a78bfa" />
+    <div className="relative min-h-screen pb-24">
+      <AdventureBg accent="#8b5cf6" />
+      <TopBar title="AI Generator" showBack showCurrencies={false} />
+      <div className="relative z-10 px-4 pt-4 space-y-4">
+        <GlassCard className="p-4 text-center">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-zeviqo-400 to-nova-500 flex items-center justify-center"><Icon name="Sparkles" size={32} className="text-ink-950" /></div>
+          <h2 className="text-lg font-display font-bold text-white">AI Adventure Generator</h2>
+          <p className="text-xs text-white/40 mt-1">Customize your preferences and let AI create a unique adventure for you.</p>
+        </GlassCard>
 
-      <div className="relative z-10">
-        <TopBar showBack title="AI Adventure Generator" />
-
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-5">
-          {/* Theme selection */}
-          <div>
-            <SectionTitle icon="Palette" accent="text-plasma-300">
-              Theme
-            </SectionTitle>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {themeOptions.map((t) => {
-                const active = selectedTheme === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTheme(t.id)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-200 ${
-                      active
-                        ? `bg-gradient-to-br ${t.accent} text-ink-950 shadow-glow-plasma`
-                        : 'glass text-white/70 hover:text-white'
-                    }`}
-                  >
-                    <span className="text-xl">{t.emoji}</span>
-                    <span className="text-xs font-bold">{t.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+        <GlassCard className="p-4">
+          <SectionTitle icon="Compass">Adventure Type</SectionTitle>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            {ADVENTURE_TYPES.map(t => (
+              <button key={t.type} onClick={() => setType(t.type)} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${type === t.type ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}>
+                <Icon name={t.icon} size={14} />{t.label}
+              </button>
+            ))}
           </div>
+        </GlassCard>
 
-          {/* Duration selector */}
-          <div>
-            <SectionTitle icon="Clock" accent="text-cyan-300">
-              Duration
-            </SectionTitle>
-            <div className="mt-3 flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
-              {LENGTH_OPTIONS.map((opt) => {
-                const active = aiPrefs.length === (opt.id as AdventureLength);
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => updatePref('length', opt.id)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 ${
-                      active
-                        ? 'bg-gradient-to-r from-nova-400 to-cyan-400 text-ink-950 shadow-glow'
-                        : 'glass text-white/60 hover:text-white'
-                    }`}
-                  >
-                    <Icon name="Clock" size={14} />
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+        <GlassCard className="p-4">
+          <SectionTitle icon="Gauge">Difficulty</SectionTitle>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {(['relaxed', 'easy', 'medium', 'hard', 'extreme'] as Difficulty[]).map(d => (
+              <button key={d} onClick={() => setDifficulty(d)} className={`px-3 py-2 rounded-xl text-xs font-bold capitalize transition-all ${difficulty === d ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}>{DIFFICULTY_LABELS[d]}</button>
+            ))}
           </div>
+        </GlassCard>
 
-          {/* Style selector */}
-          <div>
-            <SectionTitle icon="Compass" accent="text-nova-300">
-              Style
-            </SectionTitle>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {STYLE_PREF_OPTIONS.map((opt) => {
-                const active = aiPrefs.style === (opt.id as AdventureStylePref);
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => updatePref('style', opt.id)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-200 ${
-                      active
-                        ? 'bg-gradient-to-br from-nova-400 to-cyan-400 text-ink-950 shadow-glow'
-                        : 'glass text-white/70 hover:text-white'
-                    }`}
-                  >
-                    <Icon name={opt.icon} size={18} />
-                    <span className="text-xs font-bold">{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <Button fullWidth size="lg" icon="Sparkles" disabled={generating} onClick={handleGenerate}>{generating ? 'Generating...' : 'Generate Adventure'}</Button>
 
-          {/* Difficulty selector */}
-          <div>
-            <SectionTitle icon="Flame" accent="text-ember-300">
-              Difficulty
-            </SectionTitle>
-            <div className="mt-3 flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
-              {DIFFICULTY_PREF_OPTIONS.map((opt) => {
-                const active = aiPrefs.difficulty === (opt.id as DifficultyPref);
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => updatePref('difficulty', opt.id)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 ${
-                      active
-                        ? 'bg-gradient-to-r from-ember-400 to-rose-500 text-ink-950 shadow-glow-rose'
-                        : 'glass text-white/60 hover:text-white'
-                    }`}
-                  >
-                    <Icon name="Clock" size={14} />
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Reward priority selector */}
-          <div>
-            <SectionTitle icon="Gem" accent="text-gold-300">
-              Reward Priority
-            </SectionTitle>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {REWARD_PRIORITY_OPTIONS.map((opt) => {
-                const active = aiPrefs.rewardPriority === (opt.id as RewardPriority);
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => updatePref('rewardPriority', opt.id)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-200 ${
-                      active
-                        ? 'bg-gradient-to-br from-gold-300 to-ember-500 text-ink-950 shadow-glow-gold'
-                        : 'glass text-white/70 hover:text-white'
-                    }`}
-                  >
-                    <Icon name={opt.icon} size={18} />
-                    <span className="text-xs font-bold">{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Generate button */}
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            icon="Sparkles"
-            disabled={generating}
-            onClick={handleGenerate}
-          >
-            {generating ? 'Generating...' : 'Generate Adventures'}
-          </Button>
-
-          {/* Generating state */}
-          {generating && (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Spinner size={32} />
-              <p className="text-sm text-white/60">Crafting unique adventures for you...</p>
-            </div>
-          )}
-
-          {/* Results list */}
-          {!generating && results.length > 0 && (
-            <div>
-              <SectionTitle icon="Compass" accent="text-nova-300">
-                Generated Adventures
-              </SectionTitle>
-              <div className="mt-3 flex flex-col gap-3">
-                {results.map((adv) => {
-                  const meta = ADVENTURE_TYPE_META[adv.type];
-                  return (
-                    <GlassCard key={adv.id} className="p-3 flex items-center gap-3" onClick={() => openAdventure(adv)}>
-                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
-                        <img
-                          src={adv.image}
-                          alt={adv.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-base">{adv.emoji}</span>
-                          <h3 className="text-sm font-extrabold text-white truncate">{adv.name}</h3>
-                        </div>
-                        <p className="text-xs text-white/50 truncate">{adv.description}</p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-nova-500/30 text-nova-300 bg-white/[0.04]">
-                            <Icon name={meta.icon} size={10} />
-                            {meta.label}
-                          </span>
-                          <span className="text-xs text-white/50">{adv.distanceKm} km</span>
-                          <span className="text-xs text-white/30">·</span>
-                          <span className="text-xs font-bold text-nova-300">+{adv.xpReward} XP</span>
-                        </div>
-                      </div>
-                      <Icon name="ChevronRight" size={18} className="text-white/40 flex-shrink-0" />
-                    </GlassCard>
-                  );
-                })}
+        {result && (
+          <GlassCard className="p-4 animate-slide-up">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-3xl">{result.emoji}</div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">{result.title}</p>
+                <p className="text-[10px] text-white/40">{ADVENTURE_TYPES.find(t => t.type === result.type)?.label} · {DIFFICULTY_LABELS[result.difficulty]}</p>
               </div>
             </div>
-          )}
-        </div>
+            <p className="text-xs text-white/60 mb-3">{result.description}</p>
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <Pill icon="Route" accent="text-zeviqo-300 border-zeviqo-500/30">{result.distance} km</Pill>
+              <Pill icon="Clock" accent="text-white/50 border-white/10">{result.duration} min</Pill>
+              <Pill icon="Zap" accent="text-gold-300 border-gold-500/30">+{result.xp} XP</Pill>
+            </div>
+            <Button fullWidth icon="Play" onClick={handleStart}>Preview Adventure</Button>
+          </GlassCard>
+        )}
       </div>
     </div>
   );

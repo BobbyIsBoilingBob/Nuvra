@@ -1,79 +1,49 @@
-import { useState } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Button, Pill, RewardPopup } from '../components/ui';
+import { GlassCard, Icon, Pill, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { CHALLENGES, DIFFICULTY_LABELS } from '../data';
-import { vibrate } from '../lib/settings';
+import { CHALLENGES, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
 
 export function Challenges() {
-  const { claimedChallenges, recordChallengeComplete } = useStore();
+  const { completedChallenges, recordChallengeComplete, updateQuestProgress } = useStore();
   const { profile, updateProfile } = useAuth();
-  const [completed, setCompleted] = useState<string | null>(null);
 
-  const handleComplete = async (challengeId: string) => {
-    if (claimedChallenges.includes(challengeId) || !profile) return;
-    const challenge = CHALLENGES.find(c => c.id === challengeId)!;
-    vibrate([20, 40, 20]);
-    await updateProfile({
-      xp: profile.xp + challenge.xpReward,
-      coins: profile.coins + challenge.coinReward,
-      completed_challenges: profile.completed_challenges + 1,
-      level: Math.floor(Math.sqrt((profile.xp + challenge.xpReward) / 100)) + 1
-    });
-    recordChallengeComplete(challengeId);
-    setCompleted(challengeId);
-  };
+  function handleComplete(chId: string) {
+    if (completedChallenges.includes(chId)) return;
+    const ch = CHALLENGES.find(c => c.id === chId);
+    if (!ch) return;
+    recordChallengeComplete(chId);
+    updateQuestProgress('challenges', 1);
+    if (profile) updateProfile({ xp: profile.xp + ch.xpReward, coins: profile.coins + ch.coinReward, completed_challenges: profile.completed_challenges + 1 });
+  }
 
   return (
     <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#ff6b00" />
-      <TopBar title="Challenges" showBack />
+      <AdventureBg accent="#fb923c" />
+      <TopBar title="Challenges" showBack showCurrencies />
       <div className="relative z-10 px-4 pt-4 space-y-3">
-        <GlassCard className="p-4 text-center animate-fade-in">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-ember-400 to-ember-500 flex items-center justify-center mx-auto mb-2">
-            <Icon name="Trophy" size={24} className="text-ink-950" />
-          </div>
-          <p className="text-xs text-white/40">Complete challenges to earn extra rewards</p>
-        </GlassCard>
-
-        {CHALLENGES.map(c => {
-          const claimed = claimedChallenges.includes(c.id);
+        {CHALLENGES.map(ch => {
+          const done = completedChallenges.includes(ch.id);
           return (
-            <GlassCard key={c.id} className="p-4 animate-slide-up">
-              <div className="flex items-start gap-3 mb-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${claimed ? 'bg-emerald-500/20' : 'glass'}`}>
-                  <Icon name={c.icon} size={20} className={claimed ? 'text-emerald-400' : 'text-ember-400'} />
+            <GlassCard key={ch.id} className={`p-4 ${done ? 'border-emerald-500/20' : ''}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${done ? 'bg-emerald-500/20' : 'bg-ember-500/20'}`}><Icon name={ch.icon} size={22} className={done ? 'text-emerald-400' : 'text-ember-400'} /></div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white">{ch.title}</p>
+                  <p className="text-[11px] text-white/50">{ch.description}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Pill accent="text-white/50 border-white/10">{DIFFICULTY_LABELS[ch.difficulty]}</Pill>
+                    <Pill icon="Zap" accent="text-gold-300 border-gold-500/30">+{ch.xpReward}</Pill>
+                    <Pill icon="Coins" accent="text-gold-300 border-gold-500/30">+{ch.coinReward}</Pill>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-display font-bold text-white">{c.title}</h4>
-                  <p className="text-[11px] text-white/40">{c.description}</p>
-                </div>
-                <Pill accent="text-white/40">{DIFFICULTY_LABELS[c.difficulty]}</Pill>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/20">+{c.xpReward}</Pill>
-                  <Pill icon="Coins" accent="text-gold-300 border-gold-500/20">+{c.coinReward}</Pill>
-                </div>
-                <Button size="sm" variant={claimed ? 'ghost' : 'primary'} disabled={claimed} onClick={() => handleComplete(c.id)}>
-                  {claimed ? 'Completed' : 'Complete'}
-                </Button>
+                {done ? <Pill accent="text-emerald-300 border-emerald-500/30">Done</Pill> : <Button size="sm" onClick={() => handleComplete(ch.id)}>Complete</Button>}
               </div>
             </GlassCard>
           );
         })}
       </div>
-
-      <RewardPopup
-        visible={completed !== null}
-        onClose={() => setCompleted(null)}
-        rewards={completed ? [
-          { icon: 'Zap', label: 'XP', amount: CHALLENGES.find(c => c.id === completed)?.xpReward ?? 0, color: 'text-zeviqo-400' },
-          { icon: 'Coins', label: 'Coins', amount: CHALLENGES.find(c => c.id === completed)?.coinReward ?? 0, color: 'text-gold-400' }
-        ] : []}
-      />
     </div>
   );
 }

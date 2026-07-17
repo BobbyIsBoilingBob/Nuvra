@@ -2,84 +2,61 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Button, Pill, EmptyState } from '../components/ui';
+import { GlassCard, Icon, Pill, Button, ConfirmDialog } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { SHOP_ITEMS, COSMETIC_RARITY_MAP } from '../data';
-import { vibrate } from '../lib/settings';
-
-const CATEGORIES = [
-  { key: 'all', label: 'All' },
-  { key: 'avatar', label: 'Avatars' },
-  { key: 'trail', label: 'Trails' },
-  { key: 'badge', label: 'Badges' },
-  { key: 'boost', label: 'Boosts' }
-] as const;
+import { BottomNav } from '../components/BottomNav';
+import { COSMETICS, RARITY_COLORS, RARITY_LABELS, type CosmeticItem } from '../cosmetics';
 
 export function Shop() {
   const { ownedItems, buyItem } = useStore();
-  const { profile, updateProfile } = useAuth();
-  const [cat, setCat] = useState<string>('all');
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const { profile, updateProfile, refreshProfile } = useAuth();
+  const [category, setCategory] = useState<string>('all');
+  const [confirmItem, setConfirmItem] = useState<CosmeticItem | null>(null);
 
-  const filtered = SHOP_ITEMS.filter(i => cat === 'all' || i.category === cat);
+  const categories = ['all', 'trails', 'pets', 'themes', 'stickers', 'badges'];
+  const filtered = category === 'all' ? COSMETICS : COSMETICS.filter(c => c.category === category);
 
-  const handleBuy = async (itemId: string) => {
+  function handleBuy(item: CosmeticItem) {
+    if (ownedItems.includes(item.id)) return;
     if (!profile) return;
-    const item = SHOP_ITEMS.find(i => i.id === itemId)!;
-    if (ownedItems.includes(itemId)) return;
-    if (profile.coins < item.price) return;
-    setPurchasing(itemId);
-    vibrate([20, 40, 20]);
-    await updateProfile({ coins: profile.coins - item.price });
-    buyItem(itemId);
-    setPurchasing(null);
-  };
+    if (item.currency === 'coins' && profile.coins < item.price) return;
+    if (item.currency === 'gems' && (profile.gems ?? 0) < item.price) return;
+    const success = buyItem(item.id);
+    if (success) {
+      const updates = item.currency === 'coins' ? { coins: profile.coins - item.price } : { gems: (profile.gems ?? 0) - item.price };
+      updateProfile(updates).then(() => refreshProfile());
+    }
+    setConfirmItem(null);
+  }
 
   return (
     <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#f5b800" />
-      <TopBar title="Shop" showBack />
+      <AdventureBg accent="#fbbf24" />
+      <TopBar title="Shop" showCurrencies />
       <div className="relative z-10 px-4 pt-4 space-y-4">
-        <GlassCard className="p-4 flex items-center justify-between animate-fade-in">
-          <div className="flex items-center gap-2">
-            <Icon name="Coins" size={20} className="text-gold-400" />
-            <span className="text-lg font-display font-bold text-gold-300">{profile?.coins.toLocaleString() ?? 0}</span>
-          </div>
-          <Pill icon="ShoppingBag">{ownedItems.length} owned</Pill>
-        </GlassCard>
-
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {CATEGORIES.map(c => (
-            <button key={c.key} onClick={() => setCat(c.key)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${cat===c.key?'bg-gold-500 text-ink-950':'glass text-white/50'}`}>{c.label}</button>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {categories.map(c => (
+            <button key={c} onClick={() => setCategory(c)} className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold capitalize ${category === c ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}>{c}</button>
           ))}
         </div>
-
-        {filtered.length === 0 ? (
-          <EmptyState icon="ShoppingBag" title="No items" desc="No items in this category." />
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {filtered.map(item => {
-              const owned = ownedItems.includes(item.id);
-              const rarity = COSMETIC_RARITY_MAP[item.rarity];
-              const canAfford = (profile?.coins ?? 0) >= item.price;
-              return (
-                <GlassCard key={item.id} className={`p-4 animate-slide-up ${rarity.glow}`}>
-                  <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center text-3xl mx-auto mb-2">{item.emoji}</div>
-                  <h4 className="text-xs font-display font-bold text-white text-center">{item.name}</h4>
-                  <p className={`text-[10px] font-bold text-center ${rarity.color}`}>{rarity.label}</p>
-                  <div className="flex items-center justify-center gap-1 mt-2 mb-2">
-                    <Icon name="Coins" size={12} className="text-gold-400" />
-                    <span className="text-sm font-bold text-gold-300">{item.price}</span>
-                  </div>
-                  <Button size="sm" fullWidth variant={owned ? 'ghost' : canAfford ? 'primary' : 'ghost'} disabled={owned || !canAfford || purchasing === item.id} onClick={() => handleBuy(item.id)}>
-                    {owned ? 'Owned' : !canAfford ? 'Not enough' : 'Buy'}
-                  </Button>
-                </GlassCard>
-              );
-            })}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-3">
+          {filtered.map(item => {
+            const owned = ownedItems.includes(item.id);
+            const canAfford = profile ? (item.currency === 'coins' ? profile.coins >= item.price : (profile.gems ?? 0) >= item.price) : false;
+            return (
+              <GlassCard key={item.id} className="p-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2" style={{ background: `${item.color}22` }}>{item.emoji}</div>
+                <p className="text-xs font-bold text-white text-center">{item.name}</p>
+                <p className="text-[10px] text-white/40 text-center mb-2">{item.description}</p>
+                <div className="flex items-center justify-center gap-1 mb-2"><span className="text-[9px] font-bold uppercase" style={{ color: RARITY_COLORS[item.rarity] }}>{RARITY_LABELS[item.rarity]}</span></div>
+                {owned ? <Pill accent="text-emerald-300 border-emerald-500/30 mx-auto">Owned</Pill> : <Button size="sm" fullWidth disabled={!canAfford} onClick={() => setConfirmItem(item)} icon={item.currency === 'coins' ? 'Coins' : 'Gem'}>{item.price}</Button>}
+              </GlassCard>
+            );
+          })}
+        </div>
       </div>
+      <BottomNav />
+      <ConfirmDialog visible={!!confirmItem} title="Confirm Purchase" message={`Buy ${confirmItem?.name} for ${confirmItem?.price} ${confirmItem?.currency}?`} confirmLabel="Buy" onConfirm={() => confirmItem && handleBuy(confirmItem)} onCancel={() => setConfirmItem(null)} />
     </div>
   );
 }

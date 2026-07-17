@@ -1,43 +1,31 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+export function vibrate(pattern: number | number[]): void {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
 
 export type AppSettings = {
-  vibration: boolean;
-  sound: boolean;
-  notifications: boolean;
-  gpsTracking: boolean;
-  reduceMotion: boolean;
+  soundEnabled: boolean;
+  hapticsEnabled: boolean;
+  voiceEnabled: boolean;
+  mapStyle: 'standard' | 'satellite' | 'terrain';
+  highContrast: boolean;
 };
 
-type SettingsStore = {
-  settings: AppSettings;
-  updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
-  resetSettings: () => void;
+export const DEFAULT_SETTINGS: AppSettings = {
+  soundEnabled: true,
+  hapticsEnabled: true,
+  voiceEnabled: false,
+  mapStyle: 'standard',
+  highContrast: false,
 };
 
-const defaultSettings: AppSettings = {
-  vibration: true,
-  sound: true,
-  notifications: true,
-  gpsTracking: true,
-  reduceMotion: false
-};
+export function loadSettings(): AppSettings {
+  try {
+    const stored = localStorage.getItem('zeviqo-settings');
+    if (stored) return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+  } catch { /* ignore */ }
+  return DEFAULT_SETTINGS;
+}
 
-export const useSettings = create<SettingsStore>()(
-  persist(
-    (set) => ({
-      settings: defaultSettings,
-      updateSetting: (key, value) =>
-        set((state) => ({ settings: { ...state.settings, [key]: value } })),
-      resetSettings: () => set({ settings: defaultSettings })
-    }),
-    { name: 'zeviqo-settings' }
-  )
-);
-
-export function vibrate(pattern: number | number[]) {
-  const { settings } = useSettings.getState();
-  if (settings.vibration && 'vibrate' in navigator) {
-    navigator.vibrate(pattern);
-  }
+export function saveSettings(settings: AppSettings): void {
+  try { localStorage.setItem('zeviqo-settings', JSON.stringify(settings)); } catch { /* ignore */ }
 }
