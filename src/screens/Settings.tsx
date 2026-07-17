@@ -1,129 +1,132 @@
 import { useState } from 'react';
-import { GlassCard, Button, Icon, Modal } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { TopBar } from '../components/BottomNav';
-import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
+import { useSettings } from '../lib/settings';
+import { useStore } from '../store';
+import { TopBar } from '../components/BottomNav';
+import { GlassCard, Icon, Button, ConfirmDialog, Modal, Pill } from '../components/ui';
+import { AdventureBg } from '../components/AdventureBg';
+import { vibrate } from '../lib/settings';
+
+function Toggle({ label, icon, desc, value, onChange }: { label: string; icon: string; desc: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <div className="w-9 h-9 rounded-xl glass flex items-center justify-center"><Icon name={icon} size={16} className="text-white/60" /></div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-white">{label}</p>
+        <p className="text-[10px] text-white/40">{desc}</p>
+      </div>
+      <button onClick={() => { onChange(!value); vibrate(10); }} className={`w-11 h-6 rounded-full transition-all relative flex-shrink-0 ${value ? 'bg-zeviqo-500' : 'bg-white/10'}`}>
+        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${value ? 'left-[22px]' : 'left-0.5'}`} />
+      </button>
+    </div>
+  );
+}
 
 export function Settings() {
-  const { profile, signOut, updatePassword, updateEmail, deleteAccount, updateProfile } = useAuth();
+  const { profile, signOut, updatePassword, updateEmail, deleteAccount } = useAuth();
+  const { settings, updateSetting, resetSettings } = useSettings();
   const { resetLocalState } = useStore();
+  const [showDelete, setShowDelete] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
-  if (!profile) return null;
-
-  const handleChangePassword = async () => {
-    setError(null); setSuccess(null); setLoading(true);
+  const handlePassword = async () => {
     const { error } = await updatePassword(newPassword);
-    if (error) setError(error); else { setSuccess('Password updated successfully!'); setShowPasswordModal(false); setNewPassword(''); }
-    setLoading(false);
+    if (error) setMsg({ type: 'error', text: error });
+    else { setMsg({ type: 'success', text: 'Password updated.' }); setNewPassword(''); setShowPasswordModal(false); }
   };
 
-  const handleChangeEmail = async () => {
-    setError(null); setSuccess(null); setLoading(true);
+  const handleEmail = async () => {
     const { error } = await updateEmail(newEmail);
-    if (error) setError(error); else { setSuccess('Email update link sent! Check your inbox to confirm.'); setShowEmailModal(false); setNewEmail(''); }
-    setLoading(false);
+    if (error) setMsg({ type: 'error', text: error });
+    else { setMsg({ type: 'success', text: 'Email update requested. Check your inbox to confirm.' }); setNewEmail(''); setShowEmailModal(false); }
   };
 
-  const handleDeleteAccount = async () => {
-    setError(null); setLoading(true);
+  const handleDelete = async () => {
     const { error } = await deleteAccount();
-    if (error) setError(error);
-    else { resetLocalState(); }
-    setLoading(false);
-  };
-
-  const handleUpdateUsername = (username: string) => {
-    if (username.length >= 3 && username.length <= 20 && /^[a-zA-Z0-9_]+$/.test(username)) {
-      updateProfile({ username });
-    }
+    if (error) setMsg({ type: 'error', text: error });
+    else resetLocalState();
+    setShowDelete(false);
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#3dd4ff" />
-      <div className="relative z-10"><TopBar title="Settings" showBack showCurrencies={false} />
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
-          {error && <div className="glass rounded-xl px-4 py-2.5 text-xs text-rose-300 font-bold text-center">{error}</div>}
-          {success && <div className="glass rounded-xl px-4 py-2.5 text-xs text-emerald-300 font-bold text-center">{success}</div>}
-
-          <GlassCard className="p-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/60 mb-3">Profile</h3>
-            <div className="mb-3">
-              <label className="text-xs text-white/40 mb-1 block">Username</label>
-              <input type="text" defaultValue={profile.username} onChange={e => handleUpdateUsername(e.target.value.slice(0, 20))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-bold outline-none focus:border-zeviqo-400/50" maxLength={20} />
-            </div>
-            <div className="mb-3">
-              <label className="text-xs text-white/40 mb-1 block">Avatar Emoji</label>
-              <input type="text" defaultValue={profile.avatar_emoji} onChange={e => updateProfile({ avatar_emoji: e.target.value.slice(0, 2) })} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-2xl text-center outline-none focus:border-zeviqo-400/50" maxLength={2} />
-            </div>
-            {profile.bio !== undefined && (
-              <div>
-                <label className="text-xs text-white/40 mb-1 block">Bio</label>
-                <input type="text" defaultValue={profile.bio ?? ''} onChange={e => updateProfile({ bio: e.target.value.slice(0, 100) })} placeholder="Tell others about yourself..." className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-zeviqo-400/50" maxLength={100} />
-              </div>
-            )}
-          </GlassCard>
-
-          <GlassCard className="p-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/60 mb-3">Account</h3>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-white/40">Email</span>
-                <span className="text-white/70 truncate ml-2">{profile.id ? '••••@••••' : ''}</span>
-              </div>
-              <Button variant="secondary" size="sm" fullWidth icon="Lock" onClick={() => setShowPasswordModal(true)}>Change Password</Button>
-              <Button variant="secondary" size="sm" fullWidth icon="Mail" onClick={() => setShowEmailModal(true)}>Change Email</Button>
-              <Button variant="ghost" size="sm" fullWidth icon="LogOut" onClick={() => signOut()}>Log Out</Button>
+    <div className="relative min-h-screen pb-24">
+      <AdventureBg />
+      <TopBar title="Settings" showBack />
+      <div className="relative z-10 px-4 pt-4 space-y-4">
+        {msg && (
+          <GlassCard className={`p-3 animate-fade-in ${msg.type === 'error' ? 'border-rose-500/20' : 'border-emerald-500/20'}`}>
+            <div className="flex items-center gap-2">
+              <Icon name={msg.type === 'error' ? 'AlertCircle' : 'CheckCircle'} size={14} className={msg.type === 'error' ? 'text-rose-400' : 'text-emerald-400'} />
+              <span className={`text-xs ${msg.type === 'error' ? 'text-rose-300' : 'text-emerald-300'}`}>{msg.text}</span>
             </div>
           </GlassCard>
+        )}
 
-          <GlassCard className="p-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/60 mb-3">About Zeviqo</h3>
-            <div className="flex flex-col gap-2 text-xs text-white/50">
-              <div className="flex justify-between"><span>Version</span><span className="text-white/70">13.0.0</span></div>
-              <div className="flex justify-between"><span>Member since</span><span className="text-white/70">{new Date(profile.created_at).toLocaleDateString()}</span></div>
+        <GlassCard className="p-4 animate-slide-up">
+          <h3 className="text-xs font-bold text-white/40 uppercase mb-1">Preferences</h3>
+          <Toggle label="Vibration" icon="Vibrate" desc="Haptic feedback during adventures" value={settings.vibration} onChange={v => updateSetting('vibration', v)} />
+          <Toggle label="Sound" icon="Volume2" desc="Audio feedback for actions" value={settings.sound} onChange={v => updateSetting('sound', v)} />
+          <Toggle label="Notifications" icon="Bell" desc="Friend requests and alerts" value={settings.notifications} onChange={v => updateSetting('notifications', v)} />
+          <Toggle label="GPS Tracking" icon="MapPin" desc="High-accuracy location tracking" value={settings.gpsTracking} onChange={v => updateSetting('gpsTracking', v)} />
+          <Toggle label="Reduce Motion" icon="Sparkles" desc="Minimize animations" value={settings.reduceMotion} onChange={v => updateSetting('reduceMotion', v)} />
+          <button onClick={() => { resetSettings(); vibrate(20); }} className="text-xs text-zeviqo-400 font-bold mt-2">Reset to defaults</button>
+        </GlassCard>
+
+        <GlassCard className="p-4 animate-slide-up">
+          <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Account</h3>
+          <div className="flex items-center gap-3 py-2">
+            <ProfileAvatarInline emoji={profile?.avatar_emoji ?? '🧭'} color={profile?.avatar_color ?? '#00c4ff'} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white">{profile?.username}</p>
+              <p className="text-[10px] text-white/40">{profile?.level ? `Level ${profile.level}` : ''}</p>
             </div>
-          </GlassCard>
+            <Pill accent="text-zeviqo-300 border-zeviqo-500/20">LV {profile?.level ?? 1}</Pill>
+          </div>
+          <div className="space-y-1 mt-2">
+            <button onClick={() => setShowPasswordModal(true)} className="w-full flex items-center gap-3 py-2.5 text-left">
+              <Icon name="Lock" size={16} className="text-white/50" /><span className="text-sm text-white/70">Change Password</span>
+            </button>
+            <button onClick={() => setShowEmailModal(true)} className="w-full flex items-center gap-3 py-2.5 text-left">
+              <Icon name="Mail" size={16} className="text-white/50" /><span className="text-sm text-white/70">Change Email</span>
+            </button>
+            <button onClick={signOut} className="w-full flex items-center gap-3 py-2.5 text-left">
+              <Icon name="LogOut" size={16} className="text-white/50" /><span className="text-sm text-white/70">Log Out</span>
+            </button>
+          </div>
+        </GlassCard>
 
-          <GlassCard className="p-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-rose-300 mb-3">Danger Zone</h3>
-            <Button variant="danger" size="sm" icon="Trash2" onClick={() => setShowDeleteModal(true)}>Delete Account</Button>
-          </GlassCard>
-        </div>
+        <GlassCard className="p-4 animate-slide-up border-rose-500/10">
+          <h3 className="text-xs font-bold text-rose-400/60 uppercase mb-2">Danger Zone</h3>
+          <Button variant="danger" size="md" icon="Trash2" onClick={() => setShowDelete(true)}>Delete Account</Button>
+          <p className="text-[10px] text-white/30 mt-2">This permanently deletes your profile, friends, and data. This cannot be undone.</p>
+        </GlassCard>
+
+        <p className="text-center text-[10px] text-white/20 pb-4">Zeviqo v14.0.0 · Beta</p>
       </div>
 
+      <ConfirmDialog visible={showDelete} title="Delete Account?" message="This will permanently delete your account and all associated data. This action cannot be undone." confirmLabel="Delete" danger onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />
+
       <Modal visible={showPasswordModal} onClose={() => setShowPasswordModal(false)} title="Change Password">
-        <div className="flex flex-col gap-3">
-          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password (min 6 chars)" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-zeviqo-400/50" />
-          <Button variant="primary" size="md" fullWidth disabled={newPassword.length < 6 || loading} onClick={handleChangePassword}>{loading ? 'Updating...' : 'Update Password'}</Button>
+        <div className="space-y-3">
+          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password (min 6 chars)" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-zeviqo-400/50" />
+          <Button fullWidth size="md" onClick={handlePassword} disabled={newPassword.length < 6}>Update Password</Button>
         </div>
       </Modal>
 
       <Modal visible={showEmailModal} onClose={() => setShowEmailModal(false)} title="Change Email">
-        <div className="flex flex-col gap-3">
-          <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="New email address" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-zeviqo-400/50" />
-          <Button variant="primary" size="md" fullWidth disabled={!newEmail.includes('@') || loading} onClick={handleChangeEmail}>{loading ? 'Sending...' : 'Send Confirmation'}</Button>
-        </div>
-      </Modal>
-
-      <Modal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Account">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start gap-2">
-            <Icon name="AlertTriangle" size={20} className="text-rose-400 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-white/60">This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
-          </div>
-          <Button variant="danger" size="md" fullWidth disabled={loading} onClick={handleDeleteAccount}>{loading ? 'Deleting...' : 'Delete My Account'}</Button>
+        <div className="space-y-3">
+          <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="New email address" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-zeviqo-400/50" />
+          <Button fullWidth size="md" onClick={handleEmail} disabled={!newEmail.includes('@')}>Update Email</Button>
         </div>
       </Modal>
     </div>
   );
+}
+
+function ProfileAvatarInline({ emoji, color }: { emoji: string; color: string }) {
+  return <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: `${color}22`, border: `1px solid ${color}44` }}>{emoji}</div>;
 }

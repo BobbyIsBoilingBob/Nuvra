@@ -1,17 +1,16 @@
-import { GlassCard, Button, EmptyState } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
+import { TopBar } from '../components/BottomNav';
+import { EmptyState, Button } from '../components/ui';
+import { AdventureBg } from '../components/AdventureBg';
 
 export function Friends() {
   const { setScreen } = useStore();
   return (
-    <div className="relative min-h-screen w-full overflow-hidden pb-24">
+    <div className="relative min-h-screen pb-24">
       <AdventureBg accent="#3dd4ff" />
-      <div className="relative z-10"><TopBar title="Friends" showBack />
-        <div className="px-4 max-w-md mx-auto">
-          <EmptyState icon="Users" title="No friends yet" desc="Search for players and send friend requests to start walking together." action={<Button size="sm" variant="secondary" icon="Search" onClick={() => setScreen('community')}>Search Players</Button>} />
-        </div>
+      <TopBar title="Friends" showBack />
+      <div className="relative z-10 px-4 pt-4">
+        <EmptyState icon="Users" title="Friends list moved" desc="Find and manage your friends in the Community hub." action={<Button size="sm" onClick={() => setScreen('community')}>Go to Community</Button>} />
       </div>
     </div>
   );

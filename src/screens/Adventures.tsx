@@ -1,106 +1,91 @@
 import { useState, useMemo } from 'react';
-import { GlassCard, Icon, Pill, Button, Spinner } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
-import { ADVENTURE_TYPES, CURATED_ADVENTURES, generateAdventure, DIFFICULTY_LABELS, type AdventureType, type Difficulty } from '../data';
+import { GlassCard, Icon, Button, Pill, EmptyState } from '../components/ui';
+import { AdventureBg } from '../components/AdventureBg';
+import { RoutePreview } from '../components/RoutePreview';
+import { CURATED_ADVENTURES, ADVENTURE_TYPES, DIFFICULTY_LABELS, generateAdventure, type AdventureType, type Difficulty, type Adventure } from '../data';
+import { formatDistance } from '../lib/map-utils';
 
 export function Adventures() {
-  const { setScreen, setSelectedAdventure, setSelectedAdventureObj } = useStore();
-  const [filterType, setFilterType] = useState<AdventureType | 'all'>('all');
-  const [filterDiff, setFilterDiff] = useState<Difficulty | 'all'>('all');
+  const { setScreen, setSelectedAdventureObj, favoriteAdventures, toggleFavoriteAdventure } = useStore();
+  const [filter, setFilter] = useState<AdventureType | 'all'>('all');
+  const [diffFilter, setDiffFilter] = useState<Difficulty | 'all'>('all');
+  const [showFavOnly, setShowFavOnly] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const filtered = useMemo(() => {
-    return CURATED_ADVENTURES.filter(a =>
-      (filterType === 'all' || a.type === filterType) &&
-      (filterDiff === 'all' || a.difficulty === filterDiff)
-    );
-  }, [filterType, filterDiff]);
+  const adventures = useMemo(() => CURATED_ADVENTURES, []);
 
-  const handleGenerate = () => {
+  const filtered = adventures.filter(a => {
+    if (filter !== 'all' && a.type !== filter) return false;
+    if (diffFilter !== 'all' && a.difficulty !== diffFilter) return false;
+    if (showFavOnly && !favoriteAdventures.includes(a.id)) return false;
+    return true;
+  });
+
+  const openDetail = (a: Adventure) => { setSelectedAdventureObj(a); setScreen('adventure-detail'); };
+
+  const generateNew = () => {
     setGenerating(true);
     setTimeout(() => {
-      const adv = generateAdventure({
-        type: filterType !== 'all' ? filterType : undefined,
-        difficulty: filterDiff !== 'all' ? filterDiff : undefined
-      });
-      setSelectedAdventure(adv.id);
-      setSelectedAdventureObj(adv);
+      const a = generateAdventure({ type: filter === 'all' ? undefined : filter, difficulty: diffFilter === 'all' ? undefined : diffFilter });
       setGenerating(false);
-      setScreen('adventure-detail');
-    }, 800);
-  };
-
-  const openAdventure = (id: string) => {
-    const adv = CURATED_ADVENTURES.find(a => a.id === id);
-    if (adv) { setSelectedAdventure(id); setSelectedAdventureObj(adv); setScreen('adventure-detail'); }
+      openDetail(a);
+    }, 400);
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden pb-24">
+    <div className="relative min-h-screen pb-24">
       <AdventureBg />
-      <div className="relative z-10">
-        <TopBar title="Adventures" />
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
-          <GlassCard className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zeviqo-400 to-plasma-500 flex items-center justify-center">
-                <Icon name="Sparkles" size={24} className="text-ink-950" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-bold text-white">AI Adventure Generator</div>
-                <div className="text-xs text-white/50">Generate a unique adventure</div>
-              </div>
-              <Button size="sm" icon="Wand2" onClick={handleGenerate} disabled={generating}>
-                {generating ? <Spinner size={14} /> : 'Generate'}
-              </Button>
-            </div>
-          </GlassCard>
+      <div className="relative z-10 px-4 pt-6 space-y-4">
+        <div className="flex items-center justify-between animate-fade-in">
+          <h1 className="text-xl font-display font-bold text-white">Adventures</h1>
+          <Button size="sm" icon="Sparkles" onClick={generateNew} disabled={generating}>{generating ? 'Generating...' : 'Generate'}</Button>
+        </div>
 
-          <div>
-            <div className="text-xs font-bold text-white/40 uppercase mb-2">Type</div>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterType==='all'?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>All</button>
-              {ADVENTURE_TYPES.map(t => (
-                <button key={t.type} onClick={() => setFilterType(t.type)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterType===t.type?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{t.emoji} {t.label}</button>
-              ))}
-            </div>
-          </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar animate-fade-in">
+          <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter==='all'?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>All</button>
+          {ADVENTURE_TYPES.map(t => (
+            <button key={t.type} onClick={() => setFilter(t.type)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter===t.type?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{t.emoji} {t.label}</button>
+          ))}
+        </div>
 
-          <div>
-            <div className="text-xs font-bold text-white/40 uppercase mb-2">Difficulty</div>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => setFilterDiff('all')} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${filterDiff==='all'?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>All</button>
-              {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => (
-                <button key={d} onClick={() => setFilterDiff(d)} className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${filterDiff===d?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{DIFFICULTY_LABELS[d]}</button>
-              ))}
-            </div>
-          </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <button onClick={() => setDiffFilter('all')} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${diffFilter==='all'?'glass-strong text-white':'glass text-white/50'}`}>Any Difficulty</button>
+          {(['relaxed','easy','medium','hard','extreme'] as Difficulty[]).map(d => (
+            <button key={d} onClick={() => setDiffFilter(d)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${diffFilter===d?'glass-strong text-white':'glass text-white/50'}`}>{DIFFICULTY_LABELS[d]}</button>
+          ))}
+          <button onClick={() => setShowFavOnly(!showFavOnly)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${showFavOnly?'bg-gold-500 text-ink-950':'glass text-white/50'}`}><Icon name="Star" size={10} />Favorites</button>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            {filtered.length === 0 ? (
-              <div className="text-center py-8 text-white/40 text-sm">No adventures match your filters.</div>
-            ) : filtered.map(adv => (
-              <GlassCard key={adv.id} className="p-4 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => openAdventure(adv.id)}>
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-zeviqo-400/20 to-plasma-500/20 flex items-center justify-center text-3xl">{adv.emoji}</div>
+        {filtered.length === 0 ? (
+          <EmptyState icon="Compass" title="No adventures found" desc="Try adjusting your filters or generate a new adventure." action={<Button size="sm" icon="Sparkles" onClick={generateNew}>Generate One</Button>} />
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {filtered.map(a => (
+              <GlassCard key={a.id} className="p-4 animate-slide-up" onClick={() => openDetail(a)}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl glass flex items-center justify-center text-2xl">{a.emoji}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-white truncate">{adv.title}</div>
-                    <div className="text-xs text-white/40 truncate">{adv.theme}</div>
-                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                      <Pill icon="MapPin" accent="text-cyan-300 border-cyan-500/30">{adv.distance} km</Pill>
-                      <Pill icon="Clock" accent="text-white/60 border-white/10">{Math.round(adv.duration/60)}m</Pill>
-                      <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{adv.xp}</Pill>
-                      <Pill accent="text-ember-300 border-ember-500/30 capitalize">{DIFFICULTY_LABELS[adv.difficulty]}</Pill>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-display font-bold text-white truncate">{a.title}</h4>
+                      <button onClick={(e) => { e.stopPropagation(); toggleFavoriteAdventure(a.id); }} className="flex-shrink-0">
+                        <Icon name={favoriteAdventures.includes(a.id) ? 'Star' : 'Star'} size={14} className={favoriteAdventures.includes(a.id) ? 'text-gold-400 fill-gold-400' : 'text-white/30'} />
+                      </button>
                     </div>
+                    <p className="text-[11px] text-white/40 truncate">{a.theme} · {a.terrain}</p>
                   </div>
-                  <Icon name="ChevronRight" size={20} className="text-white/30" />
+                </div>
+                <RoutePreview route={a.route} color={ADVENTURE_TYPES.find(t => t.type === a.type)?.color ?? '#00c4ff'} animated={false} />
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  <Pill icon="Route">{formatDistance(a.distance)}</Pill>
+                  <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/20">{a.xp} XP</Pill>
+                  <Pill icon="Coins" accent="text-gold-300 border-gold-500/20">{a.coins}</Pill>
+                  <Pill accent="text-white/40">{DIFFICULTY_LABELS[a.difficulty]}</Pill>
                 </div>
               </GlassCard>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

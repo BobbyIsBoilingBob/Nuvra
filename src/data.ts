@@ -68,13 +68,7 @@ export type ShopItem = {
   category: 'avatar' | 'trail' | 'badge' | 'boost';
 };
 
-export type DailyReward = {
-  day: number;
-  coins: number;
-  gems: number;
-  xp: number;
-  item?: string;
-};
+export type DailyReward = { day: number; coins: number; gems: number; xp: number; item?: string };
 
 export type LevelInfo = { level: number; xpIntoLevel: number; xpNeeded: number; progress: number; xpForNextLevel: number };
 
@@ -191,16 +185,8 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 's8', name: 'Coin Boost 2x', emoji: '💰', price: 800, rarity: 'rare', category: 'boost' }
 ];
 
-const ADJECTIVES = [
-  'Mystic', 'Golden', 'Hidden', 'Ancient', 'Forgotten', 'Secret', 'Crystal', 'Silver',
-  'Wandering', 'Emerald', 'Twilight', 'Dawn', 'Midnight', 'Crimson', 'Frost', 'Storm',
-  'Velvet', 'Shadow', 'Radiant', 'Wild', 'Sacred', 'Lost', 'Silent', 'Distant', 'Northern'
-];
-const NOUNS = [
-  'Trail', 'Path', 'Quest', 'Journey', 'Expedition', 'Voyage', 'Odyssey', 'Route',
-  'Passage', 'Way', 'Track', 'Circuit', 'Loop', 'Trek', 'Hike', 'Stroll', 'Ramble',
-  'Wander', 'Pilgrimage', 'Safari', 'Venture', 'Excursion', 'Pursuit', 'Discovery', 'Frontier'
-];
+const ADJECTIVES = ['Mystic', 'Golden', 'Hidden', 'Ancient', 'Forgotten', 'Secret', 'Crystal', 'Silver', 'Wandering', 'Emerald', 'Twilight', 'Dawn', 'Midnight', 'Crimson', 'Frost', 'Storm', 'Velvet', 'Shadow', 'Radiant', 'Wild', 'Sacred', 'Lost', 'Silent', 'Distant', 'Northern'];
+const NOUNS = ['Trail', 'Path', 'Quest', 'Journey', 'Expedition', 'Voyage', 'Odyssey', 'Route', 'Passage', 'Way', 'Track', 'Circuit', 'Loop', 'Trek', 'Hike', 'Stroll', 'Ramble', 'Wander', 'Pilgrimage', 'Safari', 'Venture', 'Excursion', 'Pursuit', 'Discovery', 'Frontier'];
 
 const OBJECTIVE_TEMPLATES: Record<AdventureType, string[]> = {
   treasure_hunt: ['Find the hidden treasure chest', 'Collect 3 golden coins along the route', 'Decode the treasure map clues', 'Reach the X marks the spot'],
@@ -217,7 +203,7 @@ const DESCRIPTION_TEMPLATES: Record<AdventureType, string[]> = {
   treasure_hunt: ['A legendary treasure awaits those brave enough to follow the clues through uncharted paths.', 'Ancient pirates buried their gold along this route. Can you find it?', 'Hidden chests are scattered across this trail. Each holds a piece of the puzzle.'],
   nature_walk: ['Immerse yourself in the beauty of nature on this tranquil trail through lush greenery.', 'A peaceful journey through forests and meadows, perfect for reconnecting with the outdoors.', 'Discover the wonders of local wildlife on this serene nature path.'],
   mystery: ['A puzzling adventure where every step reveals a new clue. Can you solve the mystery?', 'Strange occurrences have been reported along this route. Investigate if you dare.', 'An enigmatic trail filled with riddles and hidden messages waiting to be decoded.'],
-  explorer_route: ["Chart unknown territory and discover hidden gems along this explorer's dream route.", 'Be the first to map this uncharted path filled with surprises at every turn.', "An true explorer's journey through undiscovered landmarks and secret passages."],
+  explorer_route: ["Chart unknown territory and discover hidden gems along this explorer's dream route.", 'Be the first to map this uncharted path filled with surprises at every turn.', "A true explorer's journey through undiscovered landmarks and secret passages."],
   speed_challenge: ['Push your limits on this timed challenge. Speed is everything!', 'Race against the clock through this high-intensity speed course.', 'How fast can you go? Test your pace on this thrilling speed challenge.'],
   scenic_walk: ['Breathtaking views await on this picturesque trail designed for photography enthusiasts.', 'A visual feast of stunning landscapes and perfect photo opportunities.', 'Walk through the most beautiful scenery the area has to offer.'],
   fitness_adventure: ['Turn your walk into a workout with this calorie-burning fitness adventure.', 'Power-walk intervals and terrain challenges make this a full-body experience.', 'Elevate your heart rate and burn calories on this fitness-focused route.'],
@@ -237,10 +223,7 @@ const TERRAINS: Record<AdventureType, string[]> = {
 
 function seededRng(seed: number): () => number {
   let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
+  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
 }
 
 function generateRoute(rng: () => number, distance: number): { x: number; y: number }[] {
@@ -250,11 +233,7 @@ function generateRoute(rng: () => number, distance: number): { x: number; y: num
   for (let i = 0; i <= segments; i++) {
     const angle = (i / segments) * Math.PI * 2;
     const wobble = (rng() - 0.5) * 15;
-    const r = baseRadius + wobble;
-    points.push({
-      x: 50 + Math.cos(angle) * r,
-      y: 50 + Math.sin(angle) * r * 0.7
-    });
+    points.push({ x: 50 + Math.cos(angle) * (baseRadius + wobble), y: 50 + Math.sin(angle) * (baseRadius + wobble) * 0.7 });
   }
   return points;
 }
@@ -268,9 +247,6 @@ export function generateAdventure(opts?: { type?: AdventureType; difficulty?: Di
   const theme = THEMES[Math.floor(rng() * THEMES.length)];
   const adj = ADJECTIVES[Math.floor(rng() * ADJECTIVES.length)];
   const noun = NOUNS[Math.floor(rng() * NOUNS.length)];
-  const title = `${adj} ${noun}`;
-  const descPool = DESCRIPTION_TEMPLATES[type];
-  const description = descPool[Math.floor(rng() * descPool.length)];
   const baseDistance = 0.5 + rng() * 4.5;
   const diffMult = DIFFICULTY_MULTIPLIERS[difficulty];
   const distance = Math.round(baseDistance * 100) / 100;
@@ -281,12 +257,13 @@ export function generateAdventure(opts?: { type?: AdventureType; difficulty?: Di
   const gems = Math.max(0, Math.round((diffMult - 1) * 3));
   const objPool = OBJECTIVE_TEMPLATES[type];
   const objectives = [...objPool].sort(() => rng() - 0.5).slice(0, 3);
-  const terrainPool = TERRAINS[type];
-  const terrain = terrainPool[Math.floor(rng() * terrainPool.length)];
+  const terrain = TERRAINS[type][Math.floor(rng() * TERRAINS[type].length)];
   const route = generateRoute(rng, distance);
   return {
-    id: `gen_${seed}`, type, title, description, difficulty, distance, duration, calories,
-    xp, coins, gems, emoji: typeInfo.emoji, theme, objectives, route, terrain
+    id: `gen_${seed}`, type, title: `${adj} ${noun}`,
+    description: DESCRIPTION_TEMPLATES[type][Math.floor(rng() * DESCRIPTION_TEMPLATES[type].length)],
+    difficulty, distance, duration, calories, xp, coins, gems,
+    emoji: typeInfo.emoji, theme, objectives, route, terrain
   };
 }
 

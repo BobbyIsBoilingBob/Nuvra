@@ -4,62 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --zeviqo-500: #00c4ff;
-  --zeviqo-400: #33cfff;
-  --zeviqo-600: #009ecc;
-  --ember-500: #ff6b00;
-  --gold-500: #f5b800;
-  --plasma-500: #7a45ff;
-  --ink-950: #080810;
-}
-
 * { -webkit-tap-highlight-color: transparent; }
 
 html, body {
-  margin: 0;
-  padding: 0;
-  background: #080810;
-  color: #fff;
+  margin: 0; padding: 0; background: #080810; color: #fff;
   font-family: 'Inter', system-ui, sans-serif;
-  overscroll-behavior: none;
-  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none; -webkit-font-smoothing: antialiased;
 }
 
 #root { min-height: 100dvh; }
 
 @layer components {
-  .glass {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .glass-strong {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-  }
-  .text-gradient {
-    background: linear-gradient(135deg, #00c4ff 0%, #ff6b00 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .text-gradient-zeviqo {
-    background: linear-gradient(135deg, #33cfff 0%, #00c4ff 50%, #009ecc 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .shimmer-bg {
-    background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 2s linear infinite;
-  }
+  .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+  .glass-strong { background: rgba(255,255,255,0.08); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.12); }
+  .text-gradient { background: linear-gradient(135deg, #00c4ff 0%, #ff6b00 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+  .text-gradient-zeviqo { background: linear-gradient(135deg, #33cfff 0%, #00c4ff 50%, #009ecc 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
@@ -69,23 +28,15 @@ html, body {
   .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
   .animate-shimmer { animation: shimmer 2s linear infinite; }
   .animate-route-draw { animation: route-draw 2s ease-out forwards; }
+  .animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+  .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
-}
-@keyframes route-draw {
-  0% { stroke-dashoffset: 1000; }
-  100% { stroke-dashoffset: 0; }
-}
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes pulse-glow { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes route-draw { 0% { stroke-dashoffset: 1000; } 100% { stroke-dashoffset: 0; } }
+@keyframes slide-up { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
 
 input, textarea, button { font-family: inherit; }

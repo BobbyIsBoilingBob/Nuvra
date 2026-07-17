@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase, type Profile, type Session, type User } from './supabase';
 
 type AuthState = {
@@ -24,26 +24,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const profileCache = useRef<Profile | null>(null);
 
-  const loadProfile = useCallback(async (uid: string) => {
+  const loadProfile = useCallback(async (uid: string): Promise<Profile | null> => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', uid)
       .maybeSingle();
-    if (error) return;
-    if (data) {
-      setProfile(data as Profile);
-    } else {
-      // Profile not found — the trigger should have created it. Retry once.
-      await new Promise(r => setTimeout(r, 500));
+    if (error || !data) {
+      // Retry once — trigger may not have fired yet
+      await new Promise(r => setTimeout(r, 600));
       const { data: retry } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', uid)
         .maybeSingle();
-      if (retry) setProfile(retry as Profile);
+      if (retry) {
+        profileCache.current = retry as Profile;
+        setProfile(retry as Profile);
+        return retry as Profile;
+      }
+      return null;
     }
+    profileCache.current = data as Profile;
+    setProfile(data as Profile);
+    return data as Profile;
+  }, []);
+
+  // Update online status on mount and cleanup on unmount
+  const updateOnlineStatus = useCallback(async (uid: string, online: boolean) => {
+    await supabase.from('profiles').update({
+      is_online: online,
+      last_seen: new Date().toISOString()
+    }).eq('id', uid);
   }, []);
 
   useEffect(() => {
@@ -55,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(s?.user ?? null);
       if (s?.user) {
         loadProfile(s.user.id).finally(() => { if (mounted) setLoading(false); });
+        updateOnlineStatus(s.user.id, true);
       } else {
         setLoading(false);
       }
@@ -64,15 +79,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-        (async () => { await loadProfile(s.user.id); })();
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null);
-      }
+      // Wrap async work to avoid deadlock
+      (async () => {
+        if (s?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          await loadProfile(s.user.id);
+          if (event === 'SIGNED_IN') updateOnlineStatus(s.user.id, true);
+        } else if (event === 'SIGNED_OUT') {
+          if (user) updateOnlineStatus(user.id, false);
+          profileCache.current = null;
+          setProfile(null);
+        }
+      })();
     });
 
-    return () => { mounted = false; sub.subscription.unsubscribe(); };
-  }, [loadProfile]);
+    const handleBeforeUnload = () => {
+      if (user) updateOnlineStatus(user.id, false);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (user) updateOnlineStatus(user.id, false);
+    };
+  }, [loadProfile, updateOnlineStatus, user]);
 
   const validateSignup = (email: string, password: string, username: string): string | null => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -88,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const validation = validateSignup(email, password, username);
     if (validation) return { error: validation };
 
-    // Check username uniqueness before signup
+    // Check username uniqueness
     const { data: existing } = await supabase
       .from('profiles')
       .select('username')
@@ -97,8 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (existing) return { error: 'That username is already taken. Please choose another.' };
 
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { data: { username } }
     });
 
@@ -111,10 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data.user) {
       await loadProfile(data.user.id);
+      updateOnlineStatus(data.user.id, true);
     }
-
     return { error: null };
-  }, [loadProfile]);
+  }, [loadProfile, updateOnlineStatus]);
 
   const signIn = useCallback(async (email: string, password: string): Promise<{ error: string | null }> => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -138,22 +168,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data.user) {
       await loadProfile(data.user.id);
+      updateOnlineStatus(data.user.id, true);
     }
-
     return { error: null };
-  }, [loadProfile]);
+  }, [loadProfile, updateOnlineStatus]);
 
   const signOut = useCallback(async () => {
+    if (user) updateOnlineStatus(user.id, false);
     await supabase.auth.signOut();
+    profileCache.current = null;
     setProfile(null);
     setSession(null);
     setUser(null);
-  }, []);
+  }, [user, updateOnlineStatus]);
 
   const resetPassword = useCallback(async (email: string): Promise<{ error: string | null }> => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return { error: 'Please enter a valid email address.' };
-
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) return { error: error.message };
     return { error: null };
@@ -176,12 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = useCallback(async (): Promise<{ error: string | null }> => {
     if (!user) return { error: 'Not signed in.' };
-    // Delete profile row (cascades to friends, notifications, blocks via FK)
+    // Delete profile row — cascades to friends, notifications, blocks via FK
     const { error: profileErr } = await supabase.from('profiles').delete().eq('id', user.id);
     if (profileErr) return { error: profileErr.message };
-    // Delete auth user
-    const { error: authErr } = await supabase.auth.admin?.deleteUser(user.id) ?? { error: null };
-    if (authErr) return { error: authErr.message };
     await signOut();
     return { error: null };
   }, [user, signOut]);
@@ -194,7 +222,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return { error: 'Not signed in.' };
     const { error } = await supabase.from('profiles').update(partial).eq('id', user.id);
     if (error) return { error: error.message };
-    setProfile(prev => prev ? { ...prev, ...partial } : prev);
+    setProfile(prev => {
+      const updated = prev ? { ...prev, ...partial } : prev;
+      profileCache.current = updated;
+      return updated;
+    });
     return { error: null };
   }, [user]);
 

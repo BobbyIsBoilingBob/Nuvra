@@ -1,76 +1,91 @@
-import { useState, useMemo } from 'react';
-import { GlassCard, Icon, ProgressBar } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { TopBar } from '../components/BottomNav';
+import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { ACHIEVEMENTS, getLevelInfo } from '../data';
+import { TopBar } from '../components/BottomNav';
+import { GlassCard, Icon, ProgressBar, Pill } from '../components/ui';
+import { AdventureBg } from '../components/AdventureBg';
+import { ACHIEVEMENTS, type Achievement } from '../data';
+
+const CATEGORIES = [
+  { key: 'all', label: 'All', icon: 'Award' },
+  { key: 'milestones', label: 'Milestones', icon: 'Flag' },
+  { key: 'exploration', label: 'Exploration', icon: 'Compass' },
+  { key: 'fitness', label: 'Fitness', icon: 'Flame' },
+  { key: 'collection', label: 'Collection', icon: 'Gem' },
+  { key: 'social', label: 'Social', icon: 'Users' }
+] as const;
+
+const TIER_STYLES: Record<string, { color: string; label: string }> = {
+  bronze: { color: 'text-amber-600', label: 'Bronze' },
+  silver: { color: 'text-gray-300', label: 'Silver' },
+  gold: { color: 'text-gold-400', label: 'Gold' },
+  platinum: { color: 'text-cyan-300', label: 'Platinum' }
+};
 
 export function Achievements() {
   const { profile } = useAuth();
-  const [category, setCategory] = useState<string>('all');
-  const categories = ['all', 'exploration', 'fitness', 'social', 'collection', 'milestones'];
+  const [cat, setCat] = useState<string>('all');
 
-  if (!profile) return null;
-
-  const getProgress = (a: typeof ACHIEVEMENTS[0]): number => {
-    switch (a.metric) {
-      case 'distance': return profile.distance_walked;
-      case 'adventures': return profile.completed_adventures;
-      case 'streak': return profile.walking_streak;
-      case 'treasures': return profile.treasure_collected;
-      case 'challenges': return profile.completed_challenges;
-      case 'level': return getLevelInfo(profile.xp).level;
-      case 'friends': return 0;
-      default: return 0;
-    }
+  const getValue = (a: Achievement): number => {
+    if (!profile) return 0;
+    if (a.metric === 'distance') return profile.distance_walked;
+    if (a.metric === 'adventures') return profile.completed_adventures;
+    if (a.metric === 'streak') return profile.walking_streak;
+    if (a.metric === 'treasures') return profile.treasure_collected;
+    if (a.metric === 'challenges') return profile.completed_challenges;
+    if (a.metric === 'level') return profile.level;
+    if (a.metric === 'friends') return 0;
+    return 0;
   };
 
-  const filtered = useMemo(() => category === 'all' ? ACHIEVEMENTS : ACHIEVEMENTS.filter(a => a.category === category), [category]);
-
-  const tierColors: Record<string, string> = {
-    bronze: 'from-amber-600 to-amber-800',
-    silver: 'from-gray-300 to-gray-500',
-    gold: 'from-gold-400 to-gold-600',
-    platinum: 'from-cyan-300 to-plasma-500'
-  };
+  const filtered = ACHIEVEMENTS.filter(a => cat === 'all' || a.category === cat);
+  const unlocked = filtered.filter(a => getValue(a) >= a.requirement).length;
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#f5b800" />
-      <div className="relative z-10">
-        <TopBar title="Achievements" />
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {categories.map(c => (
-              <button key={c} onClick={() => setCategory(c)} className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize whitespace-nowrap transition-all ${category===c?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{c}</button>
-            ))}
+    <div className="relative min-h-screen pb-24">
+      <AdventureBg />
+      <TopBar title="Achievements" showBack />
+      <div className="relative z-10 px-4 pt-4 space-y-4">
+        <GlassCard className="p-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-white/40">Unlocked</p>
+              <p className="text-xl font-display font-bold text-white">{unlocked} <span className="text-sm text-white/40">/ {ACHIEVEMENTS.length}</span></p>
+            </div>
+            <div className="w-12 h-12 rounded-xl glass flex items-center justify-center"><Icon name="Trophy" size={22} className="text-gold-400" /></div>
           </div>
-          <div className="flex flex-col gap-2">
-            {filtered.map(a => {
-              const current = getProgress(a);
-              const unlocked = current >= a.requirement;
-              return (
-                <GlassCard key={a.id} className={`p-4 ${unlocked ? '' : 'opacity-70'}`}>
-                  <div className="flex items-start gap-3">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${unlocked ? tierColors[a.tier] : 'from-white/5 to-white/10'} flex items-center justify-center flex-shrink-0`}>
-                      <Icon name={a.icon} size={22} className={unlocked ? 'text-white' : 'text-white/30'} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-white">{a.title}</span>
-                        {unlocked && <Icon name="CheckCircle" size={16} className="text-emerald-400" />}
-                      </div>
-                      <div className="text-xs text-white/50 mt-0.5">{a.description}</div>
-                      <div className="mt-2">
-                        <ProgressBar value={current} max={a.requirement} colorClass={unlocked ? `bg-gradient-to-r ${tierColors[a.tier]}` : 'from-zeviqo-400 to-zeviqo-500'} />
-                        <div className="text-[10px] text-white/40 mt-1">{Math.floor(current)} / {a.requirement}</div>
-                      </div>
-                    </div>
+        </GlassCard>
+
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {CATEGORIES.map(c => (
+            <button key={c.key} onClick={() => setCat(c.key)} className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${cat===c.key?'bg-zeviqo-500 text-ink-950':'glass text-white/50'}`}>{c.label}</button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {filtered.map(a => {
+            const value = getValue(a);
+            const done = value >= a.requirement;
+            const tier = TIER_STYLES[a.tier];
+            return (
+              <GlassCard key={a.id} className={`p-4 animate-slide-up ${done ? 'border-zeviqo-500/20' : ''}`}>
+                <div className="flex items-start gap-3 mb-2">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${done ? 'bg-zeviqo-500/20' : 'glass'}`}>
+                    <Icon name={a.icon} size={20} className={done ? 'text-zeviqo-400' : 'text-white/30'} />
                   </div>
-                </GlassCard>
-              );
-            })}
-          </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-display font-bold text-white">{a.title}</h4>
+                    <p className="text-[11px] text-white/40">{a.description}</p>
+                  </div>
+                  <Pill accent={`${tier.color} border-current/20`}>{tier.label}</Pill>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
+                  <span>{Math.min(value, a.requirement).toLocaleString()} / {a.requirement.toLocaleString()}</span>
+                  {done && <Icon name="Check" size={12} className="text-emerald-400" />}
+                </div>
+                <ProgressBar value={value} max={a.requirement} colorClass={done ? 'from-emerald-400 to-emerald-500' : 'from-zeviqo-400 to-zeviqo-500'} />
+              </GlassCard>
+            );
+          })}
         </div>
       </div>
     </div>

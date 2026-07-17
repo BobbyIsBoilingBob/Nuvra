@@ -1,8 +1,8 @@
-import { useStore } from './store';
 import { useAuth } from './lib/auth';
-import { BottomNav } from './components/BottomNav';
+import { useStore } from './store';
 import { LoadingScreen } from './components/ui';
 import { Auth } from './screens/Auth';
+import { BottomNav } from './components/BottomNav';
 import { Home } from './screens/Home';
 import { Adventures } from './screens/Adventures';
 import { AdventureDetail } from './screens/AdventureDetail';
@@ -18,22 +18,17 @@ import { Party } from './screens/Party';
 import { Shop } from './screens/Shop';
 import { Settings } from './screens/Settings';
 import { History } from './screens/History';
-import type { Screen } from './store';
 
 export default function App() {
-  const { currentScreen } = useStore();
   const { session, profile, loading } = useAuth();
+  const { currentScreen } = useStore();
 
   if (loading) return <LoadingScreen />;
+  if (!session || !profile) return <Auth />;
 
-  // Not signed in — show auth screen
-  if (!session || !profile) {
-    return <Auth />;
-  }
+  const showBottomNav = !['adventure-detail', 'adventure-map'].includes(currentScreen);
 
-  const screens: Record<Screen, React.ReactElement> = {
-    landing: <Home />,
-    onboarding: <Home />,
+  const screens: Record<string, React.ReactNode> = {
     home: <Home />,
     adventures: <Adventures />,
     'adventure-detail': <AdventureDetail />,
@@ -51,10 +46,8 @@ export default function App() {
     history: <History />
   };
 
-  const showBottomNav = ['home', 'adventures', 'quests', 'community', 'profile'].includes(currentScreen);
-
   return (
-    <div className="min-h-screen w-full bg-ink-950 text-white">
+    <div className="max-w-md mx-auto min-h-screen relative">
       {screens[currentScreen] ?? <Home />}
       {showBottomNav && <BottomNav />}
     </div>

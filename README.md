@@ -1,56 +1,68 @@
-# Zeviqo — Walking Adventures
+# Zeviqo
 
-Turn every walk into an adventure. Explore unique routes, complete quests, find treasures, and level up.
+Turn every walk into an adventure. A GPS-powered walking adventure app with real-time tracking, quests, achievements, challenges, and a social community.
 
 ## Tech Stack
 
-- Vite + React 18 + TypeScript
-- Tailwind CSS 3 (custom Zeviqo color palette)
-- Zustand (state management)
-- lucide-react (icons)
-- @supabase/supabase-js (authentication + backend)
-
-## Authentication
-
-Zeviqo uses **real Supabase Authentication** — no placeholder or demo auth.
-
-- **Sign up**: Email, password, and unique username (3-20 chars, alphanumeric + underscore)
-- **Log in**: Email and password only
-- **Sessions persist** across app restarts (Supabase session management)
-- **Password reset** via email link
-- **Change password** from Settings
-- **Change email** from Settings
-- **Delete account** removes profile and associated data
-- **Log out** clears the session
-
-Every new account starts fresh: Level 1, 0 XP, 1000 coins, 0 distance, 0 friends, 0 achievements, no fake data.
+- **Vite** + **React 18** + **TypeScript** + **Tailwind CSS 3**
+- **Zustand** for state management (with persist middleware)
+- **Supabase** for authentication and database (profiles, friends, notifications, blocks)
+- **lucide-react** for icons
 
 ## Features
 
-- **8 Adventure Types**: Treasure Hunts, Nature Walks, Mystery, Explorer Routes, Speed Challenges, Scenic Walks, Fitness, Community
-- **Procedural Generation**: Seeded RNG ensures unique, reproducible adventures
-- **Route Preview**: Animated SVG route with start/end markers and glow effects
-- **Progression System**: XP/levels (sqrt curve), daily rewards, daily/weekly quests, walking streaks
-- **Combo System**: Tier multipliers from Common (1.2x) to Mythic (3.0x)
-- **Achievements**: 15 achievements across 5 categories
-- **Challenges**: 6 completable challenges with rewards
-- **Adventure History**: Save completed adventures with full stats, favorites, repeat, and sharing
-- **Shop**: Buy cosmetic items with coins
-- **Social System**: Real user search, friend requests, accept/decline, remove friends, block users, notifications
+### Authentication
+- Real Supabase email/password authentication
+- Sign up with email, password, and unique username
+- Login with email and password
+- Session persistence across app restarts
+- Password reset via email
+- Change password and change email
+- Delete account with confirmation
+
+### Adventures
+- Procedurally generated adventures with seeded RNG
+- 8 adventure types (treasure hunt, nature walk, mystery, explorer, speed, scenic, fitness, community)
+- 5 difficulty levels with multipliers
+- GPS drift filtering (3m threshold, 15km/h speed cap)
+- Standing still does not count as walking
+- Real-time distance tracking with haversine calculations
+- Combo system with 6 tiers (Common to Mythic)
+- Objective progression with visual feedback
+
+### Social
+- Search real registered players by username
+- Send and accept friend requests
+- Friend list with online indicators
+- Notifications for friend requests and acceptances
+- Player profile preview modal
+- Recently viewed profiles
+
+### Progression
+- XP and level system (sqrt curve)
+- Daily and weekly quests with claimable rewards
+- 15 achievements across 5 categories
+- 6 challenges with rewards
+- 7-day daily reward calendar
+- Shop with cosmetics and boosts
+
+### Quality of Life
+- Skeleton loading placeholders
+- Error states with retry buttons
+- Confirmation dialogs for destructive actions
+- Favorite adventures
+- Adventure history with repeat and detail view
+- Settings for vibration, sound, notifications, GPS tracking, and reduced motion
+- Pull-to-refresh-friendly layouts
 
 ## Getting Started
 
-Dependencies are pre-installed. The dev server runs automatically.
+The dev server runs automatically. Dependencies are pre-installed.
 
-## Project Structure
+## Database
 
-```
-src/
-  components/     Reusable UI components
-  screens/        App screens (Auth, Home, Adventures, Community, etc.)
-  lib/            Supabase client, auth context, map utilities
-  data.ts         Adventure data, quests, achievements, shop items
-  store.ts        Zustand store (local state)
-  App.tsx         Screen router with auth gate
-  main.tsx        Entry point (wraps App in AuthProvider)
-```
+Supabase tables: `profiles`, `friends`, `notifications`, `blocks`. All tables have RLS enabled with `TO authenticated` policies scoped to ownership via `auth.uid()`. A `handle_new_user` trigger auto-creates a fresh profile on signup (Level 1, 0 XP, 1000 coins).
+
+## Version
+
+14.0.0 — Beta

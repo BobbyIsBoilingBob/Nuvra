@@ -1,17 +1,16 @@
-import { GlassCard, Button, EmptyState } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
+import { TopBar } from '../components/BottomNav';
+import { EmptyState } from '../components/ui';
+import { AdventureBg } from '../components/AdventureBg';
 
 export function Party() {
   const { setScreen } = useStore();
   return (
-    <div className="relative min-h-screen w-full overflow-hidden pb-24">
+    <div className="relative min-h-screen pb-24">
       <AdventureBg accent="#7a45ff" />
-      <div className="relative z-10"><TopBar title="Adventure Party" showBack />
-        <div className="px-4 max-w-md mx-auto">
-          <EmptyState icon="Users" title="No party yet" desc="Create or join a party to walk with friends in real-time." action={<Button size="sm" variant="secondary" icon="Plus" onClick={() => setScreen('adventures')}>Browse Adventures</Button>} />
-        </div>
+      <TopBar title="Party" showBack />
+      <div className="relative z-10 px-4 pt-4">
+        <EmptyState icon="Users" title="No party yet" desc="Walking with friends is coming soon. For now, add friends in Community and adventure solo!" />
       </div>
     </div>
   );
