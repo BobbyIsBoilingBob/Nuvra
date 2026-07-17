@@ -1,7 +1,7 @@
 {
   "name": "Zeviqo",
   "short_name": "Zeviqo",
-  "description": "Zeviqo — Turn your walks into epic adventures. Explore, earn rewards, and level up.",
+  "description": "Turn every walk into an adventure",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#080810",

@@ -1,18 +1,25 @@
 import { ZeviqoLogo, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
+import { APP_TAGLINE } from '../data';
 import { useStore } from '../store';
 
-export function Landing(): React.ReactElement {
-  const { setScreen } = useStore();
+export function Landing() {
+  const { setScreen, hasOnboarded } = useStore();
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center px-6">
-      <AdventureBg accent="#3dd4ff" />
-      <div className="relative z-10 flex flex-col items-center gap-8 max-w-sm text-center">
-        <div className="animate-[bounce-in_0.6s_cubic-bezier(0.68,-0.55,0.265,1.55)]">
-          <ZeviqoLogo size="lg" />
-        </div>
-        <p className="text-sm text-white/40 leading-relaxed">Turn your daily walks into epic adventures. Discover treasures, complete challenges, and level up as you explore the world.</p>
-        <Button variant="primary" size="lg" fullWidth icon="ArrowRight" onClick={() => setScreen('onboarding')}>Start Your Journey</Button>
+    <div className="relative min-h-screen w-full overflow-hidden flex flex-col">
+      <AdventureBg />
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6">
+        <div className="mb-12"><ZeviqoLogo size="lg" /></div>
+        <h1 className="text-3xl font-display font-extrabold text-white text-center mb-3">{APP_TAGLINE}</h1>
+        <p className="text-sm text-white/50 text-center max-w-xs mb-12">
+          Explore unique routes, complete quests, find treasures, and level up your walking adventures.
+        </p>
+        <Button size="lg" fullWidth icon="ArrowRight" onClick={() => setScreen(hasOnboarded ? 'home' : 'onboarding')} className="max-w-xs">
+          Start Your Journey
+        </Button>
+      </div>
+      <div className="relative z-10 pb-8 text-center">
+        <p className="text-[10px] text-white/30">Powered by Zeviqo</p>
       </div>
     </div>
   );

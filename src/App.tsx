@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
 import { useStore } from './store';
-import { LoadingScreen } from './components/ui';
 import { BottomNav } from './components/BottomNav';
 import { Landing } from './screens/Landing';
 import { Onboarding } from './screens/Onboarding';
@@ -10,8 +8,8 @@ import { AdventureDetail } from './screens/AdventureDetail';
 import { AdventureMap } from './screens/AdventureMap';
 import { Quests } from './screens/Quests';
 import { Achievements } from './screens/Achievements';
-import { Profile } from './screens/Profile';
 import { DailyRewards } from './screens/DailyRewards';
+import { Profile } from './screens/Profile';
 import { Challenges } from './screens/Challenges';
 import { Community } from './screens/Community';
 import { Friends } from './screens/Friends';
@@ -19,38 +17,41 @@ import { Party } from './screens/Party';
 import { Shop } from './screens/Shop';
 import { Settings } from './screens/Settings';
 import { History } from './screens/History';
+import type { Screen } from './store';
 
-export default function App(): React.ReactElement {
-  const { screen, onboardingComplete, checkDailyReward } = useStore();
+export default function App() {
+  const { currentScreen, hasOnboarded } = useStore();
 
-  useEffect(() => { checkDailyReward(); }, [checkDailyReward]);
+  if (!hasOnboarded && currentScreen !== 'onboarding' && currentScreen !== 'landing') {
+    return <Landing />;
+  }
 
-  if (!onboardingComplete && screen !== 'onboarding' && screen !== 'landing') return <LoadingScreen />;
-
-  const renderScreen = (): React.ReactElement => {
-    switch (screen) {
-      case 'landing': return <Landing />;
-      case 'onboarding': return <Onboarding />;
-      case 'home': return <Home />;
-      case 'adventures': return <Adventures />;
-      case 'adventure-detail': return <AdventureDetail />;
-      case 'adventure-map': return <AdventureMap />;
-      case 'quests': return <Quests />;
-      case 'achievements': return <Achievements />;
-      case 'profile': return <Profile />;
-      case 'daily-rewards': return <DailyRewards />;
-      case 'challenges': return <Challenges />;
-      case 'community': return <Community />;
-      case 'friends': return <Friends />;
-      case 'party': return <Party />;
-      case 'shop': return <Shop />;
-      case 'settings': return <Settings />;
-      case 'history': return <History />;
-      default: return <Home />;
-    }
+  const screens: Record<Screen, React.ReactElement> = {
+    landing: <Landing />,
+    onboarding: <Onboarding />,
+    home: <Home />,
+    adventures: <Adventures />,
+    'adventure-detail': <AdventureDetail />,
+    'adventure-map': <AdventureMap />,
+    quests: <Quests />,
+    achievements: <Achievements />,
+    'daily-rewards': <DailyRewards />,
+    profile: <Profile />,
+    challenges: <Challenges />,
+    community: <Community />,
+    friends: <Friends />,
+    party: <Party />,
+    shop: <Shop />,
+    settings: <Settings />,
+    history: <History />
   };
 
-  const showNav = ['home', 'adventures', 'quests', 'profile'].includes(screen);
+  const showBottomNav = ['home', 'adventures', 'quests', 'community', 'profile'].includes(currentScreen);
 
-  return (<>{renderScreen()}{showNav && <BottomNav />}</>);
+  return (
+    <div className="min-h-screen w-full bg-ink-950 text-white">
+      {screens[currentScreen] ?? <Home />}
+      {showBottomNav && <BottomNav />}
+    </div>
+  );
 }

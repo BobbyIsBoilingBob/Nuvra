@@ -1,94 +1,116 @@
-import { useMemo } from 'react';
-import { Icon, GlassCard, Pill, Button } from '../components/ui';
+import { GlassCard, Icon, Pill, Button } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { RoutePreview } from '../components/RoutePreview';
 import { useStore } from '../store';
-import { ADVENTURES, ADVENTURE_THEMES } from '../data';
+import { CURATED_ADVENTURES, DIFFICULTY_LABELS } from '../data';
+import { formatDistance, formatDuration } from '../lib/map-utils';
 
-export function AdventureDetail(): React.ReactElement {
-  const { selectedAdventureId, selectedAdventure, setScreen } = useStore();
-
-  const adventure = useMemo(() => {
-    if (selectedAdventure) return selectedAdventure;
-    return ADVENTURES.find(a => a.id === selectedAdventureId) ?? null;
-  }, [selectedAdventure, selectedAdventureId]);
+export function AdventureDetail() {
+  const { selectedAdventure, selectedAdventureObj, setScreen } = useStore();
+  const adventure = selectedAdventureObj ?? CURATED_ADVENTURES.find(a => a.id === selectedAdventure);
 
   if (!adventure) {
     return (
-      <div className="relative min-h-screen w-full overflow-hidden">
+      <div className="relative min-h-screen w-full overflow-hidden pb-24">
         <AdventureBg />
         <div className="relative z-10">
-          <TopBar showBack title="Adventure" />
-          <div className="px-4 py-12 text-center">
-            <p className="text-sm text-white/40">Adventure not found</p>
-            <Button variant="secondary" className="mt-4" onClick={() => setScreen('adventures')}>Back to Adventures</Button>
-          </div>
+          <TopBar title="Adventure" showBack />
+          <div className="px-4 py-8 text-center text-white/40">Adventure not found.</div>
         </div>
       </div>
     );
   }
 
-  const theme = ADVENTURE_THEMES.find(t => t.id === adventure.theme);
-  const accent = theme?.accent ?? '#3dd4ff';
+  const stats = [
+    { icon: 'MapPin', label: 'Distance', value: formatDistance(adventure.distance), color: 'text-cyan-300' },
+    { icon: 'Clock', label: 'Duration', value: formatDuration(adventure.duration), color: 'text-white' },
+    { icon: 'Flame', label: 'Calories', value: `${adventure.calories}`, color: 'text-ember-300' },
+    { icon: 'Zap', label: 'XP', value: `+${adventure.xp}`, color: 'text-zeviqo-300' },
+    { icon: 'Coins', label: 'Coins', value: `+${adventure.coins}`, color: 'text-gold-300' },
+    { icon: 'Gem', label: 'Gems', value: `+${adventure.gems}`, color: 'text-plasma-300' },
+    { icon: 'Mountain', label: 'Terrain', value: adventure.terrain, color: 'text-white' },
+    { icon: 'Gauge', label: 'Difficulty', value: DIFFICULTY_LABELS[adventure.difficulty], color: 'text-ember-300' }
+  ];
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent={accent} />
+      <AdventureBg accent={adventure.type === 'treasure_hunt' ? '#f5b800' : '#00c4ff'} />
       <div className="relative z-10">
-        <TopBar showBack title="Adventure" showCurrencies />
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-4">
-          <GlassCard className="p-6 text-center">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-plasma-400 to-zeviqo-500 flex items-center justify-center text-5xl mx-auto mb-4 shadow-glow">{adventure.emoji}</div>
-            <h2 className="text-xl font-black text-white font-display">{adventure.name}</h2>
-            <p className="text-sm text-white/50 mt-2 leading-relaxed">{adventure.description}</p>
-            {adventure.isGenerated && <div className="mt-2"><Pill icon="Sparkles" accent="text-gold-300 border-gold-500/30">AI Generated</Pill></div>}
-          </GlassCard>
+        <TopBar title="Adventure Details" showBack />
 
-          {adventure.routePreview && adventure.routePreview.length > 0 && (
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/60 mb-2">Route Preview</h3>
-              <RoutePreview route={adventure.routePreview} accent={accent} height={180} />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <GlassCard className="p-3 flex items-center gap-2"><Icon name="MapPin" size={18} className="text-cyan-300" /><div><div className="text-[10px] font-bold uppercase text-white/40">Distance</div><div className="text-sm font-black text-white">{adventure.distanceKm} km</div></div></GlassCard>
-            <GlassCard className="p-3 flex items-center gap-2"><Icon name="Clock" size={18} className="text-white/60" /><div><div className="text-[10px] font-bold uppercase text-white/40">Duration</div><div className="text-sm font-black text-white">{adventure.durationMin} min</div></div></GlassCard>
-            <GlassCard className="p-3 flex items-center gap-2"><Icon name="Flame" size={18} className="text-ember-300" /><div><div className="text-[10px] font-bold uppercase text-white/40">Calories</div><div className="text-sm font-black text-white">~{adventure.caloriesEstimate}</div></div></GlassCard>
-            <GlassCard className="p-3 flex items-center gap-2"><Icon name="Gauge" size={18} className="text-ember-300" /><div><div className="text-[10px] font-bold uppercase text-white/40">Difficulty</div><div className="text-sm font-black text-white">{adventure.difficulty}</div></div></GlassCard>
-            <GlassCard className="p-3 flex items-center gap-2"><Icon name="Map" size={18} className="text-plasma-300" /><div><div className="text-[10px] font-bold uppercase text-white/40">Terrain</div><div className="text-sm font-black text-white">{adventure.terrain}</div></div></GlassCard>
-            <GlassCard className="p-3 flex items-center gap-2"><Icon name="Compass" size={18} className="text-zeviqo-300" /><div><div className="text-[10px] font-bold uppercase text-white/40">Type</div><div className="text-sm font-black text-white capitalize">{adventure.type.replace('_',' ')}</div></div></GlassCard>
-          </div>
-
-          {adventure.objectives.length > 0 && (
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/60 mb-2">Objectives</h3>
-              <div className="flex flex-col gap-2">
-                {adventure.objectives.map(obj => (
-                  <GlassCard key={obj.id} className="p-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl glass flex items-center justify-center flex-shrink-0"><Icon name={obj.icon} size={16} className="text-zeviqo-300" /></div>
-                    <div className="flex-1"><div className="text-sm font-bold text-white">{obj.label}</div></div>
-                  </GlassCard>
-                ))}
+        <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zeviqo-400/20 to-plasma-500/20 flex items-center justify-center text-4xl">{adventure.emoji}</div>
+            <div className="flex-1">
+              <h2 className="text-lg font-display font-bold text-white">{adventure.title}</h2>
+              <p className="text-xs text-white/40">{adventure.theme}</p>
+              <div className="flex gap-1.5 mt-1.5">
+                <Pill accent="text-ember-300 border-ember-500/30 capitalize">{DIFFICULTY_LABELS[adventure.difficulty]}</Pill>
+                <Pill accent="text-white/60 border-white/10 capitalize">{adventure.type.replace('_', ' ')}</Pill>
               </div>
             </div>
-          )}
-
-          <GlassCard className="p-4">
-            <div className="text-xs font-black uppercase tracking-wider text-white/60 mb-3">Reward Preview</div>
-            <div className="flex items-center justify-around">
-              <div className="flex items-center gap-2"><Icon name="Zap" size={20} className="text-zeviqo-300" /><span className="text-sm font-black text-white">+{adventure.xpReward}</span><span className="text-xs text-white/40">XP</span></div>
-              <div className="w-px h-8 bg-white/10" />
-              <div className="flex items-center gap-2"><Icon name="Coins" size={20} className="text-gold-300" /><span className="text-sm font-black text-white">+{adventure.coinReward}</span></div>
-              {adventure.gemReward > 0 && (<><div className="w-px h-8 bg-white/10" /><div className="flex items-center gap-2"><Icon name="Gem" size={20} className="text-plasma-400" /><span className="text-sm font-black text-white">+{adventure.gemReward}</span></div></>)}
-            </div>
-          </GlassCard>
-
-          <div className="flex flex-col gap-2">
-            <Button variant="primary" size="lg" fullWidth icon="Play" onClick={() => setScreen('adventure-map')}>Start Adventure</Button>
-            <Button variant="secondary" size="md" fullWidth icon="Users" onClick={() => setScreen('party')}>Create Party</Button>
           </div>
+
+          <p className="text-sm text-white/60">{adventure.description}</p>
+
+          <RoutePreview route={adventure.route} color="#00c4ff" />
+
+          <div>
+            <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Route Stats</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {stats.map(s => (
+                <GlassCard key={s.label} className="p-3 flex items-center gap-2">
+                  <Icon name={s.icon} size={16} className={s.color} />
+                  <div>
+                    <div className="text-[9px] font-bold uppercase text-white/40">{s.label}</div>
+                    <div className={`text-sm font-bold ${s.color}`}>{s.value}</div>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Objectives</h3>
+            <div className="flex flex-col gap-2">
+              {adventure.objectives.map((obj, i) => (
+                <GlassCard key={i} className="p-3 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-zeviqo-500/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-bold text-zeviqo-300">{i + 1}</span>
+                  </div>
+                  <span className="text-sm text-white/70">{obj}</span>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold text-white/40 uppercase mb-2">Rewards</h3>
+            <GlassCard className="p-4 flex items-center justify-around">
+              <div className="flex flex-col items-center gap-1">
+                <Icon name="Zap" size={20} className="text-zeviqo-300" />
+                <span className="text-sm font-bold text-zeviqo-300">+{adventure.xp}</span>
+                <span className="text-[9px] text-white/40 uppercase">XP</span>
+              </div>
+              <div className="w-px h-12 bg-white/10" />
+              <div className="flex flex-col items-center gap-1">
+                <Icon name="Coins" size={20} className="text-gold-300" />
+                <span className="text-sm font-bold text-gold-300">+{adventure.coins}</span>
+                <span className="text-[9px] text-white/40 uppercase">Coins</span>
+              </div>
+              <div className="w-px h-12 bg-white/10" />
+              <div className="flex flex-col items-center gap-1">
+                <Icon name="Gem" size={20} className="text-plasma-300" />
+                <span className="text-sm font-bold text-plasma-300">+{adventure.gems}</span>
+                <span className="text-[9px] text-white/40 uppercase">Gems</span>
+              </div>
+            </GlassCard>
+          </div>
+
+          <Button size="lg" fullWidth icon="Play" onClick={() => setScreen('adventure-map')} className="mb-4">
+            Start Adventure
+          </Button>
         </div>
       </div>
     </div>

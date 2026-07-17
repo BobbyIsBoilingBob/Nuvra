@@ -1,24 +1,9 @@
-import { useMemo } from 'react';
-
-interface AdventureBgProps { variant?: string; accent?: string }
-export function AdventureBg({ variant = 'default', accent = '#3dd4ff' }: AdventureBgProps): React.ReactElement {
-  const blobs = useMemo(() => {
-    const arr: Array<{ x: number; y: number; size: number; delay: number }> = [];
-    for (let i = 0; i < 5; i++) {
-      const hash = (variant.charCodeAt(i % variant.length) || 65) * (i + 1);
-      arr.push({ x: (hash*37)%100, y: (hash*53)%100, size: 200+(hash%300), delay: (hash%10)*0.5 });
-    }
-    return arr;
-  }, [variant]);
-
+export function AdventureBg({ accent = '#00c4ff' }: { accent?: string }) {
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 bg-ink-950" />
-      {blobs.map((b, i) => (
-        <div key={i} className="absolute rounded-full opacity-[0.07] blur-3xl animate-pulse"
-          style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.size}px`, height: `${b.size}px`, background: accent, animationDelay: `${b.delay}s`, animationDuration: '4s' }} />
-      ))}
-      <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(ellipse at 50% 0%, ${accent}15 0%, transparent 50%)` }} />
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full opacity-20 blur-3xl animate-float" style={{ background: accent }} />
+      <div className="absolute top-1/3 -right-20 w-64 h-64 rounded-full opacity-15 blur-3xl animate-float" style={{ background: '#7a45ff', animationDelay: '2s' }} />
+      <div className="absolute -bottom-20 left-1/3 w-80 h-80 rounded-full opacity-10 blur-3xl animate-float" style={{ background: '#00c4ff', animationDelay: '4s' }} />
     </div>
   );
 }

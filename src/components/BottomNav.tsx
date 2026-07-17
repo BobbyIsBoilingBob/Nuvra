@@ -1,51 +1,67 @@
 import { Icon } from './ui';
-import { useStore } from '../store';
-import type { Screen } from '../data';
+import { useStore, type Screen } from '../store';
+import { getLevelInfo } from '../data';
 
-interface NavItem { id: Screen; label: string; icon: string }
-const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: 'Home' },
-  { id: 'adventures', label: 'Adventures', icon: 'Compass' },
-  { id: 'quests', label: 'Quests', icon: 'ScrollText' },
-  { id: 'profile', label: 'Profile', icon: 'User' },
-];
-
-export function BottomNav(): React.ReactElement {
-  const { screen, setScreen } = useStore();
+export function TopBar({ title, showBack = false, showCurrencies = true }: { title: string; showBack?: boolean; showCurrencies?: boolean }) {
+  const { profile, setScreen } = useStore();
+  const info = getLevelInfo(profile.xp);
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 px-3 pb-3 pt-1 safe-bottom">
-      <div className="max-w-md mx-auto glass-strong rounded-2xl flex items-center justify-around px-2 py-2 shadow-glow">
-        {NAV_ITEMS.map(item => {
-          const active = screen === item.id;
+    <div className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between glass-strong border-b border-white/5">
+      <div className="flex items-center gap-2">
+        {showBack && (
+          <button onClick={() => setScreen('home')} className="w-9 h-9 rounded-xl glass flex items-center justify-center active:scale-90 transition-transform">
+            <Icon name="ChevronLeft" size={18} className="text-white/70" />
+          </button>
+        )}
+        <h1 className="text-base font-display font-bold text-white">{title}</h1>
+      </div>
+      {showCurrencies && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 glass rounded-full px-2.5 py-1">
+            <Icon name="Coins" size={12} className="text-gold-400" />
+            <span className="text-xs font-bold text-gold-300">{profile.coins.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-1 glass rounded-full px-2.5 py-1">
+            <Icon name="Gem" size={12} className="text-plasma-400" />
+            <span className="text-xs font-bold text-plasma-300">{profile.gems}</span>
+          </div>
+          <div className="flex items-center gap-1 glass rounded-full px-2.5 py-1">
+            <Icon name="Zap" size={12} className="text-zeviqo-400" />
+            <span className="text-xs font-bold text-zeviqo-300">LV{info.level}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function BottomNav() {
+  const { currentScreen, setScreen } = useStore();
+  const navItems: { screen: Screen; icon: string; label: string }[] = [
+    { screen: 'home', icon: 'Home', label: 'Home' },
+    { screen: 'adventures', icon: 'Compass', label: 'Adventures' },
+    { screen: 'quests', icon: 'Target', label: 'Quests' },
+    { screen: 'community', icon: 'Users', label: 'Social' },
+    { screen: 'profile', icon: 'User', label: 'Profile' }
+  ];
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-40 glass-strong border-t border-white/5 px-2 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]">
+      <div className="max-w-md mx-auto flex items-center justify-around">
+        {navItems.map(item => {
+          const active = currentScreen === item.screen;
           return (
-            <button key={item.id} onClick={() => setScreen(item.id)} aria-label={item.label} aria-current={active?'page':undefined}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-300 touch-target ${active?'text-zeviqo-300 bg-zeviqo-500/10':'text-white/40 hover:text-white/70'}`}>
-              <Icon name={item.icon} size={22} strokeWidth={active?2.5:2} />
-              <span className={`text-[10px] font-semibold ${active?'text-zeviqo-300':''}`}>{item.label}</span>
+            <button
+              key={item.screen}
+              onClick={() => setScreen(item.screen)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all active:scale-90 ${active ? 'text-zeviqo-400' : 'text-white/30'}`}
+            >
+              <Icon name={item.icon} size={22} className={active ? 'text-zeviqo-400' : ''} />
+              <span className="text-[9px] font-bold">{item.label}</span>
+              {active && <div className="w-1 h-1 rounded-full bg-zeviqo-400" />}
             </button>
           );
         })}
       </div>
-    </nav>
-  );
-}
-
-export function TopBar({ title, showBack = false, showCurrencies = true }: { title?: string; showBack?: boolean; showCurrencies?: boolean }): React.ReactElement {
-  const { profile, setScreen, prevScreen } = useStore();
-  return (
-    <header className="sticky top-0 z-30 px-4 pt-4 pb-2 safe-top">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {showBack && <button onClick={() => setScreen(prevScreen ?? 'home')} aria-label="Go back" className="w-9 h-9 rounded-xl glass flex items-center justify-center text-white/70 hover:text-white transition-colors touch-target"><Icon name="ChevronLeft" size={20} /></button>}
-          {title && <h1 className="text-white font-bold text-lg tracking-tight">{title}</h1>}
-        </div>
-        {showCurrencies && (
-          <div className="flex items-center gap-2">
-            <div className="glass px-3 py-1.5 rounded-xl flex items-center gap-1.5"><Icon name="Coins" size={14} className="text-gold-300" /><span className="text-white font-bold text-xs">{profile.coins.toLocaleString()}</span></div>
-            <div className="glass px-3 py-1.5 rounded-xl flex items-center gap-1.5"><Icon name="Gem" size={14} className="text-plasma-400" /><span className="text-white font-bold text-xs">{profile.gems}</span></div>
-          </div>
-        )}
-      </div>
-    </header>
+    </div>
   );
 }

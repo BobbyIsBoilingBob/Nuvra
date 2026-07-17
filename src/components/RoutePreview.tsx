@@ -1,68 +1,64 @@
-import { useMemo, useState, useEffect } from 'react';
-import { Icon } from './ui';
-import type { RoutePoint } from '../data';
+import { useEffect, useState } from 'react';
 
-interface RoutePreviewProps {
-  route: RoutePoint[];
-  accent: string;
-  height?: number;
-}
-
-export function RoutePreview({ route, accent, height = 200 }: RoutePreviewProps): React.ReactElement {
-  const [drawProgress, setDrawProgress] = useState(0);
+export function RoutePreview({ route, color = '#00c4ff', animated = true }: { route: { x: number; y: number }[]; color?: string; animated?: boolean }) {
+  const [drawProgress, setDrawProgress] = useState(animated ? 0 : 1);
 
   useEffect(() => {
+    if (!animated) { setDrawProgress(1); return; }
     setDrawProgress(0);
-    const start = Date.now();
-    const duration = 1500;
-    const id = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const pct = Math.min(1, elapsed / duration);
-      setDrawProgress(pct);
-      if (pct >= 1) clearInterval(id);
-    }, 16);
-    return () => clearInterval(id);
-  }, [route]);
+    const timer = setTimeout(() => setDrawProgress(1), 50);
+    return () => clearTimeout(timer);
+  }, [animated, route]);
 
-  const { pathD, viewBox, totalLength, startPt, endPt } = useMemo(() => {
-    if (route.length === 0) return { pathD: '', viewBox: '0 0 100 100', totalLength: 0, startPt: { x: 50, y: 50 }, endPt: { x: 50, y: 50 } };
-    const lats = route.map(p => p.lat);
-    const lngs = route.map(p => p.lng);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-    const pad = 0.0001;
-    const w = (maxLng - minLng) + pad * 2 || 1;
-    const h = (maxLat - minLat) + pad * 2 || 1;
-    const scale = 100 / Math.max(w, h);
-    const offsetX = (100 - w * scale) / 2;
-    const offsetY = (100 - h * scale) / 2;
-
-    const points = route.map(p => ({
-      x: offsetX + (p.lng - minLng + pad) * scale,
-      y: 100 - (offsetY + (p.lat - minLat + pad) * scale),
-    }));
-
-    const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-    return { pathD: d, viewBox: '0 0 100 100', totalLength: 1000, startPt: points[0], endPt: points[points.length - 1] };
-  }, [route]);
-
-  const visibleLength = totalLength * drawProgress;
+  if (route.length < 2) return null;
+  const pathD = route.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const totalLen = 1000;
+  const start = route[0];
+  const end = route[route.length - 1];
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden glass" style={{ height }}>
-      <svg viewBox={viewBox} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-        <path d={pathD} fill="none" stroke={accent} strokeOpacity="0.15" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <div className="relative w-full aspect-square rounded-2xl overflow-hidden glass">
+      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <filter id="route-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <linearGradient id="route-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={color} />
+            <stop offset="50%" stopColor="#33cfff" />
+            <stop offset="100%" stopColor="#7a45ff" />
+          </linearGradient>
+        </defs>
         <path
-          d={pathD} fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-          strokeDasharray={totalLength} strokeDashoffset={totalLength - visibleLength}
-          style={{ filter: `drop-shadow(0 0 4px ${accent}80)` }}
+          d={pathD}
+          fill="none"
+          stroke="url(#route-gradient)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter="url(#route-glow)"
+          style={{
+            strokeDasharray: totalLen,
+            strokeDashoffset: totalLen * (1 - drawProgress),
+            transition: 'stroke-dashoffset 2s ease-out'
+          }}
         />
-        <circle cx={startPt.x} cy={startPt.y} r="2.5" fill={accent} />
-        {drawProgress >= 1 && <circle cx={endPt.x} cy={endPt.y} r="2.5" fill="#ff6b00" />}
+        <circle cx={start.x} cy={start.y} r="3" fill="#22c55e" className="animate-pulse-glow" />
+        <circle cx={start.x} cy={start.y} r="1.5" fill="#fff" />
+        <circle cx={end.x} cy={end.y} r="3" fill="#ff6b00" className="animate-pulse-glow" />
+        <circle cx={end.x} cy={end.y} r="1.5" fill="#fff" />
+        {route.map((p, i) => i > 0 && i < route.length - 1 ? (
+          <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={color} opacity="0.4" />
+        ) : null)}
       </svg>
-      <div className="absolute top-2 right-2 glass px-2 py-1 rounded-lg flex items-center gap-1">
-        <Icon name="Route" size={12} className="text-white/60" />
-        <span className="text-[10px] font-bold text-white/60">{route.length} pts</span>
+      <div className="absolute top-2 left-2 flex items-center gap-1 glass rounded-full px-2 py-0.5">
+        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+        <span className="text-[9px] font-bold text-white/70">Start</span>
+      </div>
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 glass rounded-full px-2 py-0.5">
+        <span className="w-2 h-2 rounded-full bg-ember-500" />
+        <span className="text-[9px] font-bold text-white/70">Finish</span>
       </div>
     </div>
   );

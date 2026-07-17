@@ -1,79 +1,63 @@
-import { useState } from 'react';
-import { Icon, GlassCard, Button, RewardPopup } from '../components/ui';
+import { GlassCard, Icon, Button, Pill } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
-import { DAILY_LOGIN_REWARDS } from '../data';
+import { DAILY_REWARDS } from '../data';
 
-export function DailyRewards(): React.ReactElement {
-  const { dailyReward, claimDailyReward } = useStore();
-  const [showReward, setShowReward] = useState(false);
-  const [rewardData, setRewardData] = useState<Array<{ icon: string; label: string; amount: number; color: string }>>([]);
-
-  const currentDay = dailyReward.claimedToday ? dailyReward.currentStreak : dailyReward.currentStreak + 1;
-  const claimableDay = Math.min(currentDay, 7);
-
-  const handleClaim = () => {
-    if (dailyReward.claimedToday) return;
-    const reward = DAILY_LOGIN_REWARDS[claimableDay - 1];
-    if (!reward) return;
-    claimDailyReward(reward.coins, reward.gems, reward.xp);
-    setRewardData([
-      { icon: 'Coins', label: 'Coins', amount: reward.coins, color: 'text-gold-300' },
-      ...(reward.gems > 0 ? [{ icon: 'Gem', label: 'Gems', amount: reward.gems, color: 'text-plasma-400' }] : []),
-      { icon: 'Zap', label: 'XP', amount: reward.xp, color: 'text-zeviqo-300' },
-    ]);
-    setShowReward(true);
-  };
+export function DailyRewards() {
+  const { profile, claimDailyReward } = useStore();
+  const today = new Date().toISOString().split('T')[0];
+  const canClaim = profile.lastDailyRewardDate !== today;
+  const nextDay = (profile.lastDailyRewardDay ?? 0) + 1;
+  const claimableDay = nextDay > 7 ? 1 : nextDay;
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden pb-24">
-      <AdventureBg accent="#ffcc1a" />
-      <RewardPopup rewards={rewardData} visible={showReward} onClose={() => setShowReward(false)} />
+      <AdventureBg accent="#f5b800" />
       <div className="relative z-10">
-        <TopBar showBack title="Daily Rewards" />
-        <div className="px-4 max-w-md mx-auto flex flex-col gap-4">
-          <GlassCard className="p-5 text-center">
-            <div className="text-4xl mb-2">🔥</div>
-            <div className="text-2xl font-black text-white font-display">{dailyReward.currentStreak} Day Streak</div>
-            <p className="text-xs text-white/50 mt-1">Log in every day to keep your streak and earn bigger rewards!</p>
+        <TopBar title="Daily Rewards" showBack />
+
+        <div className="px-4 max-w-md mx-auto flex flex-col gap-4 pt-4">
+          <GlassCard className="p-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold-400 to-ember-500 flex items-center justify-center mx-auto mb-3 animate-pulse-glow">
+              <Icon name="Gift" size={32} className="text-ink-950" />
+            </div>
+            <h2 className="text-lg font-display font-bold text-white">7-Day Reward Calendar</h2>
+            <p className="text-xs text-white/50 mt-1">Log in daily to claim bigger rewards!</p>
+            <div className="mt-3">
+              <Pill icon="Flame" accent="text-ember-300 border-ember-500/30">{profile.dailyRewardStreak} day streak</Pill>
+            </div>
           </GlassCard>
 
           <div className="grid grid-cols-4 gap-2">
-            {DAILY_LOGIN_REWARDS.map((reward, i) => {
-              const dayNum = i + 1;
-              const isClaimed = dayNum <= dailyReward.currentStreak && dailyReward.claimedToday;
-              const isClaimable = dayNum === claimableDay && !dailyReward.claimedToday;
-              const isWeekBonus = dayNum === 7;
+            {DAILY_REWARDS.map(r => {
+              const claimed = profile.lastDailyRewardDay !== null && r.day <= profile.lastDailyRewardDay && profile.lastDailyRewardDate === today;
+              const isNext = r.day === claimableDay && canClaim;
               return (
-                <GlassCard key={dayNum} className={`p-3 flex flex-col items-center gap-1.5 transition-all relative ${isClaimed?'opacity-50':''} ${isClaimable?'ring-2 ring-zeviqo-400 animate-pulse':''} ${isWeekBonus?'col-span-4 flex-row justify-around py-4':''}`}>
-                  {isClaimed && <div className="absolute top-1 right-1"><Icon name="CheckCircle" size={14} className="text-zeviqo-300" /></div>}
-                  <div className={`text-[10px] font-bold uppercase tracking-wider ${isClaimable?'text-zeviqo-300':'text-white/40'}`}>{reward.label}</div>
-                  {isWeekBonus ? (
-                    <div className="flex items-center gap-4">
-                      <div className="text-3xl">🎁</div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1"><Icon name="Coins" size={16} className="text-gold-300" /><span className="text-sm font-black text-white">+{reward.coins}</span></div>
-                        <div className="flex items-center gap-1"><Icon name="Gem" size={16} className="text-plasma-400" /><span className="text-sm font-black text-white">+{reward.gems}</span></div>
-                        <div className="flex items-center gap-1"><Icon name="Zap" size={16} className="text-zeviqo-300" /><span className="text-sm font-black text-white">+{reward.xp}</span></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-2xl">{dayNum > claimableDay ? '🔒' : '🎁'}</div>
-                      <div className="flex items-center gap-1"><Icon name="Coins" size={10} className="text-gold-300" /><span className="text-[10px] font-bold text-white">{reward.coins}</span></div>
-                      {reward.gems > 0 && <div className="flex items-center gap-1"><Icon name="Gem" size={10} className="text-plasma-400" /><span className="text-[10px] font-bold text-white">{reward.gems}</span></div>}
-                    </>
-                  )}
+                <GlassCard key={r.day} className={`p-3 flex flex-col items-center gap-1 ${isNext ? 'ring-2 ring-zeviqo-400 animate-pulse-glow' : ''} ${claimed ? 'opacity-40' : ''}`}>
+                  <div className="text-[10px] font-bold text-white/40 uppercase">Day {r.day}</div>
+                  <div className="text-2xl">{r.day === 7 ? '🎁' : '🪙'}</div>
+                  <div className="text-[10px] font-bold text-gold-300">+{r.coins}</div>
+                  {r.gems > 0 && <div className="text-[10px] font-bold text-plasma-300">+{r.gems}💎</div>}
+                  {r.xp > 0 && <div className="text-[10px] font-bold text-zeviqo-300">+{r.xp}xp</div>}
+                  {claimed && <Icon name="Check" size={12} className="text-emerald-400" />}
                 </GlassCard>
               );
             })}
           </div>
 
-          <Button variant="primary" size="lg" fullWidth icon="Gift" onClick={handleClaim} disabled={dailyReward.claimedToday}>
-            {dailyReward.claimedToday ? 'Come Back Tomorrow!' : `Claim Day ${claimableDay} Reward`}
-          </Button>
-          {dailyReward.claimedToday && <p className="text-xs text-white/40 text-center">You've claimed today's reward. Keep your streak going!</p>}
+          {canClaim ? (
+            <Button size="lg" fullWidth icon="Gift" onClick={() => {
+              const reward = DAILY_REWARDS.find(r => r.day === claimableDay) ?? DAILY_REWARDS[0];
+              claimDailyReward(claimableDay, reward.coins, reward.gems, reward.xp);
+            }}>Claim Day {claimableDay} Reward</Button>
+          ) : (
+            <GlassCard className="p-4 text-center">
+              <Icon name="CheckCircle" size={24} className="text-emerald-400 mx-auto mb-2" />
+              <div className="text-sm font-bold text-white">Reward Claimed!</div>
+              <div className="text-xs text-white/40">Come back tomorrow for more rewards.</div>
+            </GlassCard>
+          )}
         </div>
       </div>
     </div>
