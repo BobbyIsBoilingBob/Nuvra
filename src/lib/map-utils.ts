@@ -1,3 +1,38 @@
+export type LatLng = { lat: number; lng: number };
+
+export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
+
+export function haversineMeters(a: LatLng, b: LatLng): number {
+  return haversineDistance(a.lat, a.lng, b.lat, b.lng) * 1000;
+}
+
+export function routeToLatLngs(
+  route: { x: number; y: number }[],
+  center: LatLng,
+  spanMeters = 800,
+): LatLng[] {
+  if (route.length === 0) return [];
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((center.lat * Math.PI) / 180);
+  const halfSpan = spanMeters / 2;
+  return route.map((p) => ({
+    lat: center.lat + ((p.y - 50) / 50) * (halfSpan / metersPerDegLat),
+    lng: center.lng + ((p.x - 50) / 50) * (halfSpan / metersPerDegLng),
+  }));
+}
+
+export function routeLengthMeters(latlngs: LatLng[]): number {
+  let total = 0;
+  for (let i = 1; i < latlngs.length; i++) {
+    total += haversineMeters(latlngs[i - 1], latlngs[i]);
+  }
+  return total;
+}
+
+export function estimateWalkMinutes(meters: number): number {
+  return Math.max(1, Math.round(meters / 80));
+}
+
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;

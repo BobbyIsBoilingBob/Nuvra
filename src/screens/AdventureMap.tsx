@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { TopBar } from '../components/BottomNav';
 import { GlassCard, Icon, Button, ProgressBar, RewardPopup, ConfirmDialog } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
-import { RoutePreview } from '../components/RoutePreview';
+import { MapView, type MapMarkerData, type MapRouteData } from '../components/MapView';
 import { ADVENTURE_TYPES, DIFFICULTY_LABELS, getComboTier, type Adventure } from '../data';
-import { createGpsFilter, filterGpsReading, formatDistance, formatDuration, type GpsFilter } from '../lib/map-utils';
+import { createGpsFilter, filterGpsReading, formatDistance, formatDuration, routeToLatLngs, DEFAULT_CENTER, type GpsFilter, type LatLng } from '../lib/map-utils';
 import { vibrate } from '../lib/settings';
 
 type GpsState = 'idle' | 'starting' | 'tracking' | 'paused' | 'completed' | 'denied' | 'error';
@@ -167,6 +167,19 @@ export function AdventureMap() {
   const tier = getComboTier(combo);
   const progress = Math.min(100, (distance / adventure.distance) * 100);
 
+  const routeLatLngs = useMemo(() => routeToLatLngs(adventure.route, DEFAULT_CENTER, 800), [adventure.route]);
+  const mapMarkers: MapMarkerData[] = useMemo(() => {
+    if (routeLatLngs.length === 0) return [];
+    return [
+      { id: 'start', position: routeLatLngs[0], type: 'start', label: 'Start', color: '#22c55e' },
+      { id: 'finish', position: routeLatLngs[routeLatLngs.length - 1], type: 'finish', label: 'Finish', color: '#fbbf24' },
+    ];
+  }, [routeLatLngs]);
+  const mapRoutes: MapRouteData[] = useMemo(() => {
+    if (routeLatLngs.length < 2) return [];
+    return [{ id: 'adv-route', positions: routeLatLngs, color: typeInfo?.color ?? '#00c4ff', weight: 4, animated: true }];
+  }, [routeLatLngs, typeInfo?.color]);
+
   return (
     <div className="relative min-h-screen pb-24">
       <AdventureBg accent={typeInfo?.color} />
@@ -195,8 +208,14 @@ export function AdventureMap() {
           </div>
         </GlassCard>
 
-        <div className="animate-slide-up">
-          <RoutePreview route={adventure.route} color={typeInfo?.color ?? '#00c4ff'} animated={false} />
+        <div className="animate-slide-up h-64 rounded-2xl overflow-hidden glass">
+          <MapView
+            center={DEFAULT_CENTER}
+            zoom={15}
+            markers={mapMarkers}
+            routes={mapRoutes}
+            className="h-full"
+          />
         </div>
 
         <GlassCard className="p-4 animate-slide-up">
