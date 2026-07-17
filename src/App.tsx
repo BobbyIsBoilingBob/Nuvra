@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { useStore } from './store';
 import { LoadingScreen } from './components/ui';
 import { BottomNav } from './components/BottomNav';
-
-// Screens
 import { Landing } from './screens/Landing';
 import { Onboarding } from './screens/Onboarding';
 import { Home } from './screens/Home';
@@ -20,17 +18,14 @@ import { Friends } from './screens/Friends';
 import { Party } from './screens/Party';
 import { Shop } from './screens/Shop';
 import { Settings } from './screens/Settings';
+import { History } from './screens/History';
 
 export default function App(): React.ReactElement {
   const { screen, onboardingComplete, checkDailyReward } = useStore();
 
-  useEffect(() => {
-    checkDailyReward();
-  }, [checkDailyReward]);
+  useEffect(() => { checkDailyReward(); }, [checkDailyReward]);
 
-  if (!onboardingComplete && screen !== 'onboarding' && screen !== 'landing') {
-    return <LoadingScreen />;
-  }
+  if (!onboardingComplete && screen !== 'onboarding' && screen !== 'landing') return <LoadingScreen />;
 
   const renderScreen = (): React.ReactElement => {
     switch (screen) {
@@ -50,16 +45,12 @@ export default function App(): React.ReactElement {
       case 'party': return <Party />;
       case 'shop': return <Shop />;
       case 'settings': return <Settings />;
+      case 'history': return <History />;
       default: return <Home />;
     }
   };
 
   const showNav = ['home', 'adventures', 'quests', 'profile'].includes(screen);
 
-  return (
-    <>
-      {renderScreen()}
-      {showNav && <BottomNav />}
-    </>
-  );
+  return (<>{renderScreen()}{showNav && <BottomNav />}</>);
 }

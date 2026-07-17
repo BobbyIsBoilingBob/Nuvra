@@ -11,12 +11,7 @@ export function Party(): React.ReactElement {
       <div className="relative z-10">
         <TopBar showBack title="Adventure Party" />
         <div className="px-4 max-w-md mx-auto">
-          <EmptyState
-            icon="Users"
-            title="No party yet"
-            desc="Create or join a party to walk with friends in real-time."
-            action={<Button size="sm" variant="secondary" icon="Plus" onClick={() => setScreen('adventures')}>Browse Adventures</Button>}
-          />
+          <EmptyState icon="Users" title="No party yet" desc="Create or join a party to walk with friends in real-time." action={<Button size="sm" variant="secondary" icon="Plus" onClick={() => setScreen('adventures')}>Browse Adventures</Button>} />
         </div>
       </div>
     </div>

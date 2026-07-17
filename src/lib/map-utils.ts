@@ -1,7 +1,4 @@
-export interface LatLng {
-  lat: number;
-  lng: number;
-}
+export interface LatLng { lat: number; lng: number }
 
 export function haversineDistance(a: LatLng, b: LatLng): number {
   const R = 6371000;
@@ -16,4 +13,10 @@ export function haversineDistance(a: LatLng, b: LatLng): number {
 export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(1)} km`;
+}
+
+export function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }

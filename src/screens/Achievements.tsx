@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Icon, GlassCard, Pill, ProgressBar, EmptyState } from '../components/ui';
+import { Icon, GlassCard, Pill, ProgressBar } from '../components/ui';
 import { AdventureBg } from '../components/AdventureBg';
 import { TopBar } from '../components/BottomNav';
 import { useStore } from '../store';
-import { ACHIEVEMENTS, COSMETIC_RARITY_MAP, type Achievement, type AchievementCategory } from '../data';
+import { ACHIEVEMENTS, type Achievement, type AchievementCategory } from '../data';
 
 const CATEGORIES: { id: AchievementCategory | 'all'; label: string; icon: string }[] = [
   { id: 'all', label: 'All', icon: 'Grid' },
@@ -18,7 +18,7 @@ const CATEGORIES: { id: AchievementCategory | 'all'; label: string; icon: string
 ];
 
 export function Achievements(): React.ReactElement {
-  const { stats, walkingStreak, achievementProgress, addGems, addXp } = useStore();
+  const { stats, walkingStreak, achievementProgress } = useStore();
   const [filter, setFilter] = useState<AchievementCategory | 'all'>('all');
 
   const getProgress = (a: Achievement): number => {
@@ -35,12 +35,8 @@ export function Achievements(): React.ReactElement {
     }
   };
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') return ACHIEVEMENTS;
-    return ACHIEVEMENTS.filter((a) => a.category === filter);
-  }, [filter]);
-
-  const unlockedCount = achievementProgress.filter((a) => a.unlocked).length;
+  const filtered = useMemo(() => filter === 'all' ? ACHIEVEMENTS : ACHIEVEMENTS.filter(a => a.category === filter), [filter]);
+  const unlockedCount = achievementProgress.filter(a => a.unlocked).length;
   const totalCount = ACHIEVEMENTS.length;
 
   return (
@@ -48,49 +44,34 @@ export function Achievements(): React.ReactElement {
       <AdventureBg accent="#ffcc33" />
       <div className="relative z-10">
         <TopBar title="Achievements" showCurrencies />
-
         <div className="px-4 max-w-md mx-auto flex flex-col gap-4">
-          {/* Progress overview */}
           <GlassCard className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Icon name="Trophy" size={20} className="text-gold-300" />
-                <span className="text-sm font-black text-white">Achievement Progress</span>
-              </div>
+              <div className="flex items-center gap-2"><Icon name="Trophy" size={20} className="text-gold-300" /><span className="text-sm font-black text-white">Achievement Progress</span></div>
               <Pill accent="text-gold-300 border-gold-500/30">{unlockedCount}/{totalCount}</Pill>
             </div>
-            <ProgressBar value={(unlockedCount / totalCount) * 100} accent="from-gold-400 to-ember-500" height={8} />
+            <ProgressBar value={(unlockedCount/totalCount)*100} accent="from-gold-400 to-ember-500" height={8} />
           </GlassCard>
 
-          {/* Category filter */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setFilter(c.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${filter === c.id ? 'bg-gradient-to-r from-gold-400 to-ember-500 text-ink-950' : 'glass text-white/60'}`}
-              >
-                <Icon name={c.icon} size={12} />
-                {c.label}
+            {CATEGORIES.map(c => (
+              <button key={c.id} onClick={() => setFilter(c.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${filter===c.id?'bg-gradient-to-r from-gold-400 to-ember-500 text-ink-950':'glass text-white/60'}`}>
+                <Icon name={c.icon} size={12} />{c.label}
               </button>
             ))}
           </div>
 
-          {/* Achievement list */}
           <div className="flex flex-col gap-2">
-            {filtered.map((a) => {
+            {filtered.map(a => {
               const progress = getProgress(a);
-              const ap = achievementProgress.find((p) => p.achievementId === a.id);
+              const ap = achievementProgress.find(p => p.achievementId === a.id);
               const unlocked = ap?.unlocked ?? progress >= a.target;
               const pct = Math.min(100, (progress / a.target) * 100);
-              const rarity = unlocked ? 'legendary' : 'common';
-              const rarityMeta = COSMETIC_RARITY_MAP[rarity];
-
               return (
-                <GlassCard key={a.id} className={`p-4 ${unlocked ? 'ring-1 ring-gold-400/20' : ''}`}>
+                <GlassCard key={a.id} className={`p-4 ${unlocked?'ring-1 ring-gold-400/20':''}`}>
                   <div className="flex items-start gap-3">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${unlocked ? 'bg-gradient-to-br from-gold-400 to-ember-500 shadow-glow' : 'glass'}`}>
-                      <Icon name={a.icon} size={22} className={unlocked ? 'text-ink-950' : 'text-white/30'} />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${unlocked?'bg-gradient-to-br from-gold-400 to-ember-500 shadow-glow':'glass'}`}>
+                      <Icon name={a.icon} size={22} className={unlocked?'text-ink-950':'text-white/30'} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
