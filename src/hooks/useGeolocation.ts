@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { type LatLng, DEFAULT_CENTER, haversineMeters } from '../lib/map-utils';
 
 // ============================================================
-// useGeolocation — production GPS with Kalman filtering
+// useGeolocation — production GPS with adaptive Kalman filtering
 // Handles: denied, unavailable, weak, timeout, offline,
-// background/foreground transitions, stop/walk detection.
+// background/foreground transitions, stop/walk detection,
+// impossible-jump rejection, and battery-aware throttling.
 // ============================================================
 
 export type GeoStatus =
@@ -32,22 +33,31 @@ export interface GeoState {
 
 const STATUS_MESSAGES: Record<GeoStatus, string> = {
   idle: '',
-  requesting: 'Getting your location...',
+  requesting: 'Finding your location...',
   granted: '',
-  denied: 'Location permission denied. Using demo location.',
-  unavailable: 'GPS unavailable on this device.',
-  weak: 'Weak GPS signal. Move to an open area.',
-  timeout: 'Location request timed out. Retrying...',
-  offline: 'You are offline. Showing last known position.',
-  error: 'Location error. Please check your settings.',
+  denied: 'Location permission denied. Enable it in your browser settings to track your adventure.',
+  unavailable: 'GPS is unavailable on this device. The adventure will continue in demo mode.',
+  weak: 'Weak GPS signal. Move to an open area with a clear view of the sky.',
+  timeout: 'Location request timed out. Retrying automatically...',
+  offline: 'You are offline. Showing your last known position.',
+  error: 'Location error. Check your device GPS settings and try again.',
 };
 
-const WALK_SPEED_THRESHOLD = 0.8; // m/s — below this = stopped
-const STOP_TIMEOUT_MS = 5000; // no movement for 5s = stopped
+// --- Tuning constants ---
+const WALK_SPEED_THRESHOLD = 0.6; // m/s — above this = walking
+const STOP_TIMEOUT_MS = 4000; // no movement for 4s = stopped
 const STALE_DATA_MS = 30000; // data older than 30s = stale
-const MAX_ACCURACY_M = 100; // reject positions worse than this
-const KALMAN_PROCESS_NOISE = 3.0;
-const KALMAN_MEASUREMENT_NOISE_BASE = 10.0;
+const MAX_ACCURACY_M = 120; // reject positions worse than this
+const MIN_ACCURACY_M = 5; // clamp unrealistically good accuracy
+const KALMAN_PROCESS_NOISE = 2.5;
+const KALMAN_MEASUREMENT_NOISE_BASE = 8.0;
+
+// Impossible-jump detection: if a jump exceeds this speed (m/s), reject it.
+const MAX_PLAUSIBLE_SPEED_MS = 35; // ~126 km/h — beyond any walking/running
+// When stopped, reject micro-jumps below this distance (meters) to prevent jitter.
+const STOP_JITTER_THRESHOLD_M = 2.5;
+// Throttle: when stopped, only accept a position update every N ms.
+const STOPPED_THROTTLE_MS = 4000;
 
 // Kalman filter for lat/lng smoothing
 interface KalmanState {
@@ -66,7 +76,7 @@ function kalmanFilter(
     const state: KalmanState = {
       lat: measurement.lat,
       lng: measurement.lng,
-      variance: accuracy * accuracy,
+      variance: Math.max(accuracy * accuracy, KALMAN_MEASUREMENT_NOISE_BASE),
       lastUpdate: Date.now(),
     };
     return { position: measurement, state };
@@ -77,11 +87,8 @@ function kalmanFilter(
     return { position: { lat: prev.lat, lng: prev.lng }, state: prev };
   }
 
-  // Predict: increase uncertainty over time
   const processVariance = KALMAN_PROCESS_NOISE * dt;
   const predictedVariance = prev.variance + processVariance;
-
-  // Update: blend prediction with measurement
   const measurementVariance = Math.max(accuracy * accuracy, KALMAN_MEASUREMENT_NOISE_BASE);
   const kalmanGain = predictedVariance / (predictedVariance + measurementVariance);
 
@@ -119,20 +126,24 @@ export function useGeolocation(enabled: boolean): GeoState & {
   const lastMovementTimeRef = useRef<number>(Date.now());
   const lastHeadingRef = useRef<number | null>(null);
   const isOnlineRef = useRef<boolean>(navigator.onLine);
-  const visibilityRef = useRef<boolean>(!document.hidden);
+  const lastAcceptedTimeRef = useRef<number>(0);
+  const movementRef = useRef<MovementState>('idle');
+  const positionRef = useRef<LatLng | null>(null);
+  const accuracyRef = useRef<number | null>(null);
+  const speedRef = useRef<number>(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Smooth heading to prevent jitter
+  // Smooth heading to prevent jitter (shortest-path angular interpolation)
   const smoothHeading = useCallback((raw: number | null): number | null => {
     if (raw == null || isNaN(raw)) return lastHeadingRef.current;
     if (lastHeadingRef.current == null) {
       lastHeadingRef.current = raw;
       return raw;
     }
-    // Shortest-path interpolation for angles
     let diff = raw - lastHeadingRef.current;
     if (diff > 180) diff -= 360;
     if (diff < -180) diff += 360;
-    const smoothed = lastHeadingRef.current + diff * 0.3;
+    const smoothed = lastHeadingRef.current + diff * 0.25;
     const normalized = (smoothed + 360) % 360;
     lastHeadingRef.current = normalized;
     return normalized;
@@ -152,66 +163,83 @@ export function useGeolocation(enabled: boolean): GeoState & {
     setState((s) => ({ ...s, status: 'requesting', message: STATUS_MESSAGES.requesting }));
 
     const onSuccess = (pos: GeolocationPosition) => {
-      const accuracy = pos.coords.accuracy;
+      const accuracy = Math.max(MIN_ACCURACY_M, Math.min(pos.coords.accuracy, MAX_ACCURACY_M));
       const timestamp = pos.timestamp;
 
-      // Reject very inaccurate positions
-      if (accuracy > MAX_ACCURACY_M) {
-        setState((s) => ({
-          ...s,
-          status: 'weak',
-          message: STATUS_MESSAGES.weak,
-        }));
-        return;
-      }
-
       // Reject stale data
-      if (Date.now() - timestamp > STALE_DATA_MS) {
-        return;
-      }
+      if (Date.now() - timestamp > STALE_DATA_MS) return;
 
       const raw: LatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const now = Date.now();
+
+      // --- Impossible-jump detection ---
+      const prev = kalmanRef.current;
+      if (prev) {
+        const dist = haversineMeters({ lat: prev.lat, lng: prev.lng }, raw);
+        const dt = Math.max((now - prev.lastUpdate) / 1000, 0.1);
+        const impliedSpeed = dist / dt;
+        if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MS) {
+          // Impossible jump — reject this update entirely
+          return;
+        }
+      }
+
+      // --- Stop-based jitter suppression ---
+      if (movementRef.current === 'stopped') {
+        const distFromLast = prev
+          ? haversineMeters({ lat: prev.lat, lng: prev.lng }, raw)
+          : 0;
+        // If the micro-jump is below the jitter threshold, ignore it
+        if (distFromLast < STOP_JITTER_THRESHOLD_M) {
+          return;
+        }
+        // Throttle: when stopped, only accept updates every STOPPED_THROTTLE_MS
+        if (now - lastAcceptedTimeRef.current < STOPPED_THROTTLE_MS) {
+          return;
+        }
+      }
+      lastAcceptedTimeRef.current = now;
+
+      // --- Kalman filter ---
       const { position: filtered, state: kalmanState } = kalmanFilter(raw, accuracy, kalmanRef.current);
       kalmanRef.current = kalmanState;
 
-      // Speed estimation
+      // --- Speed estimation ---
       const gpsSpeed = pos.coords.speed;
       let speed: number;
       if (gpsSpeed != null && !isNaN(gpsSpeed) && gpsSpeed >= 0) {
         speed = gpsSpeed;
+      } else if (positionRef.current) {
+        const dt2 = Math.max((now - (kalmanRef.current?.lastUpdate ?? now)) / 1000, 0.1);
+        const dist = haversineMeters(positionRef.current, filtered);
+        speed = dist / dt2;
       } else {
-        // Estimate from position delta
-        if (kalmanRef.current && state.position) {
-          const dt = (Date.now() - kalmanRef.current.lastUpdate) / 1000;
-          if (dt > 0) {
-            const dist = haversineMeters(state.position, filtered);
-            speed = dist / dt;
-          } else {
-            speed = 0;
-          }
-        } else {
-          speed = 0;
-        }
+        speed = 0;
       }
 
-      // Movement detection
-      const now = Date.now();
-      let movement: MovementState = state.movement;
+      // --- Movement detection ---
+      let movement: MovementState = movementRef.current;
       if (speed > WALK_SPEED_THRESHOLD) {
         movement = 'walking';
         lastMovementTimeRef.current = now;
       } else if (now - lastMovementTimeRef.current > STOP_TIMEOUT_MS) {
         movement = 'stopped';
       }
+      movementRef.current = movement;
 
-      const heading = smoothHeading(pos.coords.heading);
-
+      // --- Status ---
       let status: GeoStatus = 'granted';
       let message = '';
-      if (accuracy > 30) {
+      if (accuracy > 50) {
         status = 'weak';
         message = STATUS_MESSAGES.weak;
       }
+
+      const heading = smoothHeading(pos.coords.heading);
+
+      positionRef.current = filtered;
+      accuracyRef.current = accuracy;
+      speedRef.current = speed;
 
       setState({
         position: filtered,
@@ -238,7 +266,7 @@ export function useGeolocation(enabled: boolean): GeoState & {
           ...s,
           status: 'denied',
           message: STATUS_MESSAGES.denied,
-          position: DEFAULT_CENTER,
+          position: s.position ?? DEFAULT_CENTER,
         }));
       } else if (err.code === err.POSITION_UNAVAILABLE) {
         setState((s) => ({
@@ -253,6 +281,9 @@ export function useGeolocation(enabled: boolean): GeoState & {
           status: 'timeout',
           message: STATUS_MESSAGES.timeout,
         }));
+        // Auto-retry after a brief delay
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => startTracking(), 2000);
       } else {
         setState((s) => ({
           ...s,
@@ -267,12 +298,16 @@ export function useGeolocation(enabled: boolean): GeoState & {
       maximumAge: 3000,
       timeout: 15000,
     });
-  }, [smoothHeading, state.position, state.movement]);
+  }, [smoothHeading]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
+    }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
     }
   }, []);
 
@@ -328,17 +363,15 @@ export function useGeolocation(enabled: boolean): GeoState & {
   useEffect(() => {
     const onVisibilityChange = () => {
       const visible = !document.hidden;
-      visibilityRef.current = visible;
-      if (visible && enabled) {
-        // Re-request position when coming back
-        if (watchIdRef.current !== null) {
-          startTracking();
-        }
+      if (visible && enabled && watchIdRef.current !== null) {
+        // Restart tracking when returning to foreground
+        stopTracking();
+        startTracking();
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [enabled, startTracking]);
+  }, [enabled, startTracking, stopTracking]);
 
   // Start/stop tracking based on enabled flag
   useEffect(() => {

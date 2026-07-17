@@ -40,6 +40,8 @@ interface MapViewProps {
   routes?: MapRouteData[];
   followPlayer?: boolean;
   playerHeading?: number | null;
+  /** GPS accuracy in meters — renders an accuracy circle around the player */
+  accuracy?: number | null;
   onMapClick?: (pos: LatLng) => void;
   onStyleChange?: (style: MapStyle) => void;
   className?: string;
@@ -73,8 +75,10 @@ function createDivIcon(html: string, className: string, iconSize: [number, numbe
   });
 }
 
+// Player icon: rotation is applied via CSS variable so we can update heading
+// without recreating the entire icon (avoids DOM thrash).
 function playerIcon(heading: number | null): L.DivIcon {
-  const rotation = heading != null ? `transform: rotate(${heading}deg);` : '';
+  const rotation = heading != null ? `--player-rot: ${heading}deg;` : '--player-rot: 0deg;';
   return createDivIcon(
     `<div class="nuvra-player-marker" style="${rotation}">
       <div class="nuvra-player-pulse"></div>
@@ -155,6 +159,7 @@ export function MapView({
   routes = [],
   followPlayer = false,
   playerHeading = null,
+  accuracy = null,
   onMapClick,
   onStyleChange,
   className = '',
@@ -164,7 +169,10 @@ export function MapView({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routesRef = useRef<Map<string, L.Polyline>>(new Map());
-  const styleRef = useRef<MapStyle>(style);
+  const accuracyCircleRef = useRef<L.Circle | null>(null);
+  const animationTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const lastCenterRef = useRef<LatLng | null>(null);
+  const playerMarkerRef = useRef<L.Marker | null>(null);
 
   // --- Initialize map ---
   useEffect(() => {
@@ -176,24 +184,36 @@ export function MapView({
       zoomControl: true,
       attributionControl: true,
       preferCanvas: true,
+      zoomSnap: 0.5,
+      zoomDelta: 0.5,
+      wheelDebounceTime: 40,
+      inertia: true,
+      inertiaDeceleration: 3000,
+      maxBoundsViscosity: 0.8,
     });
     mapRef.current = map;
+    lastCenterRef.current = center;
 
     const tileConfig = TILE_LAYERS[style];
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: tileConfig.maxZoom,
+      keepBuffer: 2,
+      updateWhenZooming: false,
     }).addTo(map);
 
-    // Compass: rotate map on deviceorientation (best-effort)
-    // Zoom controls position
     map.zoomControl.setPosition('bottomright');
 
     return () => {
+      // Clean up all animation timeouts
+      for (const t of animationTimeoutsRef.current) clearTimeout(t);
+      animationTimeoutsRef.current = [];
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
       routesRef.current.clear();
+      accuracyCircleRef.current = null;
+      playerMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -202,21 +222,31 @@ export function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !tileLayerRef.current) return;
-    styleRef.current = style;
 
     map.removeLayer(tileLayerRef.current);
     const tileConfig = TILE_LAYERS[style];
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: tileConfig.maxZoom,
+      keepBuffer: 2,
+      updateWhenZooming: false,
     }).addTo(map);
   }, [style]);
 
-  // --- Update center when it changes (follow mode) ---
+  // --- Smooth camera movement (follow mode) ---
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !followPlayer) return;
-    map.panTo([center.lat, center.lng], { animate: true, duration: 0.5 });
+
+    // Avoid re-panning if the center hasn't meaningfully changed
+    if (lastCenterRef.current) {
+      const dLat = center.lat - lastCenterRef.current.lat;
+      const dLng = center.lng - lastCenterRef.current.lng;
+      if (Math.abs(dLat) < 1e-7 && Math.abs(dLng) < 1e-7) return;
+    }
+    lastCenterRef.current = center;
+
+    map.panTo([center.lat, center.lng], { animate: true, duration: 0.6, easeLinearity: 0.25 });
   }, [center, followPlayer]);
 
   // --- Handle map click ---
@@ -230,6 +260,50 @@ export function MapView({
     return () => { map.off('click', handler); };
   }, [onMapClick]);
 
+  // --- Update accuracy circle ---
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove existing circle if accuracy is null or map not ready
+    if (accuracy == null || accuracy <= 0) {
+      if (accuracyCircleRef.current) {
+        accuracyCircleRef.current.remove();
+        accuracyCircleRef.current = null;
+      }
+      return;
+    }
+
+    const playerMarker = markersRef.current.get('player');
+    const pos = playerMarker?.getLatLng();
+
+    if (accuracyCircleRef.current && pos) {
+      accuracyCircleRef.current.setLatLng(pos);
+      accuracyCircleRef.current.setRadius(accuracy);
+    } else if (pos) {
+      accuracyCircleRef.current = L.circle(pos, {
+        radius: accuracy,
+        color: '#40f5cb',
+        weight: 1,
+        opacity: 0.4,
+        fillColor: '#40f5cb',
+        fillOpacity: 0.08,
+        interactive: false,
+      }).addTo(map);
+    }
+  }, [accuracy, markers]);
+
+  // --- Update player heading via CSS transform (no icon recreation) ---
+  useEffect(() => {
+    if (playerMarkerRef.current == null || playerHeading == null) return;
+    const el = playerMarkerRef.current.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.nuvra-player-marker') as HTMLElement | null;
+    if (inner) {
+      inner.style.setProperty('--player-rot', `${playerHeading}deg`);
+    }
+  }, [playerHeading]);
+
   // --- Update markers ---
   useEffect(() => {
     const map = mapRef.current;
@@ -241,11 +315,23 @@ export function MapView({
       currentIds.add(m.id);
       const existing = markersRef.current.get(m.id);
 
+      // For player marker, only update position — heading is handled via CSS transform
+      if (m.type === 'player') {
+        if (existing) {
+          existing.setLatLng([m.position.lat, m.position.lng]);
+          playerMarkerRef.current = existing;
+        } else {
+          const icon = playerIcon(playerHeading);
+          const marker = L.marker([m.position.lat, m.position.lng], { icon, zIndexOffset: 1000 }).addTo(map);
+          if (m.onClick) marker.on('click', m.onClick);
+          markersRef.current.set(m.id, marker);
+          playerMarkerRef.current = marker;
+        }
+        continue;
+      }
+
       let icon: L.DivIcon;
       switch (m.type) {
-        case 'player':
-          icon = playerIcon(playerHeading);
-          break;
         case 'start':
           icon = checkpointIcon('▶', '#22c55e', m.completed ?? false, false);
           break;
@@ -296,6 +382,7 @@ export function MapView({
       if (!currentIds.has(id)) {
         marker.remove();
         markersRef.current.delete(id);
+        if (id === 'player') playerMarkerRef.current = null;
       }
     }
   }, [markers, playerHeading]);
@@ -325,17 +412,18 @@ export function MapView({
         }).addTo(map);
 
         if (r.animated) {
-          // Animate route drawing
           const totalPoints = latlngs.length;
           let drawn = 1;
           const animate = () => {
             if (drawn >= totalPoints) return;
             polyline.setLatLngs(latlngs.slice(0, drawn + 1));
             drawn++;
-            setTimeout(animate, 80);
+            const t = setTimeout(animate, 80);
+            animationTimeoutsRef.current.push(t);
           };
           polyline.setLatLngs(latlngs.slice(0, 1));
-          setTimeout(animate, 100);
+          const t = setTimeout(animate, 100);
+          animationTimeoutsRef.current.push(t);
         }
 
         routesRef.current.set(r.id, polyline);
@@ -355,7 +443,8 @@ export function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    setTimeout(() => map.invalidateSize(), 100);
+    const t = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(t);
   }, []);
 
   // --- Style switcher control ---
@@ -363,7 +452,6 @@ export function MapView({
     onStyleChange?.(s);
   }, [onStyleChange]);
 
-  // Expose style switcher via a small overlay
   return (
     <div className={`relative w-full h-full ${className}`}>
       <div ref={containerRef} className="absolute inset-0 z-0" style={{ background: '#0a0e1a' }} />

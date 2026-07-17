@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // ============================================================
 // useDeviceOrientation — compass heading + tilt/orientation
 // Provides: compass heading (smoothed), portrait/landscape,
-// phone tilt (beta/gamma), phone rotation (alpha).
+// phone tilt (beta/gamma), device rotation (alpha).
 // Gracefully falls back if sensors are unavailable.
 // ============================================================
 
@@ -26,6 +26,16 @@ export interface DeviceOrientationState {
   hasPermission: boolean;
 }
 
+// --- Tuning constants ---
+// Heading smoothing factor (lower = smoother but more laggy)
+const HEADING_SMOOTHING = 0.2;
+// Tilt smoothing factor for beta/gamma (lower = smoother)
+const TILT_SMOOTHING = 0.3;
+// Reject heading changes larger than this (degrees) in a single update — likely sensor glitch
+const HEADING_OUTLIER_THRESHOLD = 90;
+// Reject tilt changes larger than this (degrees) in a single update
+const TILT_OUTLIER_THRESHOLD = 60;
+
 function getScreenOrientation(): ScreenOrientation {
   if (typeof screen === 'undefined') return 'portrait';
   if (screen.orientation?.type?.startsWith('landscape')) return 'landscape';
@@ -33,6 +43,28 @@ function getScreenOrientation(): ScreenOrientation {
     return 'landscape';
   }
   return 'portrait';
+}
+
+/** Shortest-path angular interpolation between two compass headings. */
+function lerpAngle(from: number, to: number, t: number): number {
+  let diff = to - from;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  const result = from + diff * t;
+  return (result + 360) % 360;
+}
+
+/** Smooth a value with EMA, rejecting outliers beyond a threshold. */
+function smoothValue(
+  raw: number | null,
+  prev: number | null,
+  smoothing: number,
+  outlierThreshold: number,
+): number | null {
+  if (raw == null || isNaN(raw)) return prev;
+  if (prev == null) return raw;
+  if (Math.abs(raw - prev) > outlierThreshold) return prev;
+  return prev + smoothing * (raw - prev);
 }
 
 export function useDeviceOrientation(enabled: boolean): DeviceOrientationState & {
@@ -49,22 +81,9 @@ export function useDeviceOrientation(enabled: boolean): DeviceOrientationState &
   });
 
   const lastHeadingRef = useRef<number | null>(null);
+  const lastBetaRef = useRef<number | null>(null);
+  const lastGammaRef = useRef<number | null>(null);
   const handlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
-
-  const smoothHeadingValue = useCallback((raw: number | null): number | null => {
-    if (raw == null || isNaN(raw)) return lastHeadingRef.current;
-    if (lastHeadingRef.current == null) {
-      lastHeadingRef.current = raw;
-      return raw;
-    }
-    let diff = raw - lastHeadingRef.current;
-    if (diff > 180) diff -= 360;
-    if (diff < -180) diff += 360;
-    const smoothed = lastHeadingRef.current + diff * 0.2;
-    const normalized = (smoothed + 360) % 360;
-    lastHeadingRef.current = normalized;
-    return normalized;
-  }, []);
 
   const attachListener = useCallback(() => {
     if (handlerRef.current) return;
@@ -79,12 +98,29 @@ export function useDeviceOrientation(enabled: boolean): DeviceOrientationState &
         heading = 360 - e.alpha;
       }
 
+      // Smooth heading with outlier rejection
+      if (heading != null && !isNaN(heading)) {
+        if (lastHeadingRef.current == null) {
+          lastHeadingRef.current = heading;
+        } else {
+          const diff = Math.abs(lerpAngle(lastHeadingRef.current, heading, 1) - lastHeadingRef.current);
+          const wrappedDiff = Math.min(diff, 360 - diff);
+          if (wrappedDiff <= HEADING_OUTLIER_THRESHOLD) {
+            lastHeadingRef.current = lerpAngle(lastHeadingRef.current, heading, HEADING_SMOOTHING);
+          }
+        }
+      }
+
+      // Smooth tilt values with outlier rejection
+      lastBetaRef.current = smoothValue(e.beta, lastBetaRef.current, TILT_SMOOTHING, TILT_OUTLIER_THRESHOLD);
+      lastGammaRef.current = smoothValue(e.gamma, lastGammaRef.current, TILT_SMOOTHING, TILT_OUTLIER_THRESHOLD);
+
       setState((s) => ({
         ...s,
-        heading: smoothHeadingValue(heading),
+        heading: lastHeadingRef.current,
         alpha: e.alpha,
-        beta: e.beta,
-        gamma: e.gamma,
+        beta: lastBetaRef.current,
+        gamma: lastGammaRef.current,
         hasPermission: true,
       }));
     };
@@ -100,7 +136,7 @@ export function useDeviceOrientation(enabled: boolean): DeviceOrientationState &
         window.addEventListener('deviceorientation', handler as EventListener, opts);
       }
     }
-  }, [smoothHeadingValue]);
+  }, []);
 
   const detachListener = useCallback(() => {
     if (handlerRef.current && typeof window !== 'undefined') {

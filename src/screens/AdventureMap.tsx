@@ -59,6 +59,7 @@ export function AdventureMap(): React.ReactElement {
   );
 
   const [mapStyle, setMapStyle] = useState<MapStyle>('standard');
+  const [gpsInitialized, setGpsInitialized] = useState(false);
   const [progress, setProgress] = useState(0);
   const [collectedCoins, setCollectedCoins] = useState(0);
   const [collectedTreasures, setCollectedTreasures] = useState(0);
@@ -79,9 +80,22 @@ export function AdventureMap(): React.ReactElement {
   const playerPosRef = useRef<LatLng | null>(null);
   const lastSimPosRef = useRef<LatLng | null>(null);
   const initializedRef = useRef(false);
+  const centerRef = useRef<LatLng>(DEFAULT_CENTER);
 
-  // Determine center: use GPS if available, else default
-  const center: LatLng = geo.position ?? DEFAULT_CENTER;
+  // Stabilize center to avoid recomputing all lat/lng conversions on every micro-update.
+  // Only update center if the position moved by more than ~3 meters from the last center.
+  useEffect(() => {
+    if (!geo.position) return;
+    if (!gpsInitialized) {
+      centerRef.current = geo.position;
+      setGpsInitialized(true);
+      return;
+    }
+    const dist = haversineMeters(centerRef.current, geo.position);
+    if (dist > 3) {
+      centerRef.current = geo.position;
+    }
+  }, [geo.position, gpsInitialized]);
 
   // Initialize from selected adventure
   useEffect(() => {
@@ -107,26 +121,26 @@ export function AdventureMap(): React.ReactElement {
     }
   }, [geo.position]);
 
-  // Convert grid entities to real lat/lng
+  // Convert grid entities to real lat/lng — uses stabilized center to avoid recompute jitter
   const routeLatLngs = useMemo(() => {
     if (!selectedAdventure) return [];
-    return routeToLatLngs(selectedAdventure.routePath, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, center]);
+    return routeToLatLngs(selectedAdventure.routePath, centerRef.current, ROUTE_SPAN_M);
+  }, [selectedAdventure, gpsInitialized]);
 
   const checkpointLatLngs = useMemo(() => {
     if (!selectedAdventure) return [];
-    return checkpointsToLatLngs(selectedAdventure.checkpoints, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, center]);
+    return checkpointsToLatLngs(selectedAdventure.checkpoints, centerRef.current, ROUTE_SPAN_M);
+  }, [selectedAdventure, gpsInitialized]);
 
   const treasureLatLngs = useMemo(() => {
     if (!selectedAdventure) return [];
-    return treasuresToLatLngs(selectedAdventure.treasures, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, center]);
+    return treasuresToLatLngs(selectedAdventure.treasures, centerRef.current, ROUTE_SPAN_M);
+  }, [selectedAdventure, gpsInitialized]);
 
   const coinLatLngs = useMemo(() => {
     if (!selectedAdventure) return [];
-    return coinsToLatLngs(coins, center, ROUTE_SPAN_M);
-  }, [selectedAdventure, coins, center]);
+    return coinsToLatLngs(coins, centerRef.current, ROUTE_SPAN_M);
+  }, [selectedAdventure, coins, gpsInitialized]);
 
   // --- Walking simulation: move player along route ---
   useEffect(() => {
@@ -168,10 +182,15 @@ export function AdventureMap(): React.ReactElement {
             mp.updatePosition(smoothed, playerHeading ?? 0, 0);
           }
 
-          // Compute heading
+          // Compute heading from movement direction, fall back to compass
           if (lastSimPosRef.current) {
-            const head = bearing(lastSimPosRef.current, newPos);
-            setPlayerHeading(head);
+            const distMoved = haversineMeters(lastSimPosRef.current, newPos);
+            if (distMoved > 0.5) {
+              const head = bearing(lastSimPosRef.current, newPos);
+              setPlayerHeading(head);
+            } else if (deviceOrient.heading != null) {
+              setPlayerHeading(deviceOrient.heading);
+            }
           }
 
           if (followPlayer) {
@@ -193,7 +212,7 @@ export function AdventureMap(): React.ReactElement {
     setCoins((prev) =>
       prev.map((c) => {
         if (c.collected) return c;
-        const coinPos = gridToLatLng(c, center, ROUTE_SPAN_M);
+        const coinPos = gridToLatLng(c, centerRef.current, ROUTE_SPAN_M);
         if (haversineMeters(playerPos, coinPos) < PROXIMITY_M) {
           setCollectedCoins((n) => n + 1);
           setCombo((cm) => cm + 1);
@@ -208,7 +227,7 @@ export function AdventureMap(): React.ReactElement {
     setTreasures((prev) =>
       prev.map((t) => {
         if (t.opened) return t;
-        const tPos = gridToLatLng(t, center, ROUTE_SPAN_M);
+        const tPos = gridToLatLng(t, centerRef.current, ROUTE_SPAN_M);
         if (haversineMeters(playerPos, tPos) < PROXIMITY_M) {
           setCollectedTreasures((n) => n + 1);
           setCombo((cm) => cm + 1);
@@ -224,7 +243,7 @@ export function AdventureMap(): React.ReactElement {
     setCheckpoints((prev) =>
       prev.map((c) => {
         if (c.done || c.kind === 'start') return c;
-        const cPos = gridToLatLng(c, center, ROUTE_SPAN_M);
+        const cPos = gridToLatLng(c, centerRef.current, ROUTE_SPAN_M);
         if (haversineMeters(playerPos, cPos) < PROXIMITY_M) {
           setCompletedChallenges((n) => n + 1);
           setCombo((cm) => cm + 1);
@@ -235,7 +254,7 @@ export function AdventureMap(): React.ReactElement {
         return c;
       }),
     );
-  }, [progress, finished, center, setCombo, addCoins, addXP]);
+  }, [progress, finished, setCombo, addCoins, addXP]);
 
   // --- Finish when progress reaches 100 ---
   useEffect(() => {
@@ -371,7 +390,7 @@ export function AdventureMap(): React.ReactElement {
     const activeEvent = SEASONAL_EVENTS.find((e) => e.status === 'active');
     if (activeEvent) {
       // Place event marker at a visible location near center
-      const eventPos = gridToLatLng({ x: 80, y: 20 }, center, ROUTE_SPAN_M);
+      const eventPos = gridToLatLng({ x: 80, y: 20 }, centerRef.current, ROUTE_SPAN_M);
       result.push({
         id: 'world-event',
         position: eventPos,
@@ -409,11 +428,8 @@ export function AdventureMap(): React.ReactElement {
       }
     }
 
-    // Use deviceOrient heading for player marker if GPS heading is null
-    void deviceOrient;
-
     return result;
-  }, [selectedAdventure, checkpointLatLngs, treasureLatLngs, coinLatLngs, center, mp.party, profile.playerId, deviceOrient]);
+  }, [selectedAdventure, checkpointLatLngs, treasureLatLngs, coinLatLngs, centerRef.current, mp.party, profile.playerId]);
 
   // --- Build routes for the map ---
   const routes: MapRouteData[] = useMemo(() => {
@@ -566,6 +582,7 @@ export function AdventureMap(): React.ReactElement {
           routes={routes}
           followPlayer={followPlayer}
           playerHeading={playerHeading}
+          accuracy={geo.accuracy}
           onStyleChange={setMapStyle}
           onMapClick={() => setFollowPlayer(false)}
         />
@@ -574,13 +591,30 @@ export function AdventureMap(): React.ReactElement {
       {/* Search overlay */}
       <MapSearch onSelect={handleSearchSelect} />
 
+      {/* GPS loading indicator */}
+      {(geo.status === 'requesting' || geo.status === 'idle') && !geo.position && (
+        <div className="absolute inset-0 z-[600] flex items-center justify-center bg-ink-950/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full border-2 border-nova-400/30 border-t-nova-400 animate-spin" />
+            <div className="text-center">
+              <p className="text-sm font-bold text-white">Finding your location...</p>
+              <p className="text-xs text-white/50 mt-1">This only takes a moment</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* GPS status banner */}
       {geo.status !== 'granted' && geo.status !== 'idle' && geo.status !== 'requesting' && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[1000] glass-strong rounded-xl px-4 py-2.5 flex items-center gap-2 max-w-[90vw]">
-          <Icon name="MapPin" size={14} className={geo.status === 'denied' ? 'text-rose-300' : 'text-gold-300'} />
-          <span className="text-xs font-semibold text-white whitespace-nowrap">{geo.message}</span>
-          {geo.status === 'denied' && (
-            <button onClick={() => geo.requestPermission()} className="text-xs font-bold text-nova-300 ml-2">
+          <Icon
+            name={geo.status === 'denied' ? 'ShieldOff' : geo.status === 'weak' ? 'SignalLow' : geo.status === 'offline' ? 'WifiOff' : 'MapPin'}
+            size={14}
+            className={geo.status === 'denied' ? 'text-rose-300' : geo.status === 'weak' ? 'text-gold-300' : geo.status === 'offline' ? 'text-rose-300' : 'text-gold-300'}
+          />
+          <span className="text-xs font-semibold text-white max-w-[70vw]">{geo.message}</span>
+          {(geo.status === 'denied' || geo.status === 'timeout') && (
+            <button onClick={() => geo.requestPermission()} className="text-xs font-bold text-nova-300 ml-2 whitespace-nowrap">
               Retry
             </button>
           )}
