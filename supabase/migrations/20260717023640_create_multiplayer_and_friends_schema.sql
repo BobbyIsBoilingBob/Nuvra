@@ -1,0 +1,172 @@
+/*
+# Multiplayer Parties, Live Positions, and Friend System
+
+Creates the full schema for real-time multiplayer adventures and a friend system.
+All tables use single-tenant (no auth) mode with anon+authenticated access.
+
+## New Tables
+1. nuvra_players — per-device player profiles
+2. nuvra_parties — adventure parties
+3. nuvra_party_members — junction table for party membership
+4. nuvra_player_positions — real-time position updates
+5. nuvra_friends — friend relationships
+6. nuvra_friend_requests — incoming friend requests
+*/
+
+CREATE TABLE IF NOT EXISTS nuvra_players (
+  id text PRIMARY KEY,
+  username text NOT NULL DEFAULT 'Explorer',
+  avatar text NOT NULL DEFAULT '🧭',
+  level int NOT NULL DEFAULT 1,
+  xp int NOT NULL DEFAULT 0,
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE nuvra_players ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_players" ON nuvra_players;
+CREATE POLICY "anon_select_players" ON nuvra_players FOR SELECT
+  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "anon_insert_players" ON nuvra_players;
+CREATE POLICY "anon_insert_players" ON nuvra_players FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_players" ON nuvra_players;
+CREATE POLICY "anon_update_players" ON nuvra_players FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_delete_players" ON nuvra_players;
+CREATE POLICY "anon_delete_players" ON nuvra_players FOR DELETE
+  TO anon, authenticated USING (true);
+
+CREATE TABLE IF NOT EXISTS nuvra_parties (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  adventure_id text NOT NULL,
+  adventure_name text NOT NULL,
+  leader_id text NOT NULL,
+  code text UNIQUE NOT NULL,
+  status text NOT NULL DEFAULT 'lobby',
+  max_players int NOT NULL DEFAULT 8,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE nuvra_parties ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_parties" ON nuvra_parties;
+CREATE POLICY "anon_select_parties" ON nuvra_parties FOR SELECT
+  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "anon_insert_parties" ON nuvra_parties;
+CREATE POLICY "anon_insert_parties" ON nuvra_parties FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_parties" ON nuvra_parties;
+CREATE POLICY "anon_update_parties" ON nuvra_parties FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_delete_parties" ON nuvra_parties;
+CREATE POLICY "anon_delete_parties" ON nuvra_parties FOR DELETE
+  TO anon, authenticated USING (true);
+
+CREATE TABLE IF NOT EXISTS nuvra_party_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  party_id uuid NOT NULL REFERENCES nuvra_parties(id) ON DELETE CASCADE,
+  player_id text NOT NULL,
+  username text NOT NULL DEFAULT 'Explorer',
+  avatar text NOT NULL DEFAULT '🧭',
+  level int NOT NULL DEFAULT 1,
+  joined_at timestamptz DEFAULT now(),
+  is_leader boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'connected',
+  progress real NOT NULL DEFAULT 0,
+  coins_collected int NOT NULL DEFAULT 0,
+  treasures_collected int NOT NULL DEFAULT 0,
+  challenges_completed int NOT NULL DEFAULT 0
+);
+ALTER TABLE nuvra_party_members ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_members" ON nuvra_party_members;
+CREATE POLICY "anon_select_members" ON nuvra_party_members FOR SELECT
+  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "anon_insert_members" ON nuvra_party_members;
+CREATE POLICY "anon_insert_members" ON nuvra_party_members FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_members" ON nuvra_party_members;
+CREATE POLICY "anon_update_members" ON nuvra_party_members FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_delete_members" ON nuvra_party_members;
+CREATE POLICY "anon_delete_members" ON nuvra_party_members FOR DELETE
+  TO anon, authenticated USING (true);
+
+CREATE TABLE IF NOT EXISTS nuvra_player_positions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  party_id uuid NOT NULL REFERENCES nuvra_parties(id) ON DELETE CASCADE,
+  player_id text NOT NULL,
+  lat real NOT NULL,
+  lng real NOT NULL,
+  heading real NOT NULL DEFAULT 0,
+  speed real NOT NULL DEFAULT 0,
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE nuvra_player_positions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_positions" ON nuvra_player_positions;
+CREATE POLICY "anon_select_positions" ON nuvra_player_positions FOR SELECT
+  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "anon_insert_positions" ON nuvra_player_positions;
+CREATE POLICY "anon_insert_positions" ON nuvra_player_positions FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_positions" ON nuvra_player_positions;
+CREATE POLICY "anon_update_positions" ON nuvra_player_positions FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_delete_positions" ON nuvra_player_positions;
+CREATE POLICY "anon_delete_positions" ON nuvra_player_positions FOR DELETE
+  TO anon, authenticated USING (true);
+
+CREATE TABLE IF NOT EXISTS nuvra_friends (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  player_id text NOT NULL,
+  friend_id text NOT NULL,
+  status text NOT NULL DEFAULT 'accepted',
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(player_id, friend_id)
+);
+ALTER TABLE nuvra_friends ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_friends" ON nuvra_friends;
+CREATE POLICY "anon_select_friends" ON nuvra_friends FOR SELECT
+  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "anon_insert_friends" ON nuvra_friends;
+CREATE POLICY "anon_insert_friends" ON nuvra_friends FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_friends" ON nuvra_friends;
+CREATE POLICY "anon_update_friends" ON nuvra_friends FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_delete_friends" ON nuvra_friends;
+CREATE POLICY "anon_delete_friends" ON nuvra_friends FOR DELETE
+  TO anon, authenticated USING (true);
+
+CREATE TABLE IF NOT EXISTS nuvra_friend_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  from_player_id text NOT NULL,
+  to_player_id text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(from_player_id, to_player_id)
+);
+ALTER TABLE nuvra_friend_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_select_requests" ON nuvra_friend_requests;
+CREATE POLICY "anon_select_requests" ON nuvra_friend_requests FOR SELECT
+  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "anon_insert_requests" ON nuvra_friend_requests;
+CREATE POLICY "anon_insert_requests" ON nuvra_friend_requests FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_update_requests" ON nuvra_friend_requests;
+CREATE POLICY "anon_update_requests" ON nuvra_friend_requests FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "anon_delete_requests" ON nuvra_friend_requests;
+CREATE POLICY "anon_delete_requests" ON nuvra_friend_requests FOR DELETE
+  TO anon, authenticated USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_party_members_party_id ON nuvra_party_members(party_id);
+CREATE INDEX IF NOT EXISTS idx_player_positions_party_id ON nuvra_player_positions(party_id);
+CREATE INDEX IF NOT EXISTS idx_player_positions_player_id ON nuvra_player_positions(player_id);
+CREATE INDEX IF NOT EXISTS idx_friends_player_id ON nuvra_friends(player_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_to_player ON nuvra_friend_requests(to_player_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_from_player ON nuvra_friend_requests(from_player_id);
+CREATE INDEX IF NOT EXISTS idx_parties_code ON nuvra_parties(code);
+CREATE INDEX IF NOT EXISTS idx_parties_status ON nuvra_parties(status);
