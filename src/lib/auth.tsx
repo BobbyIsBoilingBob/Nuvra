@@ -6,6 +6,9 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  isGuest: boolean;
+  continueAsGuest: () => void;
+  exitGuest: () => void;
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -15,18 +18,20 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const GUEST_KEY = 'zeviqo-guest';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem(GUEST_KEY) === 'true');
 
   const loadProfile = useCallback(async (uid: string, retries = 0): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).single();
       if (error) throw error;
       return data as Profile;
-    } catch (e) {
+    } catch {
       if (retries < 3) {
         await new Promise((r) => setTimeout(r, 500 * (retries + 1)));
         return loadProfile(uid, retries + 1);
@@ -48,6 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const p = await loadProfile(data.session.user.id);
         setProfile(p);
         supabase.from('profiles').update({ is_online: true, last_seen: new Date().toISOString() }).eq('id', data.session.user.id).then(() => {});
+        setIsGuest(false);
+        localStorage.removeItem(GUEST_KEY);
       }
       setLoading(false);
     });
@@ -57,6 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (sess?.user?.id) {
         const p = await loadProfile(sess.user.id);
         setProfile(p);
+        setIsGuest(false);
+        localStorage.removeItem(GUEST_KEY);
       } else {
         setProfile(null);
       }
@@ -64,6 +73,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => sub.subscription.unsubscribe();
   }, [loadProfile]);
+
+  const continueAsGuest = useCallback(() => {
+    setIsGuest(true);
+    localStorage.setItem(GUEST_KEY, 'true');
+  }, []);
+
+  const exitGuest = useCallback(() => {
+    setIsGuest(false);
+    localStorage.removeItem(GUEST_KEY);
+  }, []);
 
   const signUp = useCallback(async (email: string, password: string, username: string) => {
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
@@ -86,6 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setSession(null);
+    setIsGuest(false);
+    localStorage.removeItem(GUEST_KEY);
   }, [session]);
 
   const updateProfile = useCallback(async (patch: Partial<Profile>) => {
@@ -100,10 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setSession(null);
+    setIsGuest(false);
+    localStorage.removeItem(GUEST_KEY);
   }, [session]);
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signUp, signIn, signOut, updateProfile, deleteAccount, refreshProfile }}>
+    <AuthContext.Provider value={{ session, profile, loading, isGuest, continueAsGuest, exitGuest, signUp, signIn, signOut, updateProfile, deleteAccount, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

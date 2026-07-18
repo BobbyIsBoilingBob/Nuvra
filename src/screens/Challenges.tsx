@@ -6,11 +6,19 @@ import { Target, CircleCheck as CheckCircle2, Zap } from 'lucide-react';
 
 export default function Challenges() {
   const { challengeProgress } = useStore();
-  const { profile } = useAuth();
+  const { profile, isGuest } = useAuth();
+  if (isGuest || !profile) {
+    return (
+      <Screen>
+        <h1 className="font-display text-2xl font-bold text-white mb-4">Challenges</h1>
+        <Card className="p-6 text-center"><p className="text-ink-400 text-sm">Sign in to participate in challenges.</p></Card>
+      </Screen>
+    );
+  }
   const getProgress = (id: string, type: string) => {
-    if (type === 'distance') return profile?.distance_walked ?? 0;
-    if (type === 'adventures') return profile?.completed_adventures ?? 0;
-    if (type === 'streak') return profile?.walking_streak ?? 0;
+    if (type === 'distance') return profile.distance_walked ?? 0;
+    if (type === 'adventures') return profile.completed_adventures ?? 0;
+    if (type === 'streak') return profile.walking_streak ?? 0;
     return challengeProgress[id] ?? 0;
   };
   return (

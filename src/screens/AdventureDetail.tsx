@@ -1,7 +1,7 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data';
 import { Card, Screen, Button, Badge, EmptyState, ProgressBar } from '../components/ui';
-import { ArrowLeft, MapPin, Zap, Clock, CircleCheck as CheckCircle2, Circle, Star } from 'lucide-react';
+import { ArrowLeft, MapPin, Zap, Clock, CircleCheck as CheckCircle2, Circle } from 'lucide-react';
 
 export default function AdventureDetail() {
   const { activeAdventureId, setScreen, questProgress } = useStore();

@@ -93,7 +93,7 @@ export function Stat({ icon: Icon, label, value, color = '#94a3b8' }: { icon: Lu
 }
 
 export function ProgressBar({ value, max, color = '#fbbf24' }: { value: number; max: number; color?: string }) {
-  const pct = Math.min(100, (value / max) * 100);
+  const pct = Math.min(100, max > 0 ? (value / max) * 100 : 0);
   return (
     <div className="h-2 bg-ink-700/50 rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />

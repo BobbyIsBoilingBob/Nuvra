@@ -38,20 +38,34 @@ const SCREENS: Record<string, React.ComponentType> = {
   inventory: Inventory, rewards: Rewards, seasonal: Seasonal, onboarding: Onboarding,
 };
 
+const GUEST_ALLOWED: string[] = ['home', 'adventures', 'adventureDetail', 'adventureMap', 'community', 'aiGenerator', 'adventurePreview', 'creator'];
+
 function AppContent() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, isGuest } = useAuth();
   const { screen, setScreen } = useStore();
   useDataSync();
 
   useEffect(() => {
-    if (session && profile && !profile.onboarding_complete) setScreen('onboarding');
-    if (!session) setScreen('auth');
-  }, [session, profile, setScreen]);
+    if (loading) return;
+    if (session && profile && !profile.onboarding_complete) {
+      setScreen('onboarding');
+    } else if (!session && !isGuest) {
+      setScreen('auth');
+    } else if (isGuest && !GUEST_ALLOWED.includes(screen)) {
+      setScreen('home');
+    }
+  }, [session, profile, isGuest, loading, setScreen]);
 
   if (loading) return <LoadingScreen />;
-  if (!session) { const C = SCREENS['auth']; return <C />; }
 
-  const Current = SCREENS[screen] ?? SCREENS['home'];
+  if (!session && !isGuest) {
+    const C = SCREENS['auth'];
+    return <C />;
+  }
+
+  const effectiveScreen = isGuest && !GUEST_ALLOWED.includes(screen) ? 'home' : screen;
+  const Current = SCREENS[effectiveScreen] ?? SCREENS['home'];
+
   return (
     <div className="min-h-screen bg-ink-950">
       <Suspense fallback={<LoadingScreen />}>

@@ -1,11 +1,20 @@
 import { useAuth } from '../lib/auth';
 import { ACHIEVEMENTS } from '../cosmetics';
-import { Card, Screen, EmptyState, Badge } from '../components/ui';
-import { Award, CircleCheck as CheckCircle2, Circle } from 'lucide-react';
+import { Card, Screen } from '../components/ui';
+import { CircleCheck as CheckCircle2, Circle } from 'lucide-react';
 
 export default function Achievements() {
-  const { profile } = useAuth();
-  if (!profile) return null;
+  const { profile, isGuest } = useAuth();
+  if (isGuest || !profile) {
+    return (
+      <Screen>
+        <h1 className="font-display text-2xl font-bold text-white mb-4">Achievements</h1>
+        <Card className="p-6 text-center">
+          <p className="text-ink-400 text-sm">Sign in to track and unlock achievements.</p>
+        </Card>
+      </Screen>
+    );
+  }
   const unlocked = (id: string) => {
     if (id === 'a1') return profile.completed_adventures >= 1;
     if (id === 'a2') return profile.completed_adventures >= 10;

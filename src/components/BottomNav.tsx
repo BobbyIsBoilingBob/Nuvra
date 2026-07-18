@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useStore } from '../store';
+import { useState, useEffect } from 'react';
+import { useStore, type ScreenName } from '../store';
 import { Chrome as Home, Compass, Users, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -13,7 +13,6 @@ export function useViewportHeight() {
   return vh;
 }
 
-import type { ScreenName } from '../store';
 type NavItem = { screen: ScreenName; icon: LucideIcon; label: string };
 
 const NAV_ITEMS: NavItem[] = [

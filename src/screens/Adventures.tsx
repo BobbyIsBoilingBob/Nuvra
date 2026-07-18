@@ -1,7 +1,7 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data';
 import { Card, Screen, Badge, EmptyState } from '../components/ui';
-import { MapPin, Clock, Zap, Heart, Star } from 'lucide-react';
+import { MapPin, Clock, Zap, Heart } from 'lucide-react';
 
 export default function Adventures() {
   const { setScreen, setActiveAdventure, favorites, toggleFavorite } = useStore();

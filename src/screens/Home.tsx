@@ -2,12 +2,49 @@ import { useAuth } from '../lib/auth';
 import { useStore } from '../store';
 import { Card, Screen, Stat, ProgressBar, Badge, Button } from '../components/ui';
 import { getLevelForXp, LEVELS, ADVENTURES } from '../data';
-import { Coins, Gem, Flame, Footprints, Trophy, Zap, MapPin, ChevronRight, Sparkles } from 'lucide-react';
+import { Coins, Gem, Flame, Footprints, Trophy, Zap, ChevronRight, Sparkles, User } from 'lucide-react';
 
 export default function Home() {
-  const { profile } = useAuth();
+  const { profile, isGuest } = useAuth();
   const { setScreen } = useStore();
-  if (!profile) return null;
+
+  if (isGuest || !profile) {
+    return (
+      <Screen>
+        <div className="text-center mb-6">
+          <div className="text-5xl mb-2">🧭</div>
+          <h1 className="font-display text-2xl font-bold text-white">Welcome to Zeviqo</h1>
+          <p className="text-ink-400 text-sm mt-1">Your walking adventure awaits</p>
+        </div>
+        <Card className="p-4 mb-4 bg-zeviqo-500/5 border-zeviqo-500/20">
+          <p className="text-white text-sm mb-3">You're browsing as a guest. Sign in to track progress, earn rewards, and connect with friends.</p>
+          <Button className="w-full mb-2 flex items-center justify-center gap-2" onClick={() => setScreen('auth')}><User size={16} /> Sign In or Create Account</Button>
+        </Card>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <Button variant="secondary" onClick={() => setScreen('adventures')} className="flex items-center justify-center gap-2"><Sparkles size={18} /> Browse Adventures</Button>
+          <Button variant="secondary" onClick={() => setScreen('community')} className="flex items-center justify-center gap-2"><Trophy size={18} /> Leaderboard</Button>
+        </div>
+        <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">Featured Adventure</h2>
+        <Card className="p-4" style={{ borderColor: `${ADVENTURES[0].color}33` }}>
+          <div className="flex items-center gap-3">
+            <div className="text-4xl">{ADVENTURES[0].emoji}</div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white">{ADVENTURES[0].name}</h3>
+              <p className="text-ink-400 text-sm">{ADVENTURES[0].description}</p>
+              <div className="flex gap-2 mt-1">
+                <Badge color={ADVENTURES[0].color}>{ADVENTURES[0].difficulty}</Badge>
+                <Badge color="#fbbf24"><Zap size={10} className="inline" /> {ADVENTURES[0].totalXp} XP</Badge>
+              </div>
+            </div>
+          </div>
+          <Button className="w-full mt-3 flex items-center justify-center gap-1" onClick={() => { setScreen('adventureDetail'); }}>
+            View Details <ChevronRight size={16} />
+          </Button>
+        </Card>
+      </Screen>
+    );
+  }
+
   const level = getLevelForXp(profile.xp);
   const nextLevel = LEVELS[level] ?? LEVELS[LEVELS.length - 1];
   const xpInLevel = profile.xp - (LEVELS[level - 1]?.xpRequired ?? 0);

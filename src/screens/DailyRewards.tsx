@@ -1,22 +1,30 @@
 import { useAuth } from '../lib/auth';
 import { DAILY_REWARDS } from '../data';
 import { Card, Screen, Button, Badge } from '../components/ui';
-import { Gift, Coins, Gem, Check } from 'lucide-react';
+import { Coins, Gem, Check } from 'lucide-react';
 import { useState } from 'react';
 
 export default function DailyRewards() {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, isGuest } = useAuth();
   const [claiming, setClaiming] = useState<number | null>(null);
-  const lastClaimedDay = profile?.last_reward_day ?? 0;
+  if (isGuest || !profile) {
+    return (
+      <Screen>
+        <h1 className="font-display text-2xl font-bold text-white mb-4">Daily Rewards</h1>
+        <Card className="p-6 text-center"><p className="text-ink-400 text-sm">Sign in to claim daily rewards.</p></Card>
+      </Screen>
+    );
+  }
+  const lastClaimedDay = profile.last_reward_day ?? 0;
   const today = Math.floor(Date.now() / 86400000);
   const canClaim = today > lastClaimedDay;
-  const currentStreak = profile?.daily_streak ?? 0;
+  const currentStreak = profile.daily_streak ?? 0;
   const handleClaim = async (day: number) => {
     if (!canClaim || claiming !== null) return;
     setClaiming(day);
     const reward = DAILY_REWARDS.find((r) => r.day === day) ?? DAILY_REWARDS[0];
     const newStreak = day === 1 ? 1 : currentStreak + 1;
-    await updateProfile({ coins: (profile?.coins ?? 0) + reward.coins, gems: (profile?.gems ?? 0) + reward.gems, last_reward_day: today, daily_streak: newStreak });
+    await updateProfile({ coins: (profile.coins ?? 0) + reward.coins, gems: (profile.gems ?? 0) + reward.gems, last_reward_day: today, daily_streak: newStreak });
     setClaiming(null);
   };
   return (

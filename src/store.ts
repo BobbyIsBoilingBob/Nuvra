@@ -34,6 +34,7 @@ type State = {
   challengeProgress: Record<string, number>;
   dailyRewardClaimed: boolean;
   lastRewardDate: string | null;
+  claimedAdventureIds: string[];
 
   setScreen: (s: ScreenName) => void;
   setActiveAdventure: (id: string | null) => void;
@@ -44,6 +45,8 @@ type State = {
   toggleFavorite: (adventureId: string) => void;
   updateChallenge: (challengeId: string, progress: number) => void;
   claimDailyReward: () => void;
+  markAdventureClaimed: (adventureId: string) => void;
+  hasClaimedAdventure: (adventureId: string) => boolean;
   resetProgress: () => void;
 };
 
@@ -60,6 +63,7 @@ export const useStore = create<State>()(
       challengeProgress: {},
       dailyRewardClaimed: false,
       lastRewardDate: null,
+      claimedAdventureIds: [],
 
       setScreen: (s) => set({ screen: s }),
       setActiveAdventure: (id) => set({ activeAdventureId: id }),
@@ -87,6 +91,13 @@ export const useStore = create<State>()(
       updateChallenge: (challengeId, progress) =>
         set((state) => ({ challengeProgress: { ...state.challengeProgress, [challengeId]: progress } })),
       claimDailyReward: () => set({ dailyRewardClaimed: true, lastRewardDate: new Date().toDateString() }),
+      markAdventureClaimed: (adventureId) =>
+        set((state) => ({
+          claimedAdventureIds: state.claimedAdventureIds.includes(adventureId)
+            ? state.claimedAdventureIds
+            : [...state.claimedAdventureIds, adventureId],
+        })),
+      hasClaimedAdventure: (adventureId) => get().claimedAdventureIds.includes(adventureId),
       resetProgress: () =>
         set({
           questProgress: {},
@@ -94,6 +105,7 @@ export const useStore = create<State>()(
           challengeProgress: {},
           dailyRewardClaimed: false,
           lastRewardDate: null,
+          claimedAdventureIds: [],
         }),
     }),
     { name: 'zeviqo-store' }

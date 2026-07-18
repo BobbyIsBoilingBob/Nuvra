@@ -10,12 +10,12 @@ export function useGeolocation() {
   const [error, setError] = useState<string | null>(null);
   const [tracking, setTracking] = useState(false);
   const prevRef = useRef<GpsReading | null>(null);
-  const stopTimeoutRef = useRef<number | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   const start = useCallback(() => {
     if (!navigator.geolocation) { setError('Geolocation not supported'); return; }
     setTracking(true);
-    const watchId = navigator.geolocation.watchPosition(
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const reading: GpsReading = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now(), accuracy: pos.coords.accuracy };
         if (prevRef.current) {
@@ -37,12 +37,14 @@ export function useGeolocation() {
       (err) => setError(err.message),
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const stop = useCallback(() => {
     setTracking(false);
-    if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
   }, []);
 
   const reset = useCallback(() => {

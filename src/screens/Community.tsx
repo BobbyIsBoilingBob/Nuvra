@@ -1,6 +1,6 @@
 import { useAuth } from '../lib/auth';
 import { Card, Screen, EmptyState, Badge } from '../components/ui';
-import { Users, Trophy, Zap, Footprints } from 'lucide-react';
+import { Users, Trophy, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase, type Profile } from '../lib/supabase';
 

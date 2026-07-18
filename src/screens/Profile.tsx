@@ -2,12 +2,32 @@ import { useAuth } from '../lib/auth';
 import { useStore } from '../store';
 import { Card, Screen, Stat, ProgressBar, Badge, Button } from '../components/ui';
 import { getLevelForXp, LEVELS } from '../data';
-import { Coins, Gem, Footprints, Trophy, Zap, Flame, MapPin, Settings, ChevronRight } from 'lucide-react';
+import { Coins, Gem, Footprints, Trophy, Zap, Flame, Settings, ChevronRight, User, LogIn } from 'lucide-react';
 
 export default function Profile() {
-  const { profile } = useAuth();
+  const { profile, isGuest, exitGuest } = useAuth();
   const { setScreen } = useStore();
-  if (!profile) return null;
+
+  if (isGuest || !profile) {
+    return (
+      <Screen className="flex flex-col items-center justify-center">
+        <Card className="p-6 text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-zeviqo-500/20 flex items-center justify-center mx-auto mb-4">
+            <User size={32} color="#fbbf24" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-white mb-2">Sign in to view your profile</h2>
+          <p className="text-ink-400 text-sm mb-6">You need an account to access your profile, track progress, and earn rewards. Create one or sign in to continue.</p>
+          <Button className="w-full mb-2 flex items-center justify-center gap-2" onClick={() => { exitGuest(); setScreen('auth'); }}>
+            <LogIn size={18} /> Sign In
+          </Button>
+          <Button variant="secondary" className="w-full flex items-center justify-center gap-2" onClick={() => { exitGuest(); setScreen('auth'); }}>
+            <User size={18} /> Create Account
+          </Button>
+        </Card>
+      </Screen>
+    );
+  }
+
   const level = getLevelForXp(profile.xp);
   const xpInLevel = profile.xp - (LEVELS[level - 1]?.xpRequired ?? 0);
   const xpForNext = (LEVELS[level]?.xpRequired ?? profile.xp) - (LEVELS[level - 1]?.xpRequired ?? 0);

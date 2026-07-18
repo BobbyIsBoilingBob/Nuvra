@@ -23,26 +23,40 @@ function MapResizer() {
   return null;
 }
 
+function RouteFitter({ route }: { route: { lat: number; lng: number }[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (route.length >= 2) {
+      const bounds = L.latLngBounds(route.map((p) => [p.lat, p.lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }, [route, map]);
+  return null;
+}
+
 type MapViewProps = {
   center: [number, number];
   markers?: { position: [number, number]; popup?: string }[];
   route?: { lat: number; lng: number }[];
   zoom?: number;
+  fitRoute?: boolean;
 };
 
-export function MapView({ center, markers = [], route = [], zoom = 15 }: MapViewProps) {
+export function MapView({ center, markers = [], route = [], zoom = 15, fitRoute = false }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const latLngs = routeToLatLngs(route);
   return (
     <div ref={containerRef} style={{ height: '100%', width: '100%', minHeight: '200px' }}>
       <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', minHeight: '200px' }} className="rounded-2xl">
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
         <MapResizer />
+        {fitRoute && <RouteFitter route={route} />}
         {markers.map((m, i) => (
           <Marker key={i} position={m.position}>
             {m.popup && <Popup>{m.popup}</Popup>}
           </Marker>
         ))}
-        {route.length > 1 && <Polyline positions={routeToLatLngs(route)} color="#fbbf24" weight={4} opacity={0.7} />}
+        {latLngs.length >= 2 && <Polyline positions={latLngs} color="#fbbf24" weight={4} opacity={0.8} />}
       </MapContainer>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, type Profile, type FriendRequest, type Friend } from '../lib/supabase';
+import { supabase, type Profile, type FriendRequest } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 export type PlayerSearchResult = Profile & { is_friend?: boolean; pending_sent?: boolean; pending_received?: boolean };

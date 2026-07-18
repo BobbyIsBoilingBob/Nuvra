@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFriends, type PlayerSearchResult } from '../hooks/useFriends';
 import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../lib/auth';
 import { Card, Screen, Button, Badge, EmptyState, Spinner } from '../components/ui';
-import { Users, Search, UserPlus, Check, X, Bell, UserMinus, Activity, Clock, Zap, Trophy, Footprints } from 'lucide-react';
+import { Users, Search, UserPlus, Check, X, Bell, UserMinus, Activity, Clock, Zap, Footprints, LogIn } from 'lucide-react';
 
 type Tab = 'activity' | 'friends' | 'search' | 'requests' | 'notifications';
 
 export default function Friends() {
+  const { isGuest, exitGuest } = useAuth();
   const { friends, friendIds, pendingSent, pendingReceived, sendingTo, loading, error, setError, sendRequest, acceptRequest, declineRequest, removeFriend, searchPlayers } = useFriends();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [tab, setTab] = useState<Tab>('search');
@@ -20,18 +22,12 @@ export default function Friends() {
     setTimeout(() => setMsg(null), 4000);
   }, []);
 
-  useEffect(() => {
-    if (error) showMessage('error', error);
-  }, [error, showMessage]);
+  useEffect(() => { if (error) showMessage('error', error); }, [error, showMessage]);
 
   useEffect(() => {
     if (query.trim().length < 2) { setResults([]); return; }
     setSearching(true);
-    const t = setTimeout(async () => {
-      const r = await searchPlayers(query);
-      setResults(r);
-      setSearching(false);
-    }, 350);
+    const t = setTimeout(async () => { const r = await searchPlayers(query); setResults(r); setSearching(false); }, 350);
     return () => clearTimeout(t);
   }, [query, searchPlayers]);
 
@@ -41,23 +37,23 @@ export default function Friends() {
     else if (res.error) showMessage('error', res.error);
     setResults((prev) => prev.map((p) => (p.id === receiverId ? { ...p, pending_sent: true } : p)));
   };
+  const handleAccept = async (senderId: string) => { const res = await acceptRequest(senderId); if (res.ok) showMessage('success', 'Friend added!'); else if (res.error) showMessage('error', res.error); };
+  const handleDecline = async (senderId: string) => { const res = await declineRequest(senderId); if (!res.ok && res.error) showMessage('error', res.error); };
+  const handleRemove = async (friendId: string) => { const res = await removeFriend(friendId); if (res.ok) showMessage('success', 'Friend removed'); else if (res.error) showMessage('error', res.error); };
 
-  const handleAccept = async (senderId: string) => {
-    const res = await acceptRequest(senderId);
-    if (res.ok) showMessage('success', 'Friend added!');
-    else if (res.error) showMessage('error', res.error);
-  };
-
-  const handleDecline = async (senderId: string) => {
-    const res = await declineRequest(senderId);
-    if (!res.ok && res.error) showMessage('error', res.error);
-  };
-
-  const handleRemove = async (friendId: string) => {
-    const res = await removeFriend(friendId);
-    if (res.ok) showMessage('success', 'Friend removed');
-    else if (res.error) showMessage('error', res.error);
-  };
+  if (isGuest) {
+    return (
+      <Screen>
+        <h1 className="font-display text-2xl font-bold text-white mb-4">Social</h1>
+        <Card className="p-6 text-center">
+          <Users size={32} color="#fbbf24" className="mx-auto mb-3" />
+          <h2 className="font-display text-lg font-bold text-white mb-2">Sign in to connect</h2>
+          <p className="text-ink-400 text-sm mb-4">Add friends, send requests, and adventure together.</p>
+          <Button className="w-full flex items-center justify-center gap-2" onClick={() => { exitGuest(); }}><LogIn size={18} /> Sign In or Create Account</Button>
+        </Card>
+      </Screen>
+    );
+  }
 
   const tabs: { id: Tab; label: string; icon: any; badge?: number }[] = [
     { id: 'activity', label: 'Activity', icon: Activity },
@@ -70,11 +66,9 @@ export default function Friends() {
   return (
     <Screen>
       <h1 className="font-display text-2xl font-bold text-white mb-4">Social</h1>
-
       <div className="flex gap-1 mb-4 overflow-x-auto no-select pb-1">
         {tabs.map((t) => {
-          const Icon = t.icon;
-          const active = tab === t.id;
+          const Icon = t.icon; const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => { setTab(t.id); setError(null); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${active ? 'bg-zeviqo-500 text-ink-950' : 'bg-ink-700/50 text-ink-400'}`}>
               <Icon size={14} /> {t.label}
@@ -84,13 +78,9 @@ export default function Friends() {
         })}
       </div>
 
-      {msg && (
-        <div className={`mb-3 p-3 rounded-xl text-sm ${msg.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>{msg.text}</div>
-      )}
-
+      {msg && <div className={`mb-3 p-3 rounded-xl text-sm ${msg.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>{msg.text}</div>}
       {loading && tab !== 'search' && <div className="flex justify-center py-8"><Spinner /></div>}
 
-      {/* ACTIVITY */}
       {tab === 'activity' && !loading && (
         <div className="space-y-2">
           {friends.length === 0 ? <EmptyState icon={Activity} title="No recent activity" subtitle="Add friends to see their activity here" /> : friends.map((f) => (
@@ -103,7 +93,6 @@ export default function Friends() {
         </div>
       )}
 
-      {/* FRIENDS LIST */}
       {tab === 'friends' && !loading && (
         <div className="space-y-2">
           {friends.length === 0 ? <EmptyState icon={Users} title="No friends yet" subtitle="Search for players to add friends" /> : friends.map((f) => (
@@ -119,20 +108,15 @@ export default function Friends() {
         </div>
       )}
 
-      {/* SEARCH PLAYERS */}
       {tab === 'search' && (
         <div>
           <div className="relative mb-4">
             <Search size={18} color="#64748b" className="absolute left-3 top-1/2 -translate-y-1/2" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search players by username..." className="w-full bg-ink-700/50 border border-ink-600/30 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-ink-500 focus:outline-none focus:border-zeviqo-500/50" />
           </div>
-
           {searching && <div className="flex justify-center py-8"><Spinner /></div>}
-
           {!searching && query.trim().length < 2 && <EmptyState icon={Search} title="Search for players" subtitle="Type at least 2 characters to find players" />}
-
           {!searching && query.trim().length >= 2 && results.length === 0 && <EmptyState icon={Search} title="No players found" subtitle="Try a different search term" />}
-
           {!searching && results.length > 0 && (
             <div className="space-y-2">
               {results.map((p) => {
@@ -144,17 +128,11 @@ export default function Friends() {
                       <p className="text-white font-semibold text-sm">{p.username}</p>
                       <div className="flex gap-2 mt-0.5"><Badge color="#3b82f6">Level {p.level}</Badge><Badge color="#fbbf24"><Zap size={10} className="inline" /> {p.xp.toLocaleString()}</Badge></div>
                     </div>
-                    {p.is_friend ? (
-                      <Badge color="#22c55e"><Check size={12} className="inline" /> Friend</Badge>
-                    ) : p.pending_sent ? (
-                      <Badge color="#fbbf24"><Clock size={12} className="inline" /> Pending</Badge>
-                    ) : p.pending_received ? (
-                      <Badge color="#a78bfa">Wants to be friends</Badge>
-                    ) : isSending ? (
-                      <Spinner size={20} />
-                    ) : (
-                      <Button size="sm" onClick={() => handleSend(p.id)} className="flex items-center gap-1"><UserPlus size={14} /> Add</Button>
-                    )}
+                    {p.is_friend ? <Badge color="#22c55e"><Check size={12} className="inline" /> Friend</Badge>
+                      : p.pending_sent ? <Badge color="#fbbf24"><Clock size={12} className="inline" /> Pending</Badge>
+                      : p.pending_received ? <Badge color="#a78bfa">Wants to be friends</Badge>
+                      : isSending ? <Spinner size={20} />
+                      : <Button size="sm" onClick={() => handleSend(p.id)} className="flex items-center gap-1"><UserPlus size={14} /> Add</Button>}
                   </Card>
                 );
               })}
@@ -163,12 +141,10 @@ export default function Friends() {
         </div>
       )}
 
-      {/* FRIEND REQUESTS */}
       {tab === 'requests' && !loading && (
         <div className="space-y-2">
           {pendingReceived.size === 0 ? <EmptyState icon={UserPlus} title="No pending requests" subtitle="Friend requests will appear here" /> : (
             <div className="space-y-2">
-              {friends.length > 0 && <p className="text-ink-400 text-xs">Pending received:</p>}
               {Array.from(pendingReceived).map((senderId) => {
                 const sender = friends.find((f) => f.id === senderId);
                 return (
@@ -202,7 +178,6 @@ export default function Friends() {
         </div>
       )}
 
-      {/* NOTIFICATIONS */}
       {tab === 'notifications' && (
         <div>
           {unreadCount > 0 && <Button size="sm" variant="ghost" className="mb-3" onClick={markAllRead}>Mark all as read</Button>}

@@ -4,7 +4,7 @@ import { Button, Card } from '../components/ui';
 import { AdventureBg } from '../components/BottomNav';
 
 export default function Auth() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, continueAsGuest } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +44,9 @@ export default function Auth() {
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Create Account'}</Button>
           </form>
+          <div className="mt-4 pt-4 border-t border-ink-700/50">
+            <button onClick={continueAsGuest} className="w-full text-ink-400 text-sm hover:text-zeviqo-400 transition-colors">Continue as guest</button>
+          </div>
         </Card>
       </div>
     </div>
