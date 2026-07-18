@@ -6,23 +6,23 @@ import { useAuth } from '../lib/auth';
 import { Sparkles, Snowflake } from 'lucide-react';
 
 export default function Seasonal() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   if (isGuest) {
     return (
       <div className="pb-24">
-        <Header title="Seasonal" back={false} />
+        <Header title="Seasonal" />
         <div className="px-4 py-10 text-center">
           <Snowflake size={48} className="text-ink-500 mx-auto" />
           <p className="text-ink-300 mt-4">Sign in to join seasonal events.</p>
-          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
         </div>
       </div>
     );
   }
   return (
     <div className="pb-24">
-      <Header title="Seasonal" back={false} />
+      <Header title="Seasonal" />
       <div className="px-4 py-4 max-w-lg mx-auto">
         <Card className="p-5 text-center">
           <Sparkles size={36} className="text-brand-400 mx-auto" />

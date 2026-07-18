@@ -7,7 +7,7 @@ import { SHOP_ITEMS } from '../data/gameData';
 import { Coins } from 'lucide-react';
 
 export default function Shop() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   const coins = useStore((s) => s.coins);
   const spendCoins = useStore((s) => s.spendCoins);
@@ -19,7 +19,7 @@ export default function Shop() {
         <Header title="Shop" back={false} />
         <div className="px-4 py-10 text-center">
           <p className="text-ink-300">Sign in to buy items.</p>
-          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
         </div>
       </div>
     );
@@ -35,16 +35,8 @@ export default function Shop() {
           <Card key={item.id} className="p-4">
             <p className="text-white font-semibold">{item.name}</p>
             <p className="text-ink-400 text-xs mt-1">{item.description}</p>
-            <Button
-              size="sm"
-              className="mt-3 w-full"
-              disabled={coins < item.price}
-              onClick={() => {
-                if (spendCoins(item.price)) {
-                  addItem({ id: item.id, name: item.name, type: item.type, quantity: 1 });
-                }
-              }}
-            >
+            <Button size="sm" className="mt-3 w-full" disabled={coins < item.price}
+              onClick={() => { if (spendCoins(item.price)) addItem({ id: item.id, name: item.name, type: item.type, quantity: 1 }); }}>
               {item.price} coins
             </Button>
           </Card>

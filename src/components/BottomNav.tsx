@@ -12,7 +12,7 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: typeof Home }[] = [
 
 export default function BottomNav() {
   const screen = useStore((s) => s.screen);
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   return (
     <nav className="sticky bottom-0 z-20 flex items-center justify-around px-2 py-2 bg-ink-900/90 backdrop-blur-md border-t border-ink-800">
       {NAV_ITEMS.map((item) => {
@@ -21,7 +21,7 @@ export default function BottomNav() {
         return (
           <button
             key={item.screen}
-            onClick={() => setScreen(item.screen)}
+            onClick={() => navigate(item.screen)}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${active ? 'text-brand-400' : 'text-ink-400 hover:text-ink-200'}`}
           >
             <Icon size={20} />

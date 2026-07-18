@@ -1,27 +1,27 @@
 import Header from '../components/Header';
 import Card from '../components/Card';
+import Button from '../components/Button';
 import { CHALLENGES } from '../data/gameData';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import Button from '../components/Button';
 
 export default function Challenges() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   if (isGuest) {
     return (
       <div className="pb-24">
-        <Header title="Challenges" back={false} />
+        <Header title="Challenges" />
         <div className="px-4 py-10 text-center">
           <p className="text-ink-300">Sign in to join challenges.</p>
-          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
         </div>
       </div>
     );
   }
   return (
     <div className="pb-24">
-      <Header title="Challenges" back={false} />
+      <Header title="Challenges" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
         {CHALLENGES.map((c) => (
           <Card key={c.id} className="p-4">

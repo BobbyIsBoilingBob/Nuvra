@@ -2,7 +2,6 @@ import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import Header from '../components/Header';
 import Card from '../components/Card';
-import Button from '../components/Button';
 import { ADVENTURES } from '../data/gameData';
 import { Clock, MapPin, TrendingUp } from 'lucide-react';
 
@@ -13,7 +12,8 @@ const DIFF_COLOR: Record<string, string> = {
 };
 
 export default function Adventures() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
+  const setActiveAdventure = useStore((s) => s.setActiveAdventure);
   const { isGuest } = useAuth();
   return (
     <div className="pb-24">
@@ -25,7 +25,7 @@ export default function Adventures() {
           </p>
         )}
         {ADVENTURES.map((adv) => (
-          <Card key={adv.id} className="overflow-hidden" onClick={() => setScreen('adventureDetail')}>
+          <Card key={adv.id} className="overflow-hidden" onClick={() => { setActiveAdventure(adv.id); navigate('adventureDetail'); }}>
             <div className="h-32 bg-ink-700 relative" style={adv.imageUrl ? { backgroundImage: `url(${adv.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
               <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold capitalize ${DIFF_COLOR[adv.difficulty]}`}>
                 {adv.difficulty}

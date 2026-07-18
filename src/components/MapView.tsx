@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet';
 import type { GeoPoint } from '../types';
 
-// Fix default marker icon for bundlers.
 const defaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -22,7 +21,6 @@ interface MapViewProps {
   checkpoints?: GeoPoint[];
 }
 
-/** Invalidates map size when it mounts or resizes — fixes grey tiles. */
 function MapResizer() {
   const map = useMap();
   useEffect(() => {
@@ -34,7 +32,6 @@ function MapResizer() {
   return null;
 }
 
-/** Fits the map bounds to the route when there are >= 2 points. */
 function RouteFitter({ route }: { route: GeoPoint[] }) {
   const map = useMap();
   useEffect(() => {

@@ -6,13 +6,14 @@ import { ADVENTURES } from '../data/gameData';
 import { Clock, MapPin, TrendingUp, Coins, Target } from 'lucide-react';
 
 export default function AdventureDetail() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
-  const adv = ADVENTURES[0];
+  const activeAdventureId = useStore((s) => s.activeAdventureId);
+  const adv = ADVENTURES.find((a) => a.id === activeAdventureId) ?? ADVENTURES[0];
 
   const start = () => {
     setActiveAdventure(adv.id);
-    setScreen('adventurePreview');
+    navigate('adventurePreview');
   };
 
   return (

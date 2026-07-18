@@ -2,9 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Screen, InventoryItem, HistoryEntry } from './types';
 
+// Top-level screens that belong in the bottom nav — these reset the nav stack.
+const TOP_LEVEL: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
+
 interface AppState {
+  // Navigation stack — Bug #1 fix: proper back navigation.
+  stack: Screen[];
   screen: Screen;
-  setScreen: (s: Screen) => void;
+  navigate: (s: Screen) => void;
+  goBack: () => boolean;
+  resetTo: (s: Screen) => void;
 
   activeAdventureId: string | null;
   setActiveAdventure: (id: string | null) => void;
@@ -39,8 +46,32 @@ interface AppState {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
+      stack: ['home'],
       screen: 'home',
-      setScreen: (s) => set({ screen: s }),
+      // Push onto the stack. Top-level screens reset the stack to avoid duplicates.
+      navigate: (s) => set((state) => {
+        if (TOP_LEVEL.includes(s)) {
+          return { screen: s, stack: [s] };
+        }
+        // Avoid pushing the same screen twice in a row.
+        if (state.stack[state.stack.length - 1] === s) {
+          return { screen: s };
+        }
+        return { screen: s, stack: [...state.stack, s] };
+      }),
+      // Pop the stack. Returns true if there was a previous screen.
+      goBack: () => {
+        const { stack } = get();
+        if (stack.length <= 1) {
+          set({ screen: 'home', stack: ['home'] });
+          return false;
+        }
+        const next = stack[stack.length - 2];
+        set({ screen: next, stack: stack.slice(0, -1) });
+        return true;
+      },
+      // Reset the stack to a single screen.
+      resetTo: (s) => set({ screen: s, stack: [s] }),
 
       activeAdventureId: null,
       setActiveAdventure: (id) => set({ activeAdventureId: id }),
@@ -94,6 +125,20 @@ export const useStore = create<AppState>()(
       onboarded: false,
       setOnboarded: (v) => set({ onboarded: v }),
     }),
-    { name: 'zeviqo-store' },
+    {
+      name: 'zeviqo-store',
+      // Don't persist the navigation stack — always start fresh.
+      partialize: (state) => ({
+        level: state.level,
+        xp: state.xp,
+        coins: state.coins,
+        inventory: state.inventory,
+        history: state.history,
+        claimedAdventureIds: state.claimedAdventureIds,
+        unlockedAchievements: state.unlockedAchievements,
+        dailyStreak: state.dailyStreak,
+        onboarded: state.onboarded,
+      }),
+    },
   ),
 );

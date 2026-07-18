@@ -7,7 +7,8 @@ import Spinner from '../components/Spinner';
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
+  const resetTo = useStore((s) => s.resetTo);
   const setOnboarded = useStore((s) => s.setOnboarded);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export default function Auth() {
     setBusy(false);
     if (res.error) { setError(res.error); return; }
     setOnboarded(true);
-    setScreen('home');
+    resetTo('home');
   };
 
   return (
@@ -41,33 +42,19 @@ export default function Auth() {
         {mode === 'signup' && (
           <div>
             <label className="text-ink-300 text-sm font-medium">Username</label>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Trailblazer"
-              className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none"
-            />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Trailblazer"
+              className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none" />
           </div>
         )}
         <div>
           <label className="text-ink-300 text-sm font-medium">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none"
-          />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
+            className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none" />
         </div>
         <div>
           <label className="text-ink-300 text-sm font-medium">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none"
-          />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
+            className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none" />
         </div>
         {error && <p className="text-error-400 text-sm">{error}</p>}
         <Button className="w-full" onClick={submit} disabled={busy || !email || !password}>
@@ -77,16 +64,14 @@ export default function Auth() {
 
       <p className="text-center text-ink-400 text-sm mt-4">
         {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-        <button
-          onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }}
-          className="text-brand-400 font-semibold hover:text-brand-300"
-        >
+        <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }}
+          className="text-brand-400 font-semibold hover:text-brand-300">
           {mode === 'signin' ? 'Sign up' : 'Sign in'}
         </button>
       </p>
 
       <p className="text-center mt-3">
-        <button onClick={() => setScreen('home')} className="text-ink-400 text-sm hover:text-ink-200">
+        <button onClick={() => resetTo('home')} className="text-ink-400 text-sm hover:text-ink-200">
           Continue as guest
         </button>
       </p>

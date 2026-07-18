@@ -7,7 +7,7 @@ import MapView from '../components/MapView';
 import Header from '../components/Header';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import { CircleAlert as AlertCircle, CircleCheck as CheckCircle2, MapPin, Trophy, Coins, Sparkles, Flag, X } from 'lucide-react';
+import { CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Trophy, Coins, Sparkles, Flag, X } from 'lucide-react';
 
 function formatDistance(m: number): string {
   if (m < 1000) return `${Math.round(m)} m`;
@@ -26,13 +26,11 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-interface QuestProgress {
-  completed: boolean;
-  progress?: number;
-}
+interface QuestProgress { completed: boolean; progress?: number; }
 
 export default function AdventureMap() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
+  const resetTo = useStore((s) => s.resetTo);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
   const addXp = useStore((s) => s.addXp);
   const addCoins = useStore((s) => s.addCoins);
@@ -49,19 +47,16 @@ export default function AdventureMap() {
   );
 
   const geo = useGeolocation();
-
   const [questProgress, setQuestProgress] = useState<Record<string, QuestProgress>>({});
   const [done, setDone] = useState(false);
   const [showFinishScreen, setShowFinishScreen] = useState(false);
 
-  // Start geolocation tracking immediately when the adventure starts.
   useEffect(() => {
     geo.start({ lat: adventure.startLat, lng: adventure.startLng });
     return () => geo.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adventure.id]);
 
-  // Check checkpoint quests against current position.
   useEffect(() => {
     if (!geo.position) return;
     setQuestProgress((prev) => {
@@ -69,25 +64,19 @@ export default function AdventureMap() {
       for (const q of adventure.quests) {
         if (q.type === 'checkpoint' && q.lat != null && q.lng != null) {
           const d = haversineMeters(geo.position!, { lat: q.lat, lng: q.lng });
-          if (d <= CHECKPOINT_RADIUS_M) {
-            next[q.id] = { completed: true };
-          }
+          if (d <= CHECKPOINT_RADIUS_M) next[q.id] = { completed: true };
         }
       }
       return next;
     });
   }, [geo.position, adventure.quests]);
 
-  // Update distance quests from accumulated distance.
   const updateDistanceQuests = () => {
     setQuestProgress((prev) => {
       const next = { ...prev };
       for (const q of adventure.quests) {
         if (q.type === 'distance' && q.target) {
-          next[q.id] = {
-            completed: geo.distance >= q.target,
-            progress: Math.min(geo.distance, q.target),
-          };
+          next[q.id] = { completed: geo.distance >= q.target, progress: Math.min(geo.distance, q.target) };
         }
       }
       return next;
@@ -96,54 +85,34 @@ export default function AdventureMap() {
 
   useEffect(() => { updateDistanceQuests(); }, [geo.distance, adventure.quests]);
 
-  // Completion validation.
   const allQuestsComplete = () => adventure.quests.every((q) => questProgress[q.id]?.completed);
   const minDistance = Math.max(
-    ...adventure.quests.filter((q) => q.type === 'distance' && q.target).map((q) => q.target ?? 0),
-    0,
+    ...adventure.quests.filter((q) => q.type === 'distance' && q.target).map((q) => q.target ?? 0), 0,
   );
   const distanceMet = geo.distance >= minDistance;
   const routeMet = geo.route.length >= 2;
   const requirementsMet = allQuestsComplete() && distanceMet && routeMet;
-
   const alreadyClaimed = activeAdventureId ? hasClaimedAdventure(activeAdventureId) : false;
   const completedCount = adventure.quests.filter((q) => questProgress[q.id]?.completed).length;
 
   const finish = () => {
-    // Triple guard: never award rewards unless every requirement is met.
     if (alreadyClaimed || isGuest || !profile || !requirementsMet) return;
     updateDistanceQuests();
     if (!allQuestsComplete() || !distanceMet || !routeMet) return;
-
-    // Award rewards exactly once.
     addXp(adventure.rewards.xp);
     addCoins(adventure.rewards.coins);
-    adventure.rewards.items?.forEach((id) =>
-      addItem({ id, name: id, type: 'cosmetic', quantity: 1 }),
-    );
+    adventure.rewards.items?.forEach((id) => addItem({ id, name: id, type: 'cosmetic', quantity: 1 }));
     adventure.rewards.achievements?.forEach((id) => unlockAchievement(id));
     addHistory({
-      id: `${adventure.id}-${Date.now()}`,
-      adventureId: adventure.id,
-      adventureTitle: adventure.title,
-      completedAt: new Date().toISOString(),
-      distance: geo.distance,
-      duration: adventure.durationMin,
-      xp: adventure.rewards.xp,
-      coins: adventure.rewards.coins,
+      id: `${adventure.id}-${Date.now()}`, adventureId: adventure.id, adventureTitle: adventure.title,
+      completedAt: new Date().toISOString(), distance: geo.distance, duration: adventure.durationMin,
+      xp: adventure.rewards.xp, coins: adventure.rewards.coins,
     });
     if (activeAdventureId) markAdventureClaimed(activeAdventureId);
-
-    geo.stop();
-    setDone(true);
-    setShowFinishScreen(true);
+    geo.stop(); setDone(true); setShowFinishScreen(true);
   };
 
-  const cancel = () => {
-    geo.stop();
-    geo.reset();
-    setScreen('home');
-  };
+  const cancel = () => { geo.stop(); geo.reset(); resetTo('home'); };
 
   const checkpoints = adventure.quests
     .filter((q) => q.type === 'checkpoint' && q.lat != null && q.lng != null)
@@ -164,8 +133,6 @@ export default function AdventureMap() {
           fitRoute={geo.route.length >= 2}
           checkpoints={checkpoints}
         />
-
-        {/* Quest overlay */}
         <div className="absolute top-3 left-3 right-3 pointer-events-none">
           <Card className="p-3 pointer-events-auto">
             <div className="flex items-center justify-between">
@@ -173,16 +140,12 @@ export default function AdventureMap() {
               <span className="text-ink-300 text-sm">{formatDistance(geo.distance)}</span>
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-ink-700 overflow-hidden">
-              <div
-                className="h-full bg-brand-400 transition-all"
-                style={{ width: `${(completedCount / adventure.quests.length) * 100}%` }}
-              />
+              <div className="h-full bg-brand-400 transition-all" style={{ width: `${(completedCount / adventure.quests.length) * 100}%` }} />
             </div>
           </Card>
         </div>
       </div>
 
-      {/* Bottom action panel */}
       <div className="px-4 py-4 bg-ink-900/90 backdrop-blur-md border-t border-ink-800 max-w-lg mx-auto w-full">
         {geo.error && (
           <div className="mb-3 p-3 rounded-xl bg-error-500/10 border border-error-500/30 flex items-start gap-2">
@@ -190,15 +153,12 @@ export default function AdventureMap() {
             <p className="text-error-400 text-sm">{geo.error}</p>
           </div>
         )}
-
         {alreadyClaimed && (
           <div className="mb-3 p-3 rounded-xl bg-success-500/10 border border-success-500/30 flex items-start gap-2">
             <CheckCircle2 size={18} color="#4ade80" className="flex-shrink-0 mt-0.5" />
             <p className="text-success-400 text-sm">Rewards already claimed for this adventure.</p>
           </div>
         )}
-
-        {/* Persistent message when adventure is incomplete — Bug #3 fix */}
         {!alreadyClaimed && !requirementsMet && (
           <div className="mb-3 p-3 rounded-xl bg-ink-700/30 border border-ink-600/30 flex items-start gap-2">
             <AlertCircle size={18} color="#94a3b8" className="flex-shrink-0 mt-0.5" />
@@ -207,23 +167,14 @@ export default function AdventureMap() {
             </p>
           </div>
         )}
-
         <div className="flex gap-3">
-          <Button variant="secondary" className="flex-1" onClick={cancel}>
-            Cancel
-          </Button>
-          <Button
-            className="flex-1 flex items-center justify-center gap-2"
-            onClick={finish}
-            disabled={done || alreadyClaimed || !requirementsMet}
-          >
-            <Flag size={18} />
-            {done ? 'Finished' : 'Finish Adventure'}
+          <Button variant="secondary" className="flex-1" onClick={cancel}>Cancel</Button>
+          <Button className="flex-1 flex items-center justify-center gap-2" onClick={finish} disabled={done || alreadyClaimed || !requirementsMet}>
+            <Flag size={18} /> {done ? 'Finished' : 'Finish Adventure'}
           </Button>
         </div>
       </div>
 
-      {/* Finish screen modal */}
       {showFinishScreen && (
         <div className="fixed inset-0 z-50 bg-ink-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <Card className="p-6 max-w-sm w-full text-center animate-slide-up">
@@ -236,9 +187,7 @@ export default function AdventureMap() {
               <div className="flex items-center gap-1 text-brand-300"><Sparkles size={18} /> +{adventure.rewards.xp} XP</div>
               <div className="flex items-center gap-1 text-accent-400"><Coins size={18} /> +{adventure.rewards.coins}</div>
             </div>
-            <Button className="w-full mt-6" onClick={() => { setScreen('home'); }}>
-              Back to Home
-            </Button>
+            <Button className="w-full mt-6" onClick={() => resetTo('home')}>Back to Home</Button>
           </Card>
         </div>
       )}

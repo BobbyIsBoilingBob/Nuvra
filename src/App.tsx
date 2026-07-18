@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useStore } from './store';
 import Spinner from './components/Spinner';
@@ -69,21 +69,28 @@ const GUEST_ALLOWED: Screen[] = [
   'creator',
 ];
 
+// Screens that show the bottom nav bar.
+const NAV_SCREENS: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
+
 function Router() {
   const screen = useStore((s) => s.screen);
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest, loading } = useAuth();
 
-  if (loading) return <Spinner label="Loading Zeviqo…" />;
+  // Bug #2 fix: guests never wait on a loading spinner.
+  // Only block for signed-in users while the session resolves.
+  if (loading && !isGuest) return <Spinner label="Loading Zeviqo…" />;
 
   // Guests can only access allowed screens; redirect others to home.
   let active = screen;
   if (isGuest && !GUEST_ALLOWED.includes(screen)) {
     active = 'home';
+    // Correct the store so goBack works from here.
+    if (screen !== 'home') navigate('home');
   }
 
   const Component = SCREENS[active] as ComponentType;
-  const showNav = ['home', 'adventures', 'rewards', 'shop', 'profile'].includes(active);
+  const showNav = NAV_SCREENS.includes(active);
 
   return (
     <div className="min-h-screen flex flex-col">

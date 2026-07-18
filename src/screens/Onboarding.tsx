@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import Button from '../components/Button';
-import { Compass, MapPin, Trophy, CircleCheck as CheckCircle2 } from 'lucide-react';
+import { Compass, MapPin, Trophy } from 'lucide-react';
 
 const STEPS = [
   { icon: Compass, title: 'Discover adventures', desc: 'Browse walking routes tailored to your location and skill level.' },
@@ -10,14 +10,14 @@ const STEPS = [
 ];
 
 export default function Onboarding() {
-  const setScreen = useStore((s) => s.setScreen);
+  const resetTo = useStore((s) => s.resetTo);
   const setOnboarded = useStore((s) => s.setOnboarded);
   const [step, setStep] = useState(0);
 
   const next = () => {
     if (step < STEPS.length - 1) { setStep(step + 1); return; }
     setOnboarded(true);
-    setScreen('home');
+    resetTo('home');
   };
 
   const Icon = STEPS[step].icon;

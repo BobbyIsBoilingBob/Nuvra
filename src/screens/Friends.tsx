@@ -3,13 +3,13 @@ import { useAuth } from '../lib/auth';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { Users, UserPlus, Bell, Search } from 'lucide-react';
+import { Users, UserPlus, Search } from 'lucide-react';
 import { useFriends } from '../hooks/useFriends';
 import { useState } from 'react';
 import type { FriendRequest } from '../types';
 
 export default function Friends() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   const [tab, setTab] = useState<'friends' | 'requests' | 'search' | 'notifications'>('friends');
   const [query, setQuery] = useState('');
@@ -19,33 +19,27 @@ export default function Friends() {
   if (isGuest) {
     return (
       <div className="pb-24">
-        <Header title="Friends" back={false} />
+        <Header title="Friends" />
         <div className="px-4 py-10 max-w-md mx-auto text-center">
           <Users size={48} className="text-ink-500 mx-auto" />
           <h2 className="font-display text-xl font-bold text-white mt-4">Sign in to connect with friends</h2>
           <p className="text-ink-300 mt-2">Add friends, send requests, and walk together.</p>
-          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
         </div>
       </div>
     );
   }
 
-  const doSearch = async () => {
-    const r = await searchPlayers(query);
-    setSearchResults(r);
-  };
+  const doSearch = async () => { const r = await searchPlayers(query); setSearchResults(r); };
 
   return (
     <div className="pb-24">
-      <Header title="Friends" back={false} />
+      <Header title="Friends" />
       <div className="px-4 py-4 max-w-lg mx-auto">
         <div className="flex gap-2 mb-4">
           {(['friends', 'requests', 'search', 'notifications'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${tab === t ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-300'}`}
-            >
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${tab === t ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-300'}`}>
               {t}
             </button>
           ))}
@@ -87,12 +81,8 @@ export default function Friends() {
         {tab === 'search' && (
           <div>
             <div className="flex gap-2 mb-3">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search players…"
-                className="flex-1 px-3 py-2 rounded-xl bg-ink-900 border border-ink-700 text-white outline-none focus:border-brand-500"
-              />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search players…"
+                className="flex-1 px-3 py-2 rounded-xl bg-ink-900 border border-ink-700 text-white outline-none focus:border-brand-500" />
               <Button onClick={doSearch}><Search size={16} /></Button>
             </div>
             <div className="space-y-2">

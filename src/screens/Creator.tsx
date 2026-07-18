@@ -6,23 +6,23 @@ import { useAuth } from '../lib/auth';
 import { Compass } from 'lucide-react';
 
 export default function Creator() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   if (isGuest) {
     return (
       <div className="pb-24">
-        <Header title="Adventure Creator" back={false} />
+        <Header title="Adventure Creator" />
         <div className="px-4 py-10 text-center">
           <Compass size={48} className="text-ink-500 mx-auto" />
           <p className="text-ink-300 mt-4">Sign in to create custom adventures.</p>
-          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
         </div>
       </div>
     );
   }
   return (
     <div className="pb-24">
-      <Header title="Adventure Creator" back={false} />
+      <Header title="Adventure Creator" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
         <Card className="p-4">
           <label className="text-ink-300 text-sm">Adventure title</label>

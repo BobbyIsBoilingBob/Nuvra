@@ -5,8 +5,8 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 
 export default function Home() {
-  const setScreen = useStore((s) => s.setScreen);
-  const { isGuest, profile, user } = useAuth();
+  const navigate = useStore((s) => s.navigate);
+  const { isGuest, profile } = useAuth();
   const level = profile?.level ?? 1;
   const xp = profile?.xp ?? 0;
   const coins = profile?.coins ?? 0;
@@ -21,7 +21,7 @@ export default function Home() {
           </h1>
         </div>
         <button
-          onClick={() => setScreen('profile')}
+          onClick={() => navigate('profile')}
           className="h-11 w-11 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center"
         >
           <User size={20} className="text-brand-300" />
@@ -40,38 +40,29 @@ export default function Home() {
                 Browse adventures and the community freely. Sign in to save your progress, earn rewards, and join friends.
               </p>
               <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={() => setScreen('auth')}>Sign In</Button>
-                <Button size="sm" variant="secondary" onClick={() => setScreen('auth')}>Create Account</Button>
+                <Button size="sm" onClick={() => navigate('auth')}>Sign In</Button>
+                <Button size="sm" variant="secondary" onClick={() => navigate('auth')}>Create Account</Button>
               </div>
             </div>
           </div>
         </Card>
       ) : (
         <Card className="p-5 grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-ink-400 text-xs">Level</p>
-            <p className="font-display text-2xl font-bold text-brand-300">{level}</p>
-          </div>
-          <div>
-            <p className="text-ink-400 text-xs">XP</p>
-            <p className="font-display text-2xl font-bold text-white">{xp.toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="text-ink-400 text-xs">Coins</p>
-            <p className="font-display text-2xl font-bold text-accent-400">{coins}</p>
-          </div>
+          <div><p className="text-ink-400 text-xs">Level</p><p className="font-display text-2xl font-bold text-brand-300">{level}</p></div>
+          <div><p className="text-ink-400 text-xs">XP</p><p className="font-display text-2xl font-bold text-white">{xp.toLocaleString()}</p></div>
+          <div><p className="text-ink-400 text-xs">Coins</p><p className="font-display text-2xl font-bold text-accent-400">{coins}</p></div>
         </Card>
       )}
 
       <section>
         <h2 className="font-display font-bold text-white mb-3">Start your next adventure</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4" onClick={() => setScreen('adventures')}>
+          <Card className="p-4" onClick={() => navigate('adventures')}>
             <Compass size={28} className="text-brand-400" />
             <p className="font-semibold text-white mt-2">Adventures</p>
             <p className="text-ink-400 text-xs mt-0.5">Explore nearby routes</p>
           </Card>
-          <Card className="p-4" onClick={() => setScreen('rewards')}>
+          <Card className="p-4" onClick={() => navigate('rewards')}>
             <Trophy size={28} className="text-accent-400" />
             <p className="font-semibold text-white mt-2">Leaderboard</p>
             <p className="text-ink-400 text-xs mt-0.5">Climb the ranks</p>
@@ -82,15 +73,15 @@ export default function Home() {
       <section>
         <h2 className="font-display font-bold text-white mb-3">Quick actions</h2>
         <div className="grid grid-cols-3 gap-3">
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => setScreen('quests')}>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('quests')}>
             <MapPin size={20} className="text-brand-300" />
             <span className="text-xs text-ink-200">Quests</span>
           </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => setScreen('challenges')}>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('challenges')}>
             <Trophy size={20} className="text-accent-400" />
             <span className="text-xs text-ink-200">Challenges</span>
           </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => setScreen('seasonal')}>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('seasonal')}>
             <Sparkles size={20} className="text-brand-300" />
             <span className="text-xs text-ink-200">Seasonal</span>
           </Card>

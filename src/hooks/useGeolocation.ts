@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { GeoPoint } from '../types';
 
-const DRIFT_THRESHOLD_M = 5; // ignore movements smaller than this
-const SPEED_CAP_KMH = 15; // reject implausible speeds (GPS glitches)
+const DRIFT_THRESHOLD_M = 5;
+const SPEED_CAP_KMH = 15;
 
 function haversineMeters(a: GeoPoint, b: GeoPoint): number {
   const R = 6371000;
@@ -51,7 +51,7 @@ export function useGeolocation(): GeoState & GeoActions {
       setError('Geolocation is not supported on this device.');
       return;
     }
-    if (watchIdRef.current !== null) return; // already watching
+    if (watchIdRef.current !== null) return;
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const pt: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -72,9 +72,8 @@ export function useGeolocation(): GeoState & GeoActions {
           const now = Date.now();
           const dtSec = Math.max((now - lastTimeRef.current) / 1000, 1);
           const speedKmh = (dMeters / 1000) / (dtSec / 3600);
-          // Filter drift and implausible jumps.
           if (dMeters < DRIFT_THRESHOLD_M || speedKmh > SPEED_CAP_KMH) {
-            return prev; // ignore this point
+            return prev;
           }
           setDistance((dist) => dist + dMeters);
           lastPointRef.current = pt;
@@ -82,9 +81,7 @@ export function useGeolocation(): GeoState & GeoActions {
           return [...prev, pt];
         });
       },
-      (err) => {
-        setError(err.message || 'Unable to get your location.');
-      },
+      (err) => { setError(err.message || 'Unable to get your location.'); },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
     );
   }, []);
@@ -98,11 +95,8 @@ export function useGeolocation(): GeoState & GeoActions {
   }, []);
 
   const reset = useCallback(() => {
-    setRoute([]);
-    setDistance(0);
-    setPosition(null);
-    lastPointRef.current = null;
-    lastTimeRef.current = 0;
+    setRoute([]); setDistance(0); setPosition(null);
+    lastPointRef.current = null; lastTimeRef.current = 0;
   }, []);
 
   useEffect(() => {

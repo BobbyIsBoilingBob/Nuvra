@@ -1,8 +1,8 @@
 import Header from '../components/Header';
 import Card from '../components/Card';
+import Button from '../components/Button';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import Button from '../components/Button';
 import { Trophy } from 'lucide-react';
 
 const LEADERBOARD = [
@@ -14,7 +14,7 @@ const LEADERBOARD = [
 ];
 
 export default function Rewards() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   return (
     <div className="pb-24">
@@ -24,7 +24,7 @@ export default function Rewards() {
           <Card className="p-4 text-center">
             <Trophy size={36} className="text-accent-400 mx-auto" />
             <p className="text-ink-300 mt-2 text-sm">Sign in to earn and track rewards.</p>
-            <Button size="sm" className="mt-3" onClick={() => setScreen('auth')}>Sign In</Button>
+            <Button size="sm" className="mt-3" onClick={() => navigate('auth')}>Sign In</Button>
           </Card>
         )}
         <Card className="p-4">
@@ -40,8 +40,8 @@ export default function Rewards() {
           </div>
         </Card>
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4" onClick={() => setScreen('dailyRewards')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2 text-sm">Daily Rewards</p></Card>
-          <Card className="p-4" onClick={() => setScreen('achievements')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2 text-sm">Achievements</p></Card>
+          <Card className="p-4" onClick={() => navigate('dailyRewards')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2 text-sm">Daily Rewards</p></Card>
+          <Card className="p-4" onClick={() => navigate('achievements')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2 text-sm">Achievements</p></Card>
         </div>
       </div>
     </div>

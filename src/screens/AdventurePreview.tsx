@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import { MapPin, CircleCheck as CheckCircle2, Navigation } from 'lucide-react';
 
 export default function AdventurePreview() {
-  const setScreen = useStore((s) => s.setScreen);
+  const navigate = useStore((s) => s.navigate);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
   const adv = ADVENTURES.find((a) => a.id === activeAdventureId) ?? ADVENTURES[0];
 
@@ -36,7 +36,7 @@ export default function AdventurePreview() {
             ))}
           </ul>
         </Card>
-        <Button className="w-full" size="lg" onClick={() => setScreen('adventureMap')}>
+        <Button className="w-full" size="lg" onClick={() => navigate('adventureMap')}>
           <Navigation size={18} /> Begin Adventure
         </Button>
       </div>

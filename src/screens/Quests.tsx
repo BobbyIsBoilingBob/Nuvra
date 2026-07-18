@@ -1,15 +1,13 @@
 import Header from '../components/Header';
 import Card from '../components/Card';
-import { useStore } from '../store';
-import { Target, CircleCheck as CheckCircle2, Circle } from 'lucide-react';
+import { Circle } from 'lucide-react';
 import { ADVENTURES } from '../data/gameData';
 
 export default function Quests() {
-  const setScreen = useStore((s) => s.setScreen);
   const quests = ADVENTURES.flatMap((a) => a.quests.map((q) => ({ ...q, adventure: a.title })));
   return (
     <div className="pb-24">
-      <Header title="Quests" back={false} />
+      <Header title="Quests" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
         {quests.map((q) => (
           <Card key={q.id + q.adventure} className="p-4 flex items-start gap-3">
