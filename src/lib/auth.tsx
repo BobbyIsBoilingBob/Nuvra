@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const p: Profile = {
           id: data.id, username: data.username ?? 'Adventurer',
           level: data.level ?? 1, xp: data.xp ?? 0, coins: data.coins ?? 0,
-          avatar: data.avatar_emoji ?? undefined, createdAt: data.created_at,
+          avatar: data.avatar_emoji ?? undefined, avatarColor: data.avatar_color ?? undefined,
+          createdAt: data.created_at,
         };
         setProfile(p);
         setCachedProfile(p);

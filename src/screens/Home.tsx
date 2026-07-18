@@ -2,7 +2,7 @@ import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { Compass, Trophy, User, Sparkles, MapPin } from 'lucide-react';
+import { Compass, Trophy, User, Sparkles, MapPin, Users, Target, History as HistoryIcon, Package, Award } from 'lucide-react';
 
 export default function Home() {
   const navigate = useStore((s) => s.navigate);
@@ -21,7 +21,7 @@ export default function Home() {
           </h1>
         </div>
         <button onClick={() => navigate('profile')}
-          className="h-11 w-11 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center">
+          className="h-11 w-11 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center hover:bg-brand-500/30 transition-colors">
           <User size={20} className="text-brand-300" />
         </button>
       </header>
@@ -45,7 +45,7 @@ export default function Home() {
           </div>
         </Card>
       ) : (
-        <Card className="p-5 grid grid-cols-3 gap-4">
+        <Card className="p-5 grid grid-cols-3 gap-4 animate-fade-in">
           <div><p className="text-ink-400 text-xs">Level</p><p className="font-display text-2xl font-bold text-brand-300">{level}</p></div>
           <div><p className="text-ink-400 text-xs">XP</p><p className="font-display text-2xl font-bold text-white">{xp.toLocaleString()}</p></div>
           <div><p className="text-ink-400 text-xs">Coins</p><p className="font-display text-2xl font-bold text-accent-400">{coins}</p></div>
@@ -70,18 +70,44 @@ export default function Home() {
 
       <section>
         <h2 className="font-display font-bold text-white mb-3">Quick actions</h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('quests')}>
             <MapPin size={20} className="text-brand-300" />
             <span className="text-xs text-ink-200">Quests</span>
           </Card>
           <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('challenges')}>
-            <Trophy size={20} className="text-accent-400" />
+            <Target size={20} className="text-accent-400" />
             <span className="text-xs text-ink-200">Challenges</span>
           </Card>
           <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('seasonal')}>
             <Sparkles size={20} className="text-brand-300" />
             <span className="text-xs text-ink-200">Seasonal</span>
+          </Card>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('party')}>
+            <Users size={20} className="text-brand-300" />
+            <span className="text-xs text-ink-200">Party</span>
+          </Card>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-display font-bold text-white mb-3">Your progress</h2>
+        <div className="grid grid-cols-4 gap-3">
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('achievements')}>
+            <Award size={20} className="text-accent-400" />
+            <span className="text-xs text-ink-200">Awards</span>
+          </Card>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('history')}>
+            <HistoryIcon size={20} className="text-brand-300" />
+            <span className="text-xs text-ink-200">History</span>
+          </Card>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('inventory')}>
+            <Package size={20} className="text-brand-300" />
+            <span className="text-xs text-ink-200">Items</span>
+          </Card>
+          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('customise')}>
+            <User size={20} className="text-brand-300" />
+            <span className="text-xs text-ink-200">Avatar</span>
           </Card>
         </div>
       </section>
@@ -94,6 +120,30 @@ export default function Home() {
           <div className="flex-1">
             <p className="font-display font-bold text-white">AI Adventure Generator</p>
             <p className="text-ink-400 text-sm">Create a custom walking adventure with AI.</p>
+          </div>
+        </Card>
+      </section>
+
+      <section>
+        <Card className="p-5 flex items-center gap-4" onClick={() => navigate('creator')}>
+          <div className="h-12 w-12 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0">
+            <Compass size={24} className="text-accent-400" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-bold text-white">Adventure Creator</p>
+            <p className="text-ink-400 text-sm">Design and save your own walking routes.</p>
+          </div>
+        </Card>
+      </section>
+
+      <section>
+        <Card className="p-5 flex items-center gap-4" onClick={() => navigate('community')}>
+          <div className="h-12 w-12 rounded-xl bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+            <Users size={24} className="text-brand-300" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-bold text-white">Community</p>
+            <p className="text-ink-400 text-sm">Connect with friends and other walkers.</p>
           </div>
         </Card>
       </section>

@@ -27,6 +27,7 @@ interface MapViewProps {
   fitRoute?: boolean;
   checkpoints?: GeoPoint[];
   followPlayer?: boolean;
+  satellite?: boolean;
 }
 
 function MapResizer() {
@@ -61,12 +62,17 @@ function PlayerFollower({ position }: { position: GeoPoint | null }) {
   return null;
 }
 
-export default function MapView({ center, route, fitRoute = false, checkpoints = [], followPlayer = false }: MapViewProps) {
+export default function MapView({ center, route, fitRoute = false, checkpoints = [], followPlayer = false, satellite = false }: MapViewProps) {
   const latLngs = route.map((p) => [p.lat, p.lng]) as [number, number][];
   return (
     <MapContainer center={[center.lat, center.lng]} zoom={15}
       className="h-full w-full" style={{ minHeight: 300, zIndex: 0 }}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+      <TileLayer
+        url={satellite
+          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+        attribution={satellite ? '&copy; Esri' : '&copy; OpenStreetMap contributors'}
+      />
       <MapResizer />
       {fitRoute && <RouteFitter route={route} />}
       {followPlayer && <PlayerFollower position={route.length > 0 ? route[route.length - 1] : null} />}

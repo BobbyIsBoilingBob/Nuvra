@@ -82,6 +82,9 @@ export const CHALLENGES: Challenge[] = [
   { id: 'ch3', title: 'Social Butterfly', description: 'Complete an adventure with 3 friends.', progress: 0, target: 3, reward: { xp: 250, coins: 120 }, type: 'social', status: 'active' },
 ];
 
+export const AVATAR_EMOJIS = ['🧭', '🚶', '🏃', '🚴', '🏔️', '🌲', '🌊', '🌅', '🦊', '🦉', '🐢', '🦅'];
+export const AVATAR_COLORS = ['#1c7af5', '#22d3ee', '#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#ec4899', '#14b8a6'];
+
 const ADJECTIVES = ['Hidden', 'Secret', 'Mystic', 'Golden', 'Forgotten', 'Winding', 'Ancient', 'Crystal'];
 const NOUNS = ['Garden Path', 'Canal Walk', 'Castle Trail', 'Park Loop', 'Hillside Stroll', 'Bridge Route', 'Market Mile', 'Lakeside Ramble'];
 const TAGS = ['nature', 'city', 'historic', 'waterfront', 'park', 'hills', 'market', 'relaxed'];

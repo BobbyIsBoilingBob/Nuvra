@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { User, Trophy, Coins, Sparkles, Settings, MapPin, History, LogOut } from 'lucide-react';
+import { User, Trophy, Coins, Sparkles, Settings, MapPin, History as HistoryIcon, Award, Package, LogOut } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useStore((s) => s.navigate);
@@ -62,8 +62,8 @@ export default function Profile() {
       } />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
         <Card className="p-5 flex items-center gap-4 animate-fade-in">
-          <div className="h-16 w-16 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center">
-            <User size={28} className="text-brand-300" />
+          <div className="h-16 w-16 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: profile.avatarColor ?? '#1c7af5' + '30', border: `2px solid ${profile.avatarColor ?? '#1c7af5'}` }}>
+            {profile.avatar ?? '🧭'}
           </div>
           <div>
             <h2 className="font-display text-xl font-bold text-white">{profile.username}</h2>
@@ -76,10 +76,12 @@ export default function Profile() {
           <div><Coins size={18} className="text-accent-400 mx-auto" /><p className="text-white font-bold mt-1">{profile.coins}</p><p className="text-ink-400 text-xs">Coins</p></div>
         </Card>
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4" onClick={() => navigate('achievements')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2">Achievements</p></Card>
-          <Card className="p-4" onClick={() => navigate('history')}><History size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">History</p></Card>
+          <Card className="p-4" onClick={() => navigate('achievements')}><Award size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2">Achievements</p></Card>
+          <Card className="p-4" onClick={() => navigate('history')}><HistoryIcon size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">History</p></Card>
           <Card className="p-4" onClick={() => navigate('friends')}><User size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">Friends</p></Card>
-          <Card className="p-4" onClick={() => navigate('inventory')}><MapPin size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">Inventory</p></Card>
+          <Card className="p-4" onClick={() => navigate('inventory')}><Package size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">Inventory</p></Card>
+          <Card className="p-4" onClick={() => navigate('customise')}><User size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">Customise</p></Card>
+          <Card className="p-4" onClick={() => navigate('settings')}><Settings size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">Settings</p></Card>
         </div>
         <Button variant="danger" className="w-full" onClick={() => { signOut(); resetTo('home'); }}>
           <LogOut size={18} /> Sign Out

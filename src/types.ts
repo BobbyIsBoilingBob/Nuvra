@@ -45,6 +45,7 @@ export interface Profile {
   xp: number;
   coins: number;
   avatar?: string;
+  avatarColor?: string;
   createdAt?: string;
 }
 
@@ -91,3 +92,27 @@ export interface Notification { id: string; title: string; body: string; read: b
 export interface ShopItem { id: string; name: string; description: string; price: number; type: 'cosmetic' | 'boost' | 'consumable'; icon?: string; }
 export interface HistoryEntry { id: string; adventureId: string; adventureTitle: string; completedAt: string; distance: number; duration: number; xp: number; coins: number; }
 export interface LeaderboardEntry { id: string; username: string; xp: number; level: number; avatar?: string; }
+
+export interface PartyInfo {
+  id: string;
+  name: string;
+  leaderId: string;
+  status: string;
+  members: { userId: string; username: string; role: string }[];
+}
+
+export interface UserSettings {
+  notifications: boolean;
+  mapPreference: 'standard' | 'satellite';
+  privacy: 'public' | 'friends' | 'private';
+}
+
+export interface SeasonalProgress {
+  seasonId: string;
+  seasonName: string;
+  adventuresCompleted: number;
+  distanceWalked: number;
+  targetAdventures: number;
+  targetDistance: number;
+  rewardClaimed: boolean;
+}

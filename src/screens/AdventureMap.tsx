@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useChallenges } from '../hooks/useChallenges';
+import { useSeasonal } from '../hooks/useSeasonal';
 import { ADVENTURES } from '../data/gameData';
 import type { Adventure, Quest } from '../types';
 import MapView from '../components/MapView';
@@ -43,6 +44,7 @@ export default function AdventureMap() {
   const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest, profile } = useAuth();
   const { recordAdventureCompletion } = useChallenges();
+  const { recordAdventure: recordSeasonal } = useSeasonal();
 
   const allAdventures: Adventure[] = useMemo(
     () => [...customAdventures, ...ADVENTURES],
@@ -117,6 +119,7 @@ export default function AdventureMap() {
     });
     if (activeAdventureId) markAdventureClaimed(activeAdventureId);
     await recordAdventureCompletion(geo.distance);
+    await recordSeasonal(geo.distance);
     geo.stop();
     setDone(true);
     setShowFinishScreen(true);
