@@ -91,7 +91,6 @@ export const CHALLENGES: Challenge[] = [
   { id: 'ch3', title: 'Social Butterfly', description: 'Complete an adventure with 3 friends.', progress: 0, target: 3, reward: { xp: 250, coins: 120 } },
 ];
 
-// Fix #3: AI adventure generation templates.
 const ADJECTIVES = ['Hidden', 'Secret', 'Mystic', 'Golden', 'Forgotten', 'Winding', 'Ancient', 'Crystal'];
 const NOUNS = ['Garden Path', 'Canal Walk', 'Castle Trail', 'Park Loop', 'Hillside Stroll', 'Bridge Route', 'Market Mile', 'Lakeside Ramble'];
 const TAGS = ['nature', 'city', 'historic', 'waterfront', 'park', 'hills', 'market', 'relaxed'];

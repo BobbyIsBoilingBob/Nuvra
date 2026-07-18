@@ -17,7 +17,6 @@ export default function Adventures() {
   const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest } = useAuth();
 
-  // Fix #3: AI-generated adventures appear in the list.
   const allAdventures = [...customAdventures, ...ADVENTURES];
 
   return (

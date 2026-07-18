@@ -14,7 +14,6 @@ interface AppState {
   activeAdventureId: string | null;
   setActiveAdventure: (id: string | null) => void;
 
-  // Fix #3: AI-generated adventures stored in state so they appear immediately.
   customAdventures: Adventure[];
   addCustomAdventure: (adv: Adventure) => void;
 

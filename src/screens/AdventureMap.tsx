@@ -29,7 +29,6 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
 interface QuestProgress { completed: boolean; progress?: number; }
 
 export default function AdventureMap() {
-  const navigate = useStore((s) => s.navigate);
   const resetTo = useStore((s) => s.resetTo);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
   const addXp = useStore((s) => s.addXp);

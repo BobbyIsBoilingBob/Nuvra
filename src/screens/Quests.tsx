@@ -9,13 +9,20 @@ const TYPE_ICON = { distance: Ruler, checkpoint: MapPin, challenge: Eye };
 
 export default function Quests() {
   const navigate = useStore((s) => s.navigate);
+  const setActiveAdventure = useStore((s) => s.setActiveAdventure);
   const customAdventures = useStore((s) => s.customAdventures);
 
-  // Fix #2: Gather quests from both built-in and AI-generated adventures.
   const allAdventures = [...customAdventures, ...ADVENTURES];
   const quests: Quest[] = allAdventures.flatMap((a) =>
     a.quests.map((q) => ({ ...q, adventureId: a.id, adventureTitle: a.title })),
   );
+
+  // Fix #2: quests are now selectable — clicking navigates to quest detail
+  // and sets the active adventure so QuestDetail can show the right data.
+  const openQuest = (q: Quest) => {
+    if (q.adventureId) setActiveAdventure(q.adventureId);
+    navigate('questDetail');
+  };
 
   return (
     <div className="pb-24">
@@ -28,8 +35,7 @@ export default function Quests() {
             <Card
               key={q.id + (q.adventureId ?? '')}
               className="p-4 flex items-start gap-3"
-              // Fix #2: quests are now selectable — clicking navigates to quest detail.
-              onClick={() => navigate('questDetail')}
+              onClick={() => openQuest(q)}
             >
               <div className="h-10 w-10 rounded-xl bg-brand-500/15 flex items-center justify-center flex-shrink-0">
                 <Icon size={20} className="text-brand-300" />

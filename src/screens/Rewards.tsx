@@ -5,7 +5,7 @@ import Spinner from '../components/Spinner';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { useLeaderboard } from '../lib/useLeaderboard';
-import { Trophy, User } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 export default function Rewards() {
   const navigate = useStore((s) => s.navigate);
@@ -28,7 +28,7 @@ export default function Rewards() {
           <h3 className="font-display font-bold text-white mb-3 flex items-center gap-2">
             <Trophy size={18} className="text-accent-400" /> Leaderboard
           </h3>
-          {/* Fix #1: real users from Supabase, no fake data. */}
+          {/* Fix #1: real users from Supabase profiles table, no fake data. */}
           {loading && <Spinner label="Loading leaderboard…" />}
           {error && <p className="text-error-400 text-sm">{error}</p>}
           {!loading && !error && entries.length === 0 && (
@@ -43,10 +43,8 @@ export default function Rewards() {
                     <span className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-accent-500/20 text-accent-400' : i < 3 ? 'bg-brand-500/20 text-brand-300' : 'bg-ink-700 text-ink-300'}`}>
                       {i + 1}
                     </span>
-                    <div className="h-8 w-8 rounded-full bg-ink-700 flex items-center justify-center flex-shrink-0">
-                      {p.avatar
-                        ? <img src={p.avatar} alt={p.username} className="h-8 w-8 rounded-full object-cover" />
-                        : <User size={16} className="text-ink-400" />}
+                    <div className="h-8 w-8 rounded-full bg-ink-700 flex items-center justify-center flex-shrink-0 text-lg">
+                      {p.avatar ?? '🧭'}
                     </div>
                     <span className={`font-medium flex-1 truncate ${isMe ? 'text-brand-300' : 'text-white'}`}>
                       {p.username}{isMe ? ' (you)' : ''}

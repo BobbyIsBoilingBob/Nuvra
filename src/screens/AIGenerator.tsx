@@ -40,17 +40,18 @@ export default function AIGenerator() {
     );
   }
 
+  // Fix #3: working AI generator — creates a real adventure, saves it,
+  // shows the result, and lets the user start it immediately.
   const generate = () => {
     setError(null);
     setGenerating(true);
     setResult(null);
-    // Simulate generation latency for UX feedback.
     setTimeout(() => {
       try {
         const adv = generateAIAdventure(prompt);
         addCustomAdventure(adv);
         setResult(adv);
-      } catch (e) {
+      } catch {
         setError('Could not generate an adventure. Please try again.');
       }
       setGenerating(false);

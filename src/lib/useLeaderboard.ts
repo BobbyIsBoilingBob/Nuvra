@@ -12,7 +12,7 @@ export function useLeaderboard() {
     setError(null);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, xp, level, avatar')
+      .select('id, username, xp, level, avatar_emoji, avatar_color')
       .order('xp', { ascending: false })
       .limit(50);
 
@@ -25,7 +25,7 @@ export function useLeaderboard() {
         username: p.username ?? 'Adventurer',
         xp: p.xp ?? 0,
         level: p.level ?? 1,
-        avatar: p.avatar ?? undefined,
+        avatar: p.avatar_emoji ?? undefined,
       })));
     }
     setLoading(false);
