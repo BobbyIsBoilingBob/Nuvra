@@ -1,9 +1,8 @@
 import { useStore } from '../store';
 import { ACHIEVEMENTS, ACHIEVEMENT_CATEGORIES } from '../cosmetics';
 import { useAuth } from '../lib/auth';
-import { Card, Screen, Badge } from '../components/ui';
-import { getIcon } from '../components/ui';
-import { CircleCheck as CheckCircle2, Circle, Lock } from 'lucide-react';
+import { Card, Screen, Badge, getIcon } from '../components/ui';
+import { CircleCheck as CheckCircle2, Lock } from 'lucide-react';
 
 export default function Achievements() {
   const { questProgress, setScreen } = useStore();
@@ -40,10 +39,7 @@ export default function Achievements() {
                         <Icon size={24} color={unlocked ? tierColors[a.tier] : '#5a6a9a'} />
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-white">{a.title}</h3>
-                          <Badge color={tierColors[a.tier]}>{a.tier}</Badge>
-                        </div>
+                        <div className="flex items-center gap-2"><h3 className="font-semibold text-white">{a.title}</h3><Badge color={tierColors[a.tier]}>{a.tier}</Badge></div>
                         <p className="text-ink-400 text-sm">{a.description}</p>
                         <p className="text-ink-500 text-xs mt-1">{Math.min(value, a.requirement)} / {a.requirement}</p>
                       </div>

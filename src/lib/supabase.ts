@@ -8,26 +8,13 @@ export const supabase = createClient(url, anonKey, {
 });
 
 export type Profile = {
-  id: string;
-  username: string;
-  avatar_emoji: string;
-  avatar_color: string;
-  xp: number;
-  level: number;
-  coins: number;
-  gems: number;
-  distance_walked: number;
-  steps: number;
-  completed_adventures: number;
-  completed_challenges: number;
-  walking_streak: number;
-  treasure_collected: number;
-  exploration_percentage: number;
-  last_walk_date: string | null;
-  is_online: boolean;
-  last_seen: string | null;
-  settings: Record<string, unknown>;
-  created_at: string;
+  id: string; username: string; avatar_emoji: string; avatar_color: string;
+  xp: number; level: number; coins: number; gems: number;
+  distance_walked: number; steps: number; completed_adventures: number;
+  completed_challenges: number; walking_streak: number; treasure_collected: number;
+  exploration_percentage: number; last_walk_date: string | null;
+  is_online: boolean; last_seen: string | null;
+  settings: Record<string, unknown>; created_at: string;
 };
 
 export type Friend = { id: string; friend_id: string; created_at: string; profile: Profile };

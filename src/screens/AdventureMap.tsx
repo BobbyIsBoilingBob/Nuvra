@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useStore } from '../store';
-import { getAdventureById } from '../data';
+import { getAdventureById, getComboTier } from '../data';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { formatDistance, formatDuration, DEFAULT_CENTER } from '../lib/map-utils';
-import { getComboTier } from '../data';
 import { useAuth } from '../lib/auth';
 import { Card, Button, Spinner } from '../components/ui';
 import { Play, Pause, Clock, Footprints, Gem, Flame, Zap, Coins, Check, X } from 'lucide-react';
@@ -17,18 +16,15 @@ export default function AdventureMap() {
   const [geo, geoActions] = useGeolocation();
   const [active, setActive] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [treasures, setTreasures] = useState(0);
+  const [treasures] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [completed, setCompleted] = useState(false);
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (active) {
-      timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    if (active) timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
+    else if (timerRef.current) clearInterval(timerRef.current);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [active]);
 
@@ -37,22 +33,17 @@ export default function AdventureMap() {
       setCombo(c => { const nc = c + 1; setMaxCombo(m => Math.max(m, nc)); return nc; });
       addQuestProgress('distance', geo.totalDistance);
     }
-    if (active && !geo.isMoving) {
-      setCombo(0);
-    }
+    if (active && !geo.isMoving) setCombo(0);
   }, [geo.isMoving, geo.totalDistance, active, addQuestProgress]);
 
   const handleStart = () => { setActive(true); geoActions.start(); geoActions.reset(); setElapsed(0); };
   const handlePause = () => setActive(false);
   const handleStop = async () => {
-    setActive(false);
-    geoActions.stop();
+    setActive(false); geoActions.stop();
     if (!adventure || !profile) return;
     const xpEarned = Math.round(adventure.xp * (1 + maxCombo * 0.01));
-    const coinsEarned = adventure.coins;
-    const gemsEarned = adventure.gems;
     await updateProfile({
-      xp: profile.xp + xpEarned, coins: profile.coins + coinsEarned, gems: profile.gems + gemsEarned,
+      xp: profile.xp + xpEarned, coins: profile.coins + adventure.coins, gems: profile.gems + adventure.gems,
       distance_walked: profile.distance_walked + geo.totalDistance,
       steps: profile.steps + Math.round(geo.totalDistance * 1300),
       completed_adventures: profile.completed_adventures + 1,
@@ -64,29 +55,25 @@ export default function AdventureMap() {
     await recordAdventureComplete({
       adventure_id: adventure.id, adventure_name: adventure.title, emoji: adventure.emoji,
       type: adventure.type, difficulty: adventure.difficulty, distance: geo.totalDistance,
-      duration: elapsed, xp_earned: xpEarned, coins_earned: coinsEarned, gems_earned: gemsEarned,
+      duration: elapsed, xp_earned: xpEarned, coins_earned: adventure.coins, gems_earned: adventure.gems,
       treasures_found: treasures, max_combo: maxCombo,
     });
     setCompleted(true);
   };
 
-  if (!adventure) {
-    return (
-      <div className="px-4 pt-4">
-        <p className="text-ink-400">Adventure not found.</p>
-        <Button onClick={() => setScreen('adventures')} className="mt-4">Back</Button>
-      </div>
-    );
-  }
+  if (!adventure) return (
+    <div className="px-4 pt-4">
+      <p className="text-ink-400">Adventure not found.</p>
+      <Button onClick={() => setScreen('adventures')} className="mt-4">Back</Button>
+    </div>
+  );
 
   const comboTier = getComboTier(combo);
 
   return (
     <div className="fixed inset-0 flex flex-col bg-ink-950 z-20">
       <div className="flex items-center gap-3 p-4 bg-ink-900/80 backdrop-blur-md z-10">
-        <button onClick={() => { geoActions.stop(); setScreen('adventure-detail'); }} className="text-ink-400 hover:text-white">
-          <X size={24} />
-        </button>
+        <button onClick={() => { geoActions.stop(); setScreen('adventure-detail'); }} className="text-ink-400 hover:text-white"><X size={24} /></button>
         <div className="flex-1">
           <p className="text-white font-semibold">{adventure.emoji} {adventure.title}</p>
           <p className="text-ink-400 text-xs">{formatDistance(geo.totalDistance)} · {formatDuration(elapsed)}</p>
@@ -97,7 +84,6 @@ export default function AdventureMap() {
           </div>
         )}
       </div>
-
       <div className="flex-1 relative" style={{ minHeight: '300px' }}>
         <div className="absolute inset-0 bg-ink-800/40 rounded-2xl m-2 overflow-hidden">
           <Suspense fallback={<div className="flex items-center justify-center h-full"><Spinner /></div>}>
@@ -106,9 +92,7 @@ export default function AdventureMap() {
         </div>
         {!active && !completed && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Button size="lg" onClick={handleStart} className="flex items-center gap-2">
-              <Play size={20} /> Start Adventure
-            </Button>
+            <Button size="lg" onClick={handleStart} className="flex items-center gap-2"><Play size={20} /> Start Adventure</Button>
           </div>
         )}
         {completed && (
@@ -121,15 +105,12 @@ export default function AdventureMap() {
                 <div className="flex items-center gap-1 text-ink-300"><Clock size={16} /> {formatDuration(elapsed)}</div>
                 <div className="flex items-center gap-1 text-zeviqo-400"><Zap size={16} /> +{Math.round(adventure.xp * (1 + maxCombo * 0.01))} XP</div>
                 <div className="flex items-center gap-1 text-gold-400"><Coins size={16} /> +{adventure.coins}</div>
-                <div className="flex items-center gap-1 text-nova-400"><Gem size={16} /> +{adventure.gems}</div>
-                <div className="flex items-center gap-1 text-ember-500"><Flame size={16} /> {maxCombo}x max</div>
               </div>
               <Button onClick={() => setScreen('home')} className="w-full">Done</Button>
             </Card>
           </div>
         )}
       </div>
-
       {active && (
         <div className="p-4 bg-ink-900/80 backdrop-blur-md">
           <div className="grid grid-cols-4 gap-2 mb-3">
@@ -139,12 +120,8 @@ export default function AdventureMap() {
             <StatItem icon={Flame} label="Combo" value={`${combo}x`} color="#f97316" />
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handlePause} className="flex-1 flex items-center justify-center gap-2">
-              <Pause size={18} /> Pause
-            </Button>
-            <Button variant="danger" onClick={handleStop} className="flex-1 flex items-center justify-center gap-2">
-              <Check size={18} /> Finish
-            </Button>
+            <Button variant="secondary" onClick={handlePause} className="flex-1 flex items-center justify-center gap-2"><Pause size={18} /> Pause</Button>
+            <Button variant="danger" onClick={handleStop} className="flex-1 flex items-center justify-center gap-2"><Check size={18} /> Finish</Button>
           </div>
         </div>
       )}

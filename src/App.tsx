@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useStore } from './store';
 import { useDataSync } from './hooks/useDataSync';
@@ -39,7 +39,7 @@ const SCREENS: Record<string, React.LazyExoticComponent<React.ComponentType>> = 
   onboarding: Onboarding,
 };
 
-const FULLSCREEN_SCREENS = new Set(['adventure-map', 'auth']);
+const FULLSCREEN_SCREENS = new Set(['adventure-map']);
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -47,13 +47,7 @@ function AppContent() {
   useDataSync();
 
   if (loading) return <LoadingScreen />;
-  if (!user) {
-    return (
-      <Suspense fallback={<LoadingScreen />}>
-        <Auth />
-      </Suspense>
-    );
-  }
+  if (!user) return <Suspense fallback={<LoadingScreen />}><Auth /></Suspense>;
 
   const isFullscreen = FULLSCREEN_SCREENS.has(currentScreen);
   const Screen = SCREENS[currentScreen] ?? Home;
@@ -62,18 +56,12 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col">
       <AdventureBg />
-      <Suspense fallback={<LoadingScreen />}>
-        <Screen />
-      </Suspense>
+      <Suspense fallback={<LoadingScreen />}><Screen /></Suspense>
       {showNav && <BottomNav current={currentScreen} onNavigate={(s) => setScreen(s as never)} />}
     </div>
   );
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  return <AuthProvider><AppContent /></AuthProvider>;
 }

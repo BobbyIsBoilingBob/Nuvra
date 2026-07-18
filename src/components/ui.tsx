@@ -1,19 +1,19 @@
 import { type ReactNode, type ButtonHTMLAttributes, type HTMLAttributes } from 'react';
-import { Chrome as Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings as SettingsIcon, Settings, Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle, Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2, CreditCard as Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, CircleAlert as AlertCircle, Loader as Loader2, Play, Pause, RefreshCw, Award, Target, TrendingUp, Clock, MapPin, Backpack, Palette, Sparkles, Calendar, PartyPopper, Swords, Bookmark, Filter, ArrowUp, ArrowDown, Circle, CircleCheck as CheckCircle2, Lock as LockIcon } from 'lucide-react';
+import { Chrome as Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings as SettingsIcon, Settings, Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Medal, Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle, Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2, CreditCard as Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, CircleAlert as AlertCircle, Loader as Loader2, Play, Pause, RefreshCw, Award, Target, TrendingUp, Clock, MapPin, Backpack, Palette, Sparkles, Calendar, PartyPopper, Swords, Bookmark, Filter, ArrowUp, ArrowDown, Circle, CircleCheck as CheckCircle2, Volume2, Vibrate, Mic, Wand as Wand2 } from 'lucide-react';
 
 export { Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings as SettingsIcon, Settings,
-  Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf,
+  Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Medal,
   Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle,
   Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2,
   Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, AlertCircle,
   Loader2, Play, Pause, RefreshCw, Award, Target, TrendingUp, Clock, MapPin,
   Backpack, Palette, Sparkles, Calendar, PartyPopper, Swords, Bookmark,
-  Filter, ArrowUp, ArrowDown, Circle, CheckCircle2, Lock as LockIcon,
+  Filter, ArrowUp, ArrowDown, Circle, CheckCircle2, Volume2, Vibrate, Mic, Wand2,
 };
 
 export const ICON_MAP: Record<string, typeof Home> = {
   Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings: SettingsIcon,
-  Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf,
+  Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Medal,
   Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle,
   Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2,
   Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, AlertCircle,
@@ -22,9 +22,7 @@ export const ICON_MAP: Record<string, typeof Home> = {
   Filter, ArrowUp, ArrowDown, Circle, CheckCircle2,
 };
 
-export function getIcon(name: string): typeof Home {
-  return ICON_MAP[name] ?? Circle;
-}
+export function getIcon(name: string): typeof Home { return ICON_MAP[name] ?? Circle; }
 
 export function Button({ children, variant = 'primary', size = 'md', className = '', ...props }: {
   children: ReactNode; variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold'; size?: 'sm' | 'md' | 'lg';
@@ -44,8 +42,8 @@ export function Button({ children, variant = 'primary', size = 'md', className =
   );
 }
 
-export function Card({ children, className = '', ...props }: { children: ReactNode; className?: string } & HTMLAttributes<HTMLDivElement>) {
-  return <div className={`bg-ink-800/60 backdrop-blur-sm rounded-2xl border border-ink-600/30 ${className}`} {...props}>{children}</div>;
+export function Card({ children, className = '', style, ...props }: { children: ReactNode; className?: string; style?: React.CSSProperties } & HTMLAttributes<HTMLDivElement>) {
+  return <div className={`bg-ink-800/60 backdrop-blur-sm rounded-2xl border border-ink-600/30 ${className}`} style={style} {...props}>{children}</div>;
 }
 
 export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -85,9 +83,7 @@ export function EmptyState({ icon: Icon, title, subtitle }: { icon: typeof Home;
   );
 }
 
-export function Spinner() {
-  return <Loader2 size={24} className="animate-spin text-zeviqo-400" />;
-}
+export function Spinner() { return <Loader2 size={24} className="animate-spin text-zeviqo-400" />; }
 
 export function LoadingScreen() {
   return (

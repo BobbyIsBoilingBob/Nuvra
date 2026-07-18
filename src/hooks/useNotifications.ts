@@ -10,12 +10,7 @@ export function useNotifications() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const { data } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
     if (data) {
       setNotifications(data as NotificationRow[]);
       setUnreadCount((data as NotificationRow[]).filter(n => !n.read).length);
@@ -26,12 +21,8 @@ export function useNotifications() {
     if (!user) return;
     setLoading(true);
     load().finally(() => setLoading(false));
-
     const channel = supabase.channel('notifications-realtime');
-    channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, load)
-      .subscribe();
-
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, load).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, load]);
 

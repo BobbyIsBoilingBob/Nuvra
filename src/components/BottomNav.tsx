@@ -3,12 +3,8 @@ import { type ReactNode, useEffect, useState } from 'react';
 export function AdventureBg() {
   const [particles] = useState(() =>
     Array.from({ length: 12 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      size: 4 + Math.random() * 8,
-      delay: Math.random() * 6,
-      duration: 6 + Math.random() * 8,
+      id: i, left: Math.random() * 100, top: Math.random() * 100,
+      size: 4 + Math.random() * 8, delay: Math.random() * 6, duration: 6 + Math.random() * 8,
     })),
   );
 
@@ -18,14 +14,9 @@ export function AdventureBg() {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-zeviqo-500/5 rounded-full blur-3xl animate-float" />
       <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-nova-500/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
       {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full bg-zeviqo-400/10"
-          style={{
-            left: `${p.left}%`, top: `${p.top}%`, width: p.size, height: p.size,
-            animation: `float ${p.duration}s ease-in-out infinite`, animationDelay: `${p.delay}s`,
-          }}
-        />
+        <div key={p.id} className="absolute rounded-full bg-zeviqo-400/10"
+          style={{ left: `${p.left}%`, top: `${p.top}%`, width: p.size, height: p.size,
+            animation: `float ${p.duration}s ease-in-out infinite`, animationDelay: `${p.delay}s` }} />
       ))}
     </div>
   );
@@ -45,6 +36,8 @@ export function TopBar({ title, onBack, right }: { title: string; onBack?: () =>
   );
 }
 
+type IconProps = { size?: number };
+
 export function BottomNav({ current, onNavigate }: { current: string; onNavigate: (s: string) => void }) {
   const items = [
     { id: 'home', label: 'Home', icon: HomeIcon },
@@ -60,11 +53,8 @@ export function BottomNav({ current, onNavigate }: { current: string; onNavigate
         {items.map((item) => {
           const active = current === item.id;
           return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${active ? 'text-zeviqo-400' : 'text-ink-500 hover:text-ink-400'}`}
-            >
+            <button key={item.id} onClick={() => onNavigate(item.id)}
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${active ? 'text-zeviqo-400' : 'text-ink-500 hover:text-ink-400'}`}>
               <item.icon size={22} />
               <span className="text-xs font-medium">{item.label}</span>
             </button>
@@ -75,7 +65,6 @@ export function BottomNav({ current, onNavigate }: { current: string; onNavigate
   );
 }
 
-type IconProps = { size?: number };
 function HomeIcon({ size = 22 }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
 }
@@ -92,7 +81,6 @@ function UserIcon({ size = 22 }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 }
 
-// Hook to detect viewport height for mobile
 export function useViewportHeight() {
   const [vh, setVh] = useState(window.innerHeight);
   useEffect(() => {

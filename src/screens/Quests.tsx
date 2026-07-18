@@ -1,12 +1,10 @@
 import { useStore } from '../store';
 import { QUESTS } from '../data';
-import { Card, Screen, ProgressBar, Button, Badge } from '../components/ui';
-import { getIcon } from '../components/ui';
+import { Card, Screen, ProgressBar, Button, Badge, getIcon } from '../components/ui';
 import { Zap, Coins, Check, Lock } from 'lucide-react';
 
 export default function Quests() {
   const { questProgress, claimedQuests, claimQuest, setScreen } = useStore();
-
   const categories = ['daily', 'weekly', 'story'] as const;
 
   return (
@@ -21,16 +19,13 @@ export default function Quests() {
             <div className="space-y-3">
               {quests.map(q => {
                 const progress = questProgress[q.metric] ?? 0;
-                const pct = Math.min(100, (progress / q.target) * 100);
                 const complete = progress >= q.target;
                 const claimed = claimedQuests.includes(q.id);
                 const Icon = getIcon(q.icon);
                 return (
                   <Card key={q.id} className="p-4">
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-zeviqo-500/10 flex items-center justify-center">
-                        <Icon size={20} color="#00c4ff" />
-                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-zeviqo-500/10 flex items-center justify-center"><Icon size={20} color="#00c4ff" /></div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-white">{q.title}</h3>
                         <p className="text-ink-400 text-sm">{q.description}</p>
@@ -43,13 +38,9 @@ export default function Quests() {
                     <ProgressBar value={progress} max={q.target} color={complete ? '#22c55e' : '#00c4ff'} />
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-ink-400 text-xs">{Math.min(progress, q.target)} / {q.target}</span>
-                      {claimed ? (
-                        <span className="text-ink-500 text-xs flex items-center gap-1"><Check size={14} /> Claimed</span>
-                      ) : complete ? (
-                        <Button size="sm" variant="gold" onClick={() => claimQuest(q.id)}>Claim</Button>
-                      ) : (
-                        <span className="text-ink-500 text-xs flex items-center gap-1"><Lock size={14} /> In progress</span>
-                      )}
+                      {claimed ? <span className="text-ink-500 text-xs flex items-center gap-1"><Check size={14} /> Claimed</span>
+                        : complete ? <Button size="sm" variant="gold" onClick={() => claimQuest(q.id)}>Claim</Button>
+                        : <span className="text-ink-500 text-xs flex items-center gap-1"><Lock size={14} /> In progress</span>}
                     </div>
                   </Card>
                 );

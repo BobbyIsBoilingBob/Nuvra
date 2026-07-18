@@ -11,7 +11,6 @@ root.render(
   </StrictMode>,
 );
 
-// Remove boot screen after mount
 requestAnimationFrame(() => {
   const boot = document.getElementById('boot');
   if (boot) {

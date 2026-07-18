@@ -16,16 +16,12 @@ export function useDataSync() {
       supabase.from('owned_items').select('*').eq('user_id', user.id),
       supabase.from('adventure_history').select('*').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(100),
     ]);
-
     if (quests.data) syncQuestProgressFromDb(quests.data as QuestProgressRow[]);
     if (items.data) syncOwnedItemsFromDb(items.data as OwnedItemRow[]);
     if (history.data) syncHistoryFromDb(history.data as AdventureHistoryRow[]);
   }, [user, syncQuestProgressFromDb, syncOwnedItemsFromDb, syncHistoryFromDb]);
 
-  useEffect(() => {
-    if (!user) return;
-    loadAll();
-  }, [user, loadAll]);
+  useEffect(() => { if (user) loadAll(); }, [user, loadAll]);
 
   return { loadAll };
 }

@@ -1,22 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { createGpsFilter, filterGpsReading, haversineMeters, type LatLng } from '../lib/map-utils';
+import { createGpsFilter, filterGpsReading, type LatLng } from '../lib/map-utils';
 
 export type GeoState = {
-  position: LatLng | null;
-  accuracy: number | null;
-  speed: number | null;
-  heading: number | null;
-  totalDistance: number;
-  isMoving: boolean;
-  error: string | null;
-  watching: boolean;
+  position: LatLng | null; accuracy: number | null; speed: number | null; heading: number | null;
+  totalDistance: number; isMoving: boolean; error: string | null; watching: boolean;
 };
 
-export type GeoActions = {
-  start: () => void;
-  stop: () => void;
-  reset: () => void;
-};
+export type GeoActions = { start: () => void; stop: () => void; reset: () => void; };
 
 export function useGeolocation(): [GeoState, GeoActions] {
   const [state, setState] = useState<GeoState>({
@@ -31,40 +21,28 @@ export function useGeolocation(): [GeoState, GeoActions] {
   const handlePosition = useCallback((pos: GeolocationPosition) => {
     const { latitude, longitude, accuracy, speed, heading } = pos.coords;
     const now = pos.timestamp;
-
     const result = filterGpsReading(filterRef.current, latitude, longitude, now);
 
     setState((prev) => {
-      // Only accept the position if the filter accepted it
+      // Only accept the position if the filter accepted it.
+      // Rejected readings (jitter, glitches) must NOT update position or distance.
       const newPosition = result.accepted ? { lat: latitude, lng: longitude } : prev.position;
       const newDistance = filterRef.current.totalDistance;
-
-      // Determine if actually moving: accepted reading + distance > 0
       const isMoving = result.accepted && result.distance > 0;
       if (isMoving) lastMovingTimeRef.current = now;
-
-      // If we haven't moved in 4 seconds, consider stopped
       const stopped = now - lastMovingTimeRef.current > 4000;
 
       return {
-        position: newPosition,
-        accuracy,
-        speed: speed ?? null,
-        heading: heading ?? null,
-        totalDistance: newDistance,
-        isMoving: isMoving || !stopped,
-        error: null,
-        watching: true,
+        position: newPosition, accuracy, speed: speed ?? null, heading: heading ?? null,
+        totalDistance: newDistance, isMoving: isMoving || !stopped,
+        error: null, watching: true,
       };
     });
   }, []);
 
   const start = useCallback(() => {
     if (watchIdRef.current !== null) return;
-    if (!navigator.geolocation) {
-      setState((prev) => ({ ...prev, error: 'Geolocation not supported' }));
-      return;
-    }
+    if (!navigator.geolocation) { setState((prev) => ({ ...prev, error: 'Geolocation not supported' })); return; }
     setState((prev) => ({ ...prev, watching: true, error: null }));
     watchIdRef.current = navigator.geolocation.watchPosition(
       handlePosition,
@@ -74,10 +52,7 @@ export function useGeolocation(): [GeoState, GeoActions] {
   }, [handlePosition]);
 
   const stop = useCallback(() => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
     setState((prev) => ({ ...prev, watching: false, isMoving: false }));
   }, []);
 
