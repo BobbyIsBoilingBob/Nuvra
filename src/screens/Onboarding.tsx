@@ -1,42 +1,28 @@
+import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useStore } from '../store';
-import { Card, Screen, Button, ProgressBar, getIcon } from '../components/ui';
-import { Compass, Map, Trophy, Footprints, Gem, Flame, Check } from 'lucide-react';
+import { Card, Screen, Button } from '../components/ui';
+import { ChevronRight, MapPin, Trophy, Users, Gift } from 'lucide-react';
+
+const steps = [
+  { icon: MapPin, title: 'Explore the World', desc: 'Walk around your neighborhood to discover adventures and complete quests in real locations.' },
+  { icon: Trophy, title: 'Complete Quests', desc: 'Finish location-based challenges to earn XP, coins, and level up your character.' },
+  { icon: Users, title: 'Play with Friends', desc: 'Create parties, add friends, and adventure together in real-time.' },
+  { icon: Gift, title: 'Earn Rewards', desc: 'Claim daily rewards, unlock cosmetics, and customize your profile.' },
+];
 
 export default function Onboarding() {
-  const { profile } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const { setScreen } = useStore();
-  if (!profile) return null;
-
-  const steps = [
-    { icon: Compass, title: 'Explore Adventures', desc: 'Browse and start walking adventures', done: true },
-    { icon: Map, title: 'Track Your Walk', desc: 'GPS tracks your route and distance', done: profile.distance_walked > 0 },
-    { icon: Trophy, title: 'Complete Quests', desc: 'Earn XP and coins from daily quests', done: profile.completed_adventures > 0 },
-    { icon: Footprints, title: 'Build Your Streak', desc: 'Walk every day to increase your streak', done: profile.walking_streak > 0 },
-    { icon: Gem, title: 'Collect Cosmetics', desc: 'Buy trails, pets, and themes', done: false },
-    { icon: Flame, title: 'Reach Level 25', desc: 'Become a Zeviqo Legend', done: profile.level >= 25 },
-  ];
-  const doneCount = steps.filter(s => s.done).length;
-
+  const [step, setStep] = useState(0);
+  const finish = async () => { await updateProfile({ onboarding_complete: true }); setScreen('home'); };
+  if (step >= steps.length) return (<Screen className="flex items-center justify-center"><Card className="p-6 text-center"><div className="text-5xl mb-4">🎉</div><h2 className="font-display text-xl font-bold text-white mb-2">You\'re all set!</h2><p className="text-ink-400 text-sm mb-4">Ready to start your adventure?</p><Button onClick={finish} className="w-full">Start Exploring</Button></Card></Screen>);
+  const s = steps[step]; const Icon = s.icon;
   return (
-    <Screen>
-      <h1 className="font-display text-2xl font-bold text-white mb-2">Welcome to Zeviqo!</h1>
-      <p className="text-ink-400 mb-4">Complete these steps to get started</p>
-      <Card className="p-4 mb-4">
-        <div className="flex items-center justify-between mb-2"><span className="text-white font-semibold">Progress</span><span className="text-ink-400 text-sm">{doneCount}/{steps.length}</span></div>
-        <ProgressBar value={doneCount} max={steps.length} color="#22c55e" />
-      </Card>
-      <div className="space-y-3">{steps.map((s, i) => (
-        <Card key={i} className={`p-4 ${s.done ? 'border-green-500/30' : ''}`}>
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.done ? 'bg-green-500/10' : 'bg-ink-700/30'}`}>
-              {s.done ? <Check size={20} color="#22c55e" /> : <s.icon size={20} color="#5a6a9a" />}
-            </div>
-            <div className="flex-1"><h3 className="font-semibold text-white">{s.title}</h3><p className="text-ink-400 text-sm">{s.desc}</p></div>
-          </div>
-        </Card>
-      ))}</div>
-      <Button size="lg" className="w-full mt-4" onClick={() => setScreen('home')}>Get Started</Button>
+    <Screen className="flex flex-col justify-center">
+      <div className="flex justify-center gap-1.5 mb-8">{steps.map((_, i) => <div key={i} className={`h-1.5 rounded-full transition-all ${i <= step ? 'bg-zeviqo-500 w-8' : 'bg-ink-700 w-4'}`} />)}</div>
+      <Card className="p-6 text-center"><div className="w-16 h-16 rounded-2xl bg-zeviqo-500/20 flex items-center justify-center mx-auto mb-4"><Icon size={32} color="#fbbf24" /></div><h2 className="font-display text-xl font-bold text-white mb-2">{s.title}</h2><p className="text-ink-400 text-sm mb-6">{s.desc}</p><div className="flex gap-2">{step > 0 && <Button variant="ghost" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1 flex items-center justify-center gap-1" onClick={() => setStep(step + 1)}>{step === steps.length - 1 ? 'Finish' : 'Next'} <ChevronRight size={18} /></Button></div></Card>
+      <button onClick={finish} className="text-ink-500 text-sm mt-6 text-center">Skip</button>
     </Screen>
   );
 }

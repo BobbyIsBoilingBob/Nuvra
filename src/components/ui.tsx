@@ -1,94 +1,140 @@
-import { type ReactNode, type ButtonHTMLAttributes, type HTMLAttributes } from 'react';
-import { Chrome as Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings as SettingsIcon, Settings, Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Medal, Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle, Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2, CreditCard as Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, CircleAlert as AlertCircle, Loader as Loader2, Play, Pause, RefreshCw, Award, Target, TrendingUp, Clock, MapPin, Backpack, Palette, Sparkles, Calendar, PartyPopper, Swords, Bookmark, Filter, ArrowUp, ArrowDown, Circle, CircleCheck as CheckCircle2, Volume2, Vibrate, Mic, Wand as Wand2 } from 'lucide-react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode, type CSSProperties } from 'react';
+import {
+  type LucideIcon, Home, Compass, Users, User, Settings, Volume2, Vibrate, Mic,
+  Wand2, Bell, Star, Zap, Coins, Gem, MapPin, Clock, Trophy, Target, Flame,
+  Gift, Check, X, Plus, Minus, ChevronRight, ChevronLeft, Search, Heart,
+  Trash2, LogOut, LogIn, UserPlus, UserMinus, CheckCircle2, Circle, ArrowLeft,
+  ArrowRight, Play, Pause, RefreshCw, Sparkles, Crown, Backpack, ShoppingBag,
+  PartyPopper, Route, Calendar, Snowflake, PenSquare, History, Award, Shield,
+  Eye, MessageSquare, Send, BellRing, MoreVertical, Lock, Unlock, Image,
+  ChevronUp, ChevronDown, Filter, Sliders, Zap as ZapIcon, Footprints, Navigation,
+} from 'lucide-react';
 
-export { Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings as SettingsIcon, Settings,
-  Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Medal,
-  Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle,
-  Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2,
-  Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, AlertCircle,
-  Loader2, Play, Pause, RefreshCw, Award, Target, TrendingUp, Clock, MapPin,
-  Backpack, Palette, Sparkles, Calendar, PartyPopper, Swords, Bookmark,
-  Filter, ArrowUp, ArrowDown, Circle, CheckCircle2, Volume2, Vibrate, Mic, Wand2,
+export const ICON_MAP: Record<string, LucideIcon> = {
+  home: Home, compass: Compass, users: Users, user: User, settings: Settings,
+  volume2: Volume2, vibrate: Vibrate, mic: Mic, wand2: Wand2, bell: Bell,
+  star: Star, zap: Zap, coins: Coins, gem: Gem, mapPin: MapPin, clock: Clock,
+  trophy: Trophy, target: Target, flame: Flame, gift: Gift, check: Check,
+  x: X, plus: Plus, minus: Minus, chevronRight: ChevronRight, chevronLeft: ChevronLeft,
+  search: Search, heart: Heart, trash2: Trash2, logOut: LogOut, logIn: LogIn,
+  userPlus: UserPlus, userMinus: UserMinus, checkCircle: CheckCircle2, circle: Circle,
+  arrowLeft: ArrowLeft, arrowRight: ArrowRight, play: Play, pause: Pause,
+  refreshCw: RefreshCw, sparkles: Sparkles, crown: Crown, backpack: Backpack,
+  shoppingBag: ShoppingBag, partyPopper: PartyPopper, route: Route, calendar: Calendar,
+  snowflake: Snowflake, penSquare: PenSquare, history: History, award: Award,
+  shield: Shield, eye: Eye, message: MessageSquare, send: Send, bellRing: BellRing,
+  moreVertical: MoreVertical, lock: Lock, unlock: Unlock, image: Image,
+  chevronUp: ChevronUp, chevronDown: ChevronDown, filter: Filter, sliders: Sliders,
+  footprints: Footprints, navigation: Navigation,
 };
 
-export const ICON_MAP: Record<string, typeof Home> = {
-  Home, Compass, Map, User, Users, Trophy, Gift, ShoppingBag, Settings: SettingsIcon,
-  Footprints, Gem, Flame, Route, Activity, Crown, Star, Coins, Zap, Leaf, Medal,
-  Bell, BellRing, Search, UserPlus, UserCheck, UserX, Heart, MessageCircle,
-  Check, X, ChevronRight, ChevronLeft, ChevronDown, Plus, Minus, Trash2,
-  Edit3, Share2, LogOut, Shield, Eye, EyeOff, Lock, Mail, AlertCircle,
-  Loader2, Play, Pause, RefreshCw, Award, Target, TrendingUp, Clock, MapPin,
-  Backpack, Palette, Sparkles, Calendar, PartyPopper, Swords, Bookmark,
-  Filter, ArrowUp, ArrowDown, Circle, CheckCircle2,
+export function getIcon(name: string): LucideIcon {
+  return ICON_MAP[name] ?? Circle;
+}
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  children: ReactNode;
+}
+
+const variantClasses: Record<ButtonVariant, string> = {
+  primary: 'bg-zeviqo-500 text-ink-950 hover:bg-zeviqo-400',
+  secondary: 'bg-ink-700/50 text-white hover:bg-ink-600/50 border border-ink-600/30',
+  ghost: 'bg-transparent text-ink-300 hover:bg-ink-700/30',
+  danger: 'bg-red-500/90 text-white hover:bg-red-500',
+  gold: 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-600 text-ink-950 hover:from-zeviqo-300 hover:to-zeviqo-500',
 };
 
-export function getIcon(name: string): typeof Home { return ICON_MAP[name] ?? Circle; }
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'px-3 py-1.5 text-sm rounded-lg',
+  md: 'px-4 py-2.5 text-sm rounded-xl',
+  lg: 'px-6 py-3 text-base rounded-xl',
+};
 
-export function Button({ children, variant = 'primary', size = 'md', className = '', ...props }: {
-  children: ReactNode; variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold'; size?: 'sm' | 'md' | 'lg';
-} & ButtonHTMLAttributes<HTMLButtonElement>) {
-  const variants: Record<string, string> = {
-    primary: 'bg-zeviqo-500 hover:bg-zeviqo-400 text-ink-950 font-semibold',
-    secondary: 'bg-ink-700 hover:bg-ink-600 text-white',
-    ghost: 'bg-transparent hover:bg-ink-700/50 text-ink-400 hover:text-white',
-    danger: 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30',
-    gold: 'bg-gold-400 hover:bg-gold-300 text-ink-950 font-semibold',
-  };
-  const sizes: Record<string, string> = { sm: 'px-3 py-1.5 text-sm', md: 'px-4 py-2.5', lg: 'px-6 py-3 text-lg' };
-  return (
-    <button className={`rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 ${variants[variant]} ${sizes[size]} ${className}`} {...props}>
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ variant = 'primary', size = 'md', className = '', children, ...props }, ref) => (
+    <button
+      ref={ref}
+      className={`font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...props}
+    >
       {children}
     </button>
-  );
-}
+  )
+);
+Button.displayName = 'Button';
 
-export function Card({ children, className = '', style, ...props }: { children: ReactNode; className?: string; style?: React.CSSProperties } & HTMLAttributes<HTMLDivElement>) {
-  return <div className={`bg-ink-800/60 backdrop-blur-sm rounded-2xl border border-ink-600/30 ${className}`} style={style} {...props}>{children}</div>;
-}
-
-export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`px-4 pt-3 pb-24 max-w-lg mx-auto animate-fade-in ${className}`}>{children}</div>;
-}
-
-export function Stat({ icon: Icon, label, value, color = '#00c4ff' }: { icon: typeof Home; label: string; value: ReactNode; color?: string }) {
+export function Card({ children, className = '', style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <Icon size={20} color={color} />
-      <span className="text-lg font-bold text-white">{value}</span>
-      <span className="text-xs text-ink-400">{label}</span>
+    <div className={`bg-ink-800/60 backdrop-blur-sm border border-ink-600/20 rounded-2xl ${className}`} style={style}>
+      {children}
     </div>
   );
 }
 
-export function ProgressBar({ value, max, color = '#00c4ff', className = '' }: { value: number; max: number; color?: string; className?: string }) {
-  const pct = Math.min(100, max > 0 ? (value / max) * 100 : 0);
+export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`px-4 pt-4 pb-24 min-h-screen ${className}`}>{children}</div>;
+}
+
+export function Stat({ icon: Icon, label, value, color = '#94a3b8' }: { icon: LucideIcon; label: string; value: string | number; color?: string }) {
   return (
-    <div className={`h-2 rounded-full bg-ink-700 overflow-hidden ${className}`}>
+    <Card className="p-3 flex items-center gap-3">
+      <Icon size={20} color={color} />
+      <div>
+        <p className="text-white font-semibold text-sm">{value}</p>
+        <p className="text-ink-400 text-xs">{label}</p>
+      </div>
+    </Card>
+  );
+}
+
+export function ProgressBar({ value, max, color = '#fbbf24' }: { value: number; max: number; color?: string }) {
+  const pct = Math.min(100, (value / max) * 100);
+  return (
+    <div className="h-2 bg-ink-700/50 rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
     </div>
   );
 }
 
-export function Badge({ children, color = '#00c4ff' }: { children: ReactNode; color?: string }) {
-  return <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: `${color}22`, color }}>{children}</span>;
+export function Badge({ children, color = '#94a3b8' }: { children: ReactNode; color?: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: `${color}22`, color }}>
+      {children}
+    </span>
+  );
 }
 
-export function EmptyState({ icon: Icon, title, subtitle }: { icon: typeof Home; title: string; subtitle?: string }) {
+export function EmptyState({ icon: Icon, title, subtitle }: { icon: LucideIcon; title: string; subtitle?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Icon size={48} className="text-ink-500 mb-4" />
-      <h3 className="text-lg font-semibold text-ink-400">{title}</h3>
-      {subtitle && <p className="text-sm text-ink-500 mt-1">{subtitle}</p>}
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <Icon size={48} color="#475569" />
+      <p className="text-white font-semibold mt-3">{title}</p>
+      {subtitle && <p className="text-ink-400 text-sm mt-1">{subtitle}</p>}
     </div>
   );
 }
 
-export function Spinner() { return <Loader2 size={24} className="animate-spin text-zeviqo-400" />; }
+export function Spinner({ size = 24 }: { size?: number }) {
+  return (
+    <svg className="animate-spin text-zeviqo-400" width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export function LoadingScreen() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-ink-950">
-      <Loader2 size={40} className="animate-spin text-zeviqo-400" />
+    <div className="fixed inset-0 bg-ink-950 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="text-5xl animate-bounce">🧭</div>
+        <Spinner size={32} />
+      </div>
     </div>
   );
 }

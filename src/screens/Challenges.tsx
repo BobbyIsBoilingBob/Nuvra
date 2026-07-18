@@ -1,36 +1,38 @@
 import { useStore } from '../store';
-import { CHALLENGES, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
-import { Card, Screen, Badge, Button, getIcon } from '../components/ui';
-import { Check, Zap } from 'lucide-react';
+import { CHALLENGES } from '../data';
+import { useAuth } from '../lib/auth';
+import { Card, Screen, EmptyState, ProgressBar, Badge } from '../components/ui';
+import { Target, CircleCheck as CheckCircle2, Zap } from 'lucide-react';
 
 export default function Challenges() {
-  const { completedChallenges, recordChallengeComplete, setScreen } = useStore();
+  const { challengeProgress } = useStore();
+  const { profile } = useAuth();
+  const getProgress = (id: string, type: string) => {
+    if (type === 'distance') return profile?.distance_walked ?? 0;
+    if (type === 'adventures') return profile?.completed_adventures ?? 0;
+    if (type === 'streak') return profile?.walking_streak ?? 0;
+    return challengeProgress[id] ?? 0;
+  };
   return (
     <Screen>
       <h1 className="font-display text-2xl font-bold text-white mb-4">Challenges</h1>
       <div className="space-y-3">
-        {CHALLENGES.map(c => {
-          const done = completedChallenges.includes(c.id);
-          const Icon = getIcon(c.icon);
+        {CHALLENGES.map((c) => {
+          const prog = getProgress(c.id, c.type);
+          const done = prog >= c.target;
           return (
             <Card key={c.id} className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-ember-500/10 flex items-center justify-center"><Icon size={20} color="#fb923c" /></div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-white">{c.title}</h3>
-                  <p className="text-ink-400 text-sm">{c.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge color={DIFFICULTY_COLORS[c.difficulty]}>{DIFFICULTY_LABELS[c.difficulty]}</Badge>
-                    <Badge color="#00c4ff"><Zap size={10} className="inline" /> {c.xpReward} XP</Badge>
-                  </div>
-                </div>
-                {done ? <Check size={24} color="#22c55e" /> : <Button size="sm" variant="gold" onClick={() => recordChallengeComplete(c.id)}>Complete</Button>}
+              <div className="flex items-center gap-3 mb-2">
+                {done ? <CheckCircle2 size={20} color="#22c55e" /> : <Target size={20} color="#fbbf24" />}
+                <div className="flex-1"><p className="text-white font-semibold text-sm">{c.title}</p><p className="text-ink-400 text-xs">{c.description}</p></div>
+                <Badge color="#fbbf24"><Zap size={10} className="inline" /> {c.xp}</Badge>
               </div>
+              <ProgressBar value={prog} max={c.target} color={done ? '#22c55e' : '#fbbf24'} />
+              <p className="text-ink-400 text-xs mt-1">{Math.min(prog, c.target)} / {c.target}</p>
             </Card>
           );
         })}
       </div>
-      <Button variant="ghost" className="w-full mt-4" onClick={() => setScreen('home')}>Back to Home</Button>
     </Screen>
   );
 }

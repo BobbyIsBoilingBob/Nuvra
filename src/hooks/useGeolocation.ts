@@ -1,68 +1,55 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { createGpsFilter, filterGpsReading, type LatLng } from '../lib/map-utils';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { filterGpsReading } from '../lib/map-utils';
 
-export type GeoState = {
-  position: LatLng | null; accuracy: number | null; speed: number | null; heading: number | null;
-  totalDistance: number; isMoving: boolean; error: string | null; watching: boolean;
-};
+export type GpsReading = { lat: number; lng: number; ts: number; accuracy?: number };
 
-export type GeoActions = { start: () => void; stop: () => void; reset: () => void; };
-
-export function useGeolocation(): [GeoState, GeoActions] {
-  const [state, setState] = useState<GeoState>({
-    position: null, accuracy: null, speed: null, heading: null,
-    totalDistance: 0, isMoving: false, error: null, watching: false,
-  });
-
-  const filterRef = useRef(createGpsFilter());
-  const watchIdRef = useRef<number | null>(null);
-  const lastMovingTimeRef = useRef<number>(0);
-
-  const handlePosition = useCallback((pos: GeolocationPosition) => {
-    const { latitude, longitude, accuracy, speed, heading } = pos.coords;
-    const now = pos.timestamp;
-    const result = filterGpsReading(filterRef.current, latitude, longitude, now);
-
-    setState((prev) => {
-      // Only accept the position if the filter accepted it.
-      // Rejected readings (jitter, glitches) must NOT update position or distance.
-      const newPosition = result.accepted ? { lat: latitude, lng: longitude } : prev.position;
-      const newDistance = filterRef.current.totalDistance;
-      const isMoving = result.accepted && result.distance > 0;
-      if (isMoving) lastMovingTimeRef.current = now;
-      const stopped = now - lastMovingTimeRef.current > 4000;
-
-      return {
-        position: newPosition, accuracy, speed: speed ?? null, heading: heading ?? null,
-        totalDistance: newDistance, isMoving: isMoving || !stopped,
-        error: null, watching: true,
-      };
-    });
-  }, []);
+export function useGeolocation() {
+  const [position, setPosition] = useState<GpsReading | null>(null);
+  const [route, setRoute] = useState<{ lat: number; lng: number }[]>([]);
+  const [distance, setDistance] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [tracking, setTracking] = useState(false);
+  const prevRef = useRef<GpsReading | null>(null);
+  const stopTimeoutRef = useRef<number | null>(null);
 
   const start = useCallback(() => {
-    if (watchIdRef.current !== null) return;
-    if (!navigator.geolocation) { setState((prev) => ({ ...prev, error: 'Geolocation not supported' })); return; }
-    setState((prev) => ({ ...prev, watching: true, error: null }));
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      handlePosition,
-      (err) => setState((prev) => ({ ...prev, error: err.message, watching: false })),
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 },
+    if (!navigator.geolocation) { setError('Geolocation not supported'); return; }
+    setTracking(true);
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const reading: GpsReading = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now(), accuracy: pos.coords.accuracy };
+        if (prevRef.current) {
+          const filtered = filterGpsReading(prevRef.current, reading);
+          if (filtered) {
+            setPosition(filtered);
+            setRoute((prev) => [...prev, { lat: filtered.lat, lng: filtered.lng }]);
+            const dLat = (filtered.lat - prevRef.current.lat) * 111000;
+            const dLng = (filtered.lng - prevRef.current.lng) * 111000 * Math.cos((filtered.lat * Math.PI) / 180);
+            setDistance((d) => d + Math.sqrt(dLat * dLat + dLng * dLng));
+            prevRef.current = filtered;
+          }
+        } else {
+          prevRef.current = reading;
+          setPosition(reading);
+          setRoute([{ lat: reading.lat, lng: reading.lng }]);
+        }
+      },
+      (err) => setError(err.message),
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
-  }, [handlePosition]);
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const stop = useCallback(() => {
-    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
-    setState((prev) => ({ ...prev, watching: false, isMoving: false }));
+    setTracking(false);
+    if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
   }, []);
 
   const reset = useCallback(() => {
-    filterRef.current = createGpsFilter();
-    lastMovingTimeRef.current = 0;
-    setState((prev) => ({ ...prev, totalDistance: 0, isMoving: false }));
+    setRoute([]); setDistance(0); prevRef.current = null; setPosition(null);
   }, []);
 
-  useEffect(() => () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); }, []);
+  useEffect(() => () => stop(), [stop]);
 
-  return [state, { start, stop, reset }];
+  return { position, route, distance, error, tracking, start, stop, reset };
 }

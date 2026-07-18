@@ -1,24 +1,42 @@
-export function vibrate(pattern: number | number[]): void {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
+import { useState, useEffect, useCallback } from 'react';
 
 export type AppSettings = {
-  soundEnabled: boolean;
-  hapticsEnabled: boolean;
-  voiceEnabled: boolean;
-  mapStyle: 'standard' | 'satellite' | 'terrain';
-  highContrast: boolean;
+  sound: boolean;
+  voiceGuidance: boolean;
+  haptics: boolean;
+  notifications: boolean;
+  arMode: boolean;
+  metricUnits: boolean;
 };
 
-export const DEFAULT_SETTINGS: AppSettings = {
-  soundEnabled: true, hapticsEnabled: true, voiceEnabled: false, mapStyle: 'standard', highContrast: false,
+const DEFAULTS: AppSettings = {
+  sound: true,
+  voiceGuidance: false,
+  haptics: true,
+  notifications: true,
+  arMode: false,
+  metricUnits: true,
 };
 
-export function loadSettings(): AppSettings {
-  try { const s = localStorage.getItem('zeviqo-settings'); if (s) return { ...DEFAULT_SETTINGS, ...JSON.parse(s) }; } catch { /* */ }
-  return DEFAULT_SETTINGS;
-}
+const KEY = 'zeviqo-settings';
 
-export function saveSettings(settings: AppSettings): void {
-  try { localStorage.setItem('zeviqo-settings', JSON.stringify(settings)); } catch { /* */ }
+export function useSettings() {
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
+    } catch {
+      return DEFAULTS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(KEY, JSON.stringify(settings));
+  }, [settings]);
+
+  const update = useCallback((patch: Partial<AppSettings>) => {
+    setSettings((prev) => ({ ...prev, ...patch }));
+  }, []);
+
+  return { settings, update };
 }

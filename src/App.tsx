@@ -1,9 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useStore } from './store';
-import { useDataSync } from './hooks/useDataSync';
-import { AdventureBg, BottomNav } from './components/BottomNav';
+import { BottomNav } from './components/BottomNav';
 import { LoadingScreen } from './components/ui';
+import { useDataSync } from './hooks/useDataSync';
 
 const Auth = lazy(() => import('./screens/Auth'));
 const Home = lazy(() => import('./screens/Home'));
@@ -30,38 +30,42 @@ const Rewards = lazy(() => import('./screens/Rewards'));
 const Seasonal = lazy(() => import('./screens/Seasonal'));
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 
-const SCREENS: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
-  home: Home, adventures: Adventures, 'adventure-detail': AdventureDetail, 'adventure-map': AdventureMap,
-  quests: Quests, achievements: Achievements, 'daily-rewards': DailyRewards, profile: Profile,
-  challenges: Challenges, community: Community, friends: Friends, party: Party, shop: Shop,
-  settings: Settings, history: History, 'ai-generator': AIGenerator, 'adventure-preview': AdventurePreview,
-  creator: Creator, customise: Customise, inventory: Inventory, rewards: Rewards, seasonal: Seasonal,
-  onboarding: Onboarding,
+const SCREENS: Record<string, React.ComponentType> = {
+  auth: Auth, home: Home, adventures: Adventures, adventureDetail: AdventureDetail, adventureMap: AdventureMap,
+  quests: Quests, achievements: Achievements, dailyRewards: DailyRewards, profile: Profile, challenges: Challenges,
+  community: Community, friends: Friends, party: Party, shop: Shop, settings: Settings, history: History,
+  aiGenerator: AIGenerator, adventurePreview: AdventurePreview, creator: Creator, customise: Customise,
+  inventory: Inventory, rewards: Rewards, seasonal: Seasonal, onboarding: Onboarding,
 };
 
-const FULLSCREEN_SCREENS = new Set(['adventure-map']);
-
 function AppContent() {
-  const { user, loading } = useAuth();
-  const { currentScreen, setScreen } = useStore();
+  const { session, profile, loading } = useAuth();
+  const { screen, setScreen } = useStore();
   useDataSync();
 
+  useEffect(() => {
+    if (session && profile && !profile.onboarding_complete) setScreen('onboarding');
+    if (!session) setScreen('auth');
+  }, [session, profile, setScreen]);
+
   if (loading) return <LoadingScreen />;
-  if (!user) return <Suspense fallback={<LoadingScreen />}><Auth /></Suspense>;
+  if (!session) { const C = SCREENS['auth']; return <C />; }
 
-  const isFullscreen = FULLSCREEN_SCREENS.has(currentScreen);
-  const Screen = SCREENS[currentScreen] ?? Home;
-  const showNav = !isFullscreen;
-
+  const Current = SCREENS[screen] ?? SCREENS['home'];
   return (
-    <div className="min-h-screen flex flex-col">
-      <AdventureBg />
-      <Suspense fallback={<LoadingScreen />}><Screen /></Suspense>
-      {showNav && <BottomNav current={currentScreen} onNavigate={(s) => setScreen(s as never)} />}
+    <div className="min-h-screen bg-ink-950">
+      <Suspense fallback={<LoadingScreen />}>
+        <Current />
+      </Suspense>
+      <BottomNav />
     </div>
   );
 }
 
 export default function App() {
-  return <AuthProvider><AppContent /></AuthProvider>;
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }

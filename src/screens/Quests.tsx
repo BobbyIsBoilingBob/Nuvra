@@ -1,55 +1,44 @@
 import { useStore } from '../store';
-import { QUESTS } from '../data';
-import { Card, Screen, ProgressBar, Button, Badge, getIcon } from '../components/ui';
-import { Zap, Coins, Check, Lock } from 'lucide-react';
+import { ADVENTURES } from '../data';
+import { Card, Screen, EmptyState, ProgressBar, Badge } from '../components/ui';
+import { Target, CircleCheck as CheckCircle2, Circle, Zap } from 'lucide-react';
 
 export default function Quests() {
-  const { questProgress, claimedQuests, claimQuest, setScreen } = useStore();
-  const categories = ['daily', 'weekly', 'story'] as const;
+  const { questProgress } = useStore();
+  const allQuests = ADVENTURES.flatMap((a) => a.quests.map((q) => ({ ...q, adventureName: a.name, adventureEmoji: a.emoji })));
+  const active = allQuests.filter((q) => questProgress[q.id] && !questProgress[q.id].completed);
+  const done = allQuests.filter((q) => questProgress[q.id]?.completed);
 
   return (
     <Screen>
       <h1 className="font-display text-2xl font-bold text-white mb-4">Quests</h1>
-      {categories.map(cat => {
-        const quests = QUESTS.filter(q => q.category === cat);
-        if (quests.length === 0) return null;
-        return (
-          <div key={cat} className="mb-6">
-            <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">{cat}</h2>
-            <div className="space-y-3">
-              {quests.map(q => {
-                const progress = questProgress[q.metric] ?? 0;
-                const complete = progress >= q.target;
-                const claimed = claimedQuests.includes(q.id);
-                const Icon = getIcon(q.icon);
-                return (
-                  <Card key={q.id} className="p-4">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-zeviqo-500/10 flex items-center justify-center"><Icon size={20} color="#00c4ff" /></div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-white">{q.title}</h3>
-                        <p className="text-ink-400 text-sm">{q.description}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Badge color="#00c4ff"><Zap size={10} className="inline" /> {q.reward.xp}</Badge>
-                        <Badge color="#fbbf24"><Coins size={10} className="inline" /> {q.reward.coins}</Badge>
-                      </div>
-                    </div>
-                    <ProgressBar value={progress} max={q.target} color={complete ? '#22c55e' : '#00c4ff'} />
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-ink-400 text-xs">{Math.min(progress, q.target)} / {q.target}</span>
-                      {claimed ? <span className="text-ink-500 text-xs flex items-center gap-1"><Check size={14} /> Claimed</span>
-                        : complete ? <Button size="sm" variant="gold" onClick={() => claimQuest(q.id)}>Claim</Button>
-                        : <span className="text-ink-500 text-xs flex items-center gap-1"><Lock size={14} /> In progress</span>}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+      {active.length === 0 && done.length === 0 ? <EmptyState icon={Target} title="No quests yet" subtitle="Start an adventure to begin quests" /> : (
+        <>
+          {active.length > 0 && <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">Active ({active.length})</h2>}
+          <div className="space-y-2 mb-4">
+            {active.map((q) => (
+              <Card key={q.id} className="p-3">
+                <div className="flex items-center gap-3 mb-2">
+                  <Circle size={18} color="#64748b" />
+                  <div className="flex-1"><p className="text-white font-semibold text-sm">{q.title}</p><p className="text-ink-400 text-xs">{q.adventureEmoji} {q.adventureName}</p></div>
+                  <Badge color="#fbbf24"><Zap size={10} className="inline" /> {q.xp}</Badge>
+                </div>
+                {q.target && <ProgressBar value={questProgress[q.id]?.progress ?? 0} max={q.target} color="#3b82f6" />}
+              </Card>
+            ))}
           </div>
-        );
-      })}
-      <Button variant="ghost" className="w-full" onClick={() => setScreen('achievements')}>View Achievements</Button>
+          {done.length > 0 && <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">Completed ({done.length})</h2>}
+          <div className="space-y-2">
+            {done.map((q) => (
+              <Card key={q.id} className="p-3 flex items-center gap-3 opacity-60">
+                <CheckCircle2 size={18} color="#22c55e" />
+                <div className="flex-1"><p className="text-white font-semibold text-sm">{q.title}</p><p className="text-ink-400 text-xs">{q.adventureEmoji} {q.adventureName}</p></div>
+                <Badge color="#22c55e"><Zap size={10} className="inline" /> {q.xp}</Badge>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
     </Screen>
   );
 }

@@ -1,51 +1,50 @@
 import { useStore } from '../store';
-import { getAdventureById, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
-import { Card, Button, Screen, Badge } from '../components/ui';
-import { Map, Clock, Zap, Coins, Target, Trophy, ChevronRight, Check } from 'lucide-react';
+import { ADVENTURES } from '../data';
+import { Card, Screen, Button, Badge, EmptyState, ProgressBar } from '../components/ui';
+import { ArrowLeft, MapPin, Zap, Clock, CircleCheck as CheckCircle2, Circle, Star } from 'lucide-react';
 
 export default function AdventureDetail() {
-  const { selectedAdventureId, selectedAdventureObj, setScreen } = useStore();
-  const adventure = selectedAdventureObj ?? getAdventureById(selectedAdventureId ?? '');
-  if (!adventure) return (
-    <Screen>
-      <p className="text-ink-400">Adventure not found.</p>
-      <Button onClick={() => setScreen('adventures')} className="mt-4">Back to Adventures</Button>
-    </Screen>
-  );
+  const { activeAdventureId, setScreen, questProgress } = useStore();
+  const adventure = ADVENTURES.find((a) => a.id === activeAdventureId);
+  if (!adventure) return <Screen><EmptyState icon={MapPin} title="Adventure not found" /><Button onClick={() => setScreen('adventures')} className="mt-4">Browse Adventures</Button></Screen>;
+  const completedCount = adventure.quests.filter((q) => questProgress[q.id]?.completed).length;
 
   return (
     <Screen>
-      <button onClick={() => setScreen('adventures')} className="text-ink-400 text-sm mb-4 flex items-center gap-1">
-        <ChevronRight size={16} className="rotate-180" /> Back
-      </button>
-      <div className="text-5xl mb-3">{adventure.emoji}</div>
-      <h1 className="font-display text-2xl font-bold text-white mb-2">{adventure.title}</h1>
-      <p className="text-ink-400 mb-4">{adventure.description}</p>
-      <div className="flex items-center gap-2 mb-4">
-        <Badge color={DIFFICULTY_COLORS[adventure.difficulty]}>{DIFFICULTY_LABELS[adventure.difficulty]}</Badge>
-        {adventure.tags.map(t => <Badge key={t} color="#5a6a9a">{t}</Badge>)}
-      </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <Card className="p-3 flex items-center gap-2"><Map size={20} color="#00c4ff" /><div><p className="text-white font-bold">{adventure.distance} km</p><p className="text-ink-400 text-xs">Distance</p></div></Card>
-        <Card className="p-3 flex items-center gap-2"><Clock size={20} color="#22c55e" /><div><p className="text-white font-bold">{adventure.duration} min</p><p className="text-ink-400 text-xs">Duration</p></div></Card>
-        <Card className="p-3 flex items-center gap-2"><Zap size={20} color="#00c4ff" /><div><p className="text-white font-bold">{adventure.xp} XP</p><p className="text-ink-400 text-xs">Experience</p></div></Card>
-        <Card className="p-3 flex items-center gap-2"><Coins size={20} color="#fbbf24" /><div><p className="text-white font-bold">{adventure.coins}</p><p className="text-ink-400 text-xs">Coins</p></div></Card>
-      </div>
-      <Card className="p-4 mb-4">
-        <div className="flex items-center gap-2 mb-3"><Target size={18} color="#00c4ff" /><h3 className="font-semibold text-white">Objectives</h3></div>
-        <ul className="space-y-2">
-          {adventure.objectives.map((obj, i) => (
-            <li key={i} className="flex items-center gap-2 text-ink-300 text-sm"><Check size={16} color="#22c55e" /> {obj}</li>
-          ))}
-        </ul>
+      <button onClick={() => setScreen('adventures')} className="flex items-center gap-1 text-ink-400 text-sm mb-4"><ArrowLeft size={16} /> Back</button>
+      <Card className="p-4 mb-4" style={{ borderColor: `${adventure.color}33` }}>
+        <div className="text-5xl mb-2">{adventure.emoji}</div>
+        <h1 className="font-display text-2xl font-bold text-white mb-1">{adventure.name}</h1>
+        <p className="text-ink-400 text-sm mb-3">{adventure.description}</p>
+        <div className="flex gap-2 mb-3">
+          <Badge color={adventure.color}>{adventure.difficulty}</Badge>
+          <Badge color="#94a3b8"><Clock size={10} className="inline" /> {adventure.estimatedMinutes}m</Badge>
+          <Badge color="#fbbf24"><Zap size={10} className="inline" /> {adventure.totalXp} XP</Badge>
+        </div>
+        <ProgressBar value={completedCount} max={adventure.quests.length} />
+        <p className="text-ink-400 text-xs mt-1">{completedCount} / {adventure.quests.length} quests complete</p>
       </Card>
-      {adventure.challenges.length > 0 && (
-        <Card className="p-4 mb-4">
-          <div className="flex items-center gap-2 mb-3"><Trophy size={18} color="#fbbf24" /><h3 className="font-semibold text-white">Challenges</h3></div>
-          <p className="text-ink-400 text-sm">{adventure.challenges.length} bonus challenges available</p>
-        </Card>
-      )}
-      <Button size="lg" className="w-full" onClick={() => setScreen('adventure-map')}>Start Adventure</Button>
+
+      <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">Quests</h2>
+      <div className="space-y-2 mb-4">
+        {adventure.quests.map((q, i) => {
+          const prog = questProgress[q.id];
+          const done = prog?.completed;
+          return (
+            <Card key={q.id} className="p-3 flex items-center gap-3">
+              {done ? <CheckCircle2 size={20} color="#22c55e" /> : <Circle size={20} color="#64748b" />}
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm">{i + 1}. {q.title}</p>
+                <p className="text-ink-400 text-xs">{q.description}</p>
+                {q.target && <ProgressBar value={prog?.progress ?? 0} max={q.target} color="#3b82f6" />}
+              </div>
+              <Badge color="#fbbf24"><Zap size={10} className="inline" /> {q.xp}</Badge>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Button className="w-full" onClick={() => setScreen('adventureMap')}>Start Adventure</Button>
     </Screen>
   );
 }

@@ -1,58 +1,37 @@
-import { useStore } from '../store';
-import { ACHIEVEMENTS, ACHIEVEMENT_CATEGORIES } from '../cosmetics';
 import { useAuth } from '../lib/auth';
-import { Card, Screen, Badge, getIcon } from '../components/ui';
-import { CircleCheck as CheckCircle2, Lock } from 'lucide-react';
+import { ACHIEVEMENTS } from '../cosmetics';
+import { Card, Screen, EmptyState, Badge } from '../components/ui';
+import { Award, CircleCheck as CheckCircle2, Circle } from 'lucide-react';
 
 export default function Achievements() {
-  const { questProgress, setScreen } = useStore();
   const { profile } = useAuth();
-
-  const getMetricValue = (metric: string): number => {
-    if (metric === 'level') return profile?.level ?? 0;
-    if (metric === 'distance') return profile?.distance_walked ?? 0;
-    if (metric === 'adventures') return profile?.completed_adventures ?? 0;
-    if (metric === 'treasures') return profile?.treasure_collected ?? 0;
-    if (metric === 'streak') return profile?.walking_streak ?? 0;
-    return questProgress[metric] ?? 0;
+  if (!profile) return null;
+  const unlocked = (id: string) => {
+    if (id === 'a1') return profile.completed_adventures >= 1;
+    if (id === 'a2') return profile.completed_adventures >= 10;
+    if (id === 'a3') return profile.distance_walked >= 42000;
+    if (id === 'a4') return false;
+    if (id === 'a5') return profile.treasure_collected >= 50;
+    return false;
   };
-
   return (
     <Screen>
       <h1 className="font-display text-2xl font-bold text-white mb-4">Achievements</h1>
-      {ACHIEVEMENT_CATEGORIES.map(cat => {
-        const items = ACHIEVEMENTS.filter(a => a.category === cat);
-        if (items.length === 0) return null;
-        return (
-          <div key={cat} className="mb-6">
-            <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">{cat}</h2>
-            <div className="space-y-3">
-              {items.map(a => {
-                const value = getMetricValue(a.metric);
-                const unlocked = value >= a.requirement;
-                const Icon = getIcon(a.icon);
-                const tierColors: Record<string, string> = { bronze: '#fb923c', silver: '#94a3b8', gold: '#fbbf24', legendary: '#a78bfa' };
-                return (
-                  <Card key={a.id} className={`p-4 ${unlocked ? 'border-zeviqo-500/30' : ''}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${unlocked ? 'bg-zeviqo-500/10' : 'bg-ink-700/30'}`}>
-                        <Icon size={24} color={unlocked ? tierColors[a.tier] : '#5a6a9a'} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2"><h3 className="font-semibold text-white">{a.title}</h3><Badge color={tierColors[a.tier]}>{a.tier}</Badge></div>
-                        <p className="text-ink-400 text-sm">{a.description}</p>
-                        <p className="text-ink-500 text-xs mt-1">{Math.min(value, a.requirement)} / {a.requirement}</p>
-                      </div>
-                      {unlocked ? <CheckCircle2 size={24} color="#22c55e" /> : <Lock size={20} color="#5a6a9a" />}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-      <button onClick={() => setScreen('home')} className="text-zeviqo-400 text-sm mt-4">Back to Home</button>
+      <div className="space-y-3">
+        {ACHIEVEMENTS.map((a) => {
+          const done = unlocked(a.id);
+          return (
+            <Card key={a.id} className="p-4 flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${done ? 'bg-zeviqo-500/20' : 'bg-ink-700/50 grayscale opacity-50'}`}>{a.emoji}</div>
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm">{a.name}</p>
+                <p className="text-ink-400 text-xs">{a.description}</p>
+              </div>
+              {done ? <CheckCircle2 size={20} color="#22c55e" /> : <Circle size={20} color="#475569" />}
+            </Card>
+          );
+        })}
+      </div>
     </Screen>
   );
 }

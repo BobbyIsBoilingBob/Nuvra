@@ -1,91 +1,35 @@
-export type LatLng = { lat: number; lng: number };
-export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
-
-const EARTH_RADIUS_KM = 6371;
-
 export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function haversineMeters(p1: LatLng, p2: LatLng): number {
-  return haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng) * 1000;
+const DRIFT_THRESHOLD_M = 5;
+const SPEED_CAP_KMH = 15;
+
+export function filterGpsReading(prev: { lat: number; lng: number; ts: number }, next: { lat: number; lng: number; ts: number }) {
+  const dist = haversineDistance(prev.lat, prev.lng, next.lat, next.lng);
+  const dt = Math.max(1, (next.ts - prev.ts) / 1000);
+  if (dist < DRIFT_THRESHOLD_M) return null;
+  const speedKmh = (dist / dt) * 3.6;
+  if (speedKmh > SPEED_CAP_KMH) return null;
+  return next;
 }
 
-export type GpsFilter = {
-  lastLat: number | null;
-  lastLon: number | null;
-  lastTime: number | null;
-  totalDistance: number;
-};
-
-// 5 meters — below this, it's GPS jitter, not real movement
-const GPS_DRIFT_THRESHOLD_KM = 0.005;
-// 15 km/h — reject impossible jumps (GPS glitches)
-const MAX_WALKING_SPEED_KMH = 15;
-
-export function createGpsFilter(): GpsFilter {
-  return { lastLat: null, lastLon: null, lastTime: null, totalDistance: 0 };
+export function formatDistance(m: number): string {
+  if (m < 1000) return `${Math.round(m)} m`;
+  return `${(m / 1000).toFixed(2)} km`;
 }
 
-/**
- * Filter a GPS reading. Returns accepted=true only if the reading represents
- * real movement (above drift threshold and below max speed).
- * When accepted=false, the filter's lastLat/lastLon are NOT updated —
- * this is critical: a rejected jitter reading must not become the new baseline,
- * otherwise the next reading would measure from a jittered position.
- */
-export function filterGpsReading(filter: GpsFilter, lat: number, lon: number, time: number): { accepted: boolean; distance: number } {
-  if (filter.lastLat === null || filter.lastLon === null || filter.lastTime === null) {
-    filter.lastLat = lat;
-    filter.lastLon = lon;
-    filter.lastTime = time;
-    return { accepted: true, distance: 0 };
-  }
-
-  const dist = haversineDistance(filter.lastLat, filter.lastLon, lat, lon);
-  const elapsedHours = (time - filter.lastTime) / 3600000;
-
-  // Reject GPS drift: movement below 5m threshold
-  if (dist < GPS_DRIFT_THRESHOLD_KM) {
-    return { accepted: false, distance: 0 };
-  }
-
-  // Reject impossible speed (GPS jump/glitch)
-  if (elapsedHours > 0) {
-    const speed = dist / elapsedHours;
-    if (speed > MAX_WALKING_SPEED_KMH) {
-      return { accepted: false, distance: 0 };
-    }
-  }
-
-  // Accepted: update baseline and accumulate distance
-  filter.lastLat = lat;
-  filter.lastLon = lon;
-  filter.lastTime = time;
-  filter.totalDistance += dist;
-  return { accepted: true, distance: dist };
+export function formatDuration(s: number): string {
+  const mins = Math.floor(s / 60);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ${mins % 60}m`;
 }
 
-export function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)} m`;
-  return `${km.toFixed(2)} km`;
-}
-
-export function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-export function routeToLatLngs(route: { x: number; y: number }[], center: LatLng, spanMeters = 800): LatLng[] {
-  const metersPerDegLat = 111320;
-  const metersPerDegLng = 111320 * Math.cos((center.lat * Math.PI) / 180);
-  const halfSpan = spanMeters / 2;
-  return route.map((p) => ({
-    lat: center.lat + ((p.y - 50) / 50) * (halfSpan / metersPerDegLat),
-    lng: center.lng + ((p.x - 50) / 50) * (halfSpan / metersPerDegLng),
-  }));
+export function routeToLatLngs(route: { lat: number; lng: number }[]): [number, number][] {
+  return route.map((p) => [p.lat, p.lng] as [number, number]);
 }
