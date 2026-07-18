@@ -19,7 +19,7 @@ export default function History() {
   return (
     <div className="pb-24"><Header title="History" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
-        {history.length === 0 && <p className="text-ink-400 text-sm">No completed adventures yet.</p>}
+        {history.length === 0 && <p className="text-ink-400 text-sm text-center py-8">No completed adventures yet.</p>}
         {history.map((h) => (
           <Card key={h.id} className="p-4">
             <p className="text-white font-semibold">{h.adventureTitle}</p>

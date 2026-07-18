@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useStore } from '../store';
@@ -33,45 +33,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cachedProfile = useStore((s) => s.cachedProfile);
   const setCachedProfile = useStore((s) => s.setCachedProfile);
 
-  // ── Startup gate (Bug #1 + #4) ──────────────────────────────────────
-  // Synchronous check: if guest flag is set, we know immediately without
-  // any network request. This prevents the Home flash for guests.
+  // Refs prevent duplicate work and race conditions across StrictMode double-invocation.
+  const initRef = useRef(false);
+  const profileLoadingRef = useRef(false);
+
+  // ── Startup gate ─────────────────────────────────────────────────────
+  // Synchronous guest check from localStorage, then session restore.
   useEffect(() => {
-    let mounted = true;
+    if (initRef.current) return;
+    initRef.current = true;
+
     let cancelled = false;
 
     (async () => {
-      // Check guest flag synchronously from localStorage.
       let isGuestFlag = false;
       try { isGuestFlag = localStorage.getItem(GUEST_KEY) === '1'; } catch { /* ignore */ }
 
       if (isGuestFlag) {
-        if (mounted) setStatus('guest');
+        if (!cancelled) setStatus('guest');
         return;
       }
 
-      // Not a guest — restore session. getSession() reads from local
-      // storage first (fast), then refreshes if needed.
       const { data, error } = await supabase.auth.getSession();
       if (cancelled) return;
 
       if (error || !data.session) {
-        if (mounted) { setSession(null); setUser(null); setStatus('unauthenticated'); }
+        if (!cancelled) { setSession(null); setUser(null); setStatus('unauthenticated'); }
         return;
       }
 
-      if (mounted) {
+      if (!cancelled) {
         setSession(data.session);
         setUser(data.session.user);
         setStatus('authenticated');
       }
     })();
 
-    return () => { mounted = false; cancelled = true; };
+    return () => { cancelled = true; };
   }, []);
 
-  // ── Session change listener (Bug #3) ───────────────────────────────
-  // Single subscription — no duplicate listeners.
+  // ── Session change listener (single subscription) ───────────────────
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
@@ -79,40 +80,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s) {
         setStatus('authenticated');
         try { localStorage.removeItem(GUEST_KEY); } catch { /* ignore */ }
-      } else if (status !== 'guest') {
-        setStatus('unauthenticated');
+      } else {
+        // Only set unauthenticated if we're not in guest mode.
+        setStatus((prev) => (prev === 'guest' ? prev : 'unauthenticated'));
         setProfile(null);
         setCachedProfile(null);
       }
     });
     return () => { sub.subscription.unsubscribe(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setCachedProfile]);
 
-  // ── Profile loading (Bug #2) ────────────────────────────────────────
-  // Loads only when authenticated. Uses cache to render instantly, then
-  // fetches fresh data in the background.
+  // ── Profile loading (cached + progressive) ──────────────────────────
   const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    // Render cached profile immediately if available.
+    if (!user || profileLoadingRef.current) return;
+    profileLoadingRef.current = true;
+    // Render from cache immediately if available.
     if (cachedProfile) setProfile(cachedProfile);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (data) {
-      const p: Profile = {
-        id: data.id,
-        username: data.username ?? 'Adventurer',
-        level: data.level ?? 1,
-        xp: data.xp ?? 0,
-        coins: data.coins ?? 0,
-        avatar: data.avatar_emoji ?? undefined,
-        createdAt: data.created_at,
-      };
-      setProfile(p);
-      setCachedProfile(p);
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data) {
+        const p: Profile = {
+          id: data.id,
+          username: data.username ?? 'Adventurer',
+          level: data.level ?? 1,
+          xp: data.xp ?? 0,
+          coins: data.coins ?? 0,
+          avatar: data.avatar_emoji ?? undefined,
+          createdAt: data.created_at,
+        };
+        setProfile(p);
+        setCachedProfile(p);
+      }
+    } finally {
+      profileLoadingRef.current = false;
     }
   }, [user, cachedProfile, setCachedProfile]);
 
@@ -134,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { localStorage.removeItem(GUEST_KEY); } catch { /* ignore */ }
   }, []);
 
-  // ── Auth actions (Bug #3) ───────────────────────────────────────────
+  // ── Auth actions ────────────────────────────────────────────────────
   const signIn = useCallback(async (email: string, password: string) => {
     exitGuest();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });

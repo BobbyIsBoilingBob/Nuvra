@@ -1,11 +1,10 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data/gameData';
-import type { Adventure } from '../types';
+import type { Adventure, Quest } from '../types';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { MapPin, Ruler, Eye, Target, Navigation } from 'lucide-react';
-import type { Quest } from '../types';
 
 const TYPE_ICON = { distance: Ruler, checkpoint: MapPin, challenge: Eye };
 const TYPE_LABEL = { distance: 'Distance', checkpoint: 'Checkpoint', challenge: 'Challenge' };

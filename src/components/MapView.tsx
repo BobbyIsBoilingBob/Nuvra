@@ -11,17 +11,33 @@ const defaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = defaultIcon;
 
+const checkpointIcon = L.divIcon({
+  html: '<div style="width:20px;height:20px;border-radius:50%;background:#f59e0b;border:3px solid #fbbf24;box-shadow:0 0 8px rgba(245,158,11,0.6);"></div>',
+  className: '',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
+
+const playerIcon = L.divIcon({
+  html: '<div style="width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #67e8f9;box-shadow:0 0 10px rgba(34,211,238,0.8);"></div>',
+  className: '',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
 interface MapViewProps {
   center: GeoPoint;
   route: GeoPoint[];
   fitRoute?: boolean;
   checkpoints?: GeoPoint[];
+  followPlayer?: boolean;
 }
 
 function MapResizer() {
   const map = useMap();
   useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 200);
+    // Invalidate size after mount and on resize — fixes blank map tiles.
+    const t = setTimeout(() => map.invalidateSize(), 100);
     const onResize = () => map.invalidateSize();
     window.addEventListener('resize', onResize);
     return () => { clearTimeout(t); window.removeEventListener('resize', onResize); };
@@ -35,22 +51,33 @@ function RouteFitter({ route }: { route: GeoPoint[] }) {
     if (route.length >= 2) {
       const bounds = L.latLngBounds(route.map((p) => [p.lat, p.lng]));
       map.fitBounds(bounds, { padding: [40, 40] });
+    } else if (route.length === 1) {
+      map.setView([route[0].lat, route[0].lng], 16);
     }
   }, [route, map]);
   return null;
 }
 
-export default function MapView({ center, route, fitRoute = false, checkpoints = [] }: MapViewProps) {
+function PlayerFollower({ position }: { position: GeoPoint | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.panTo([position.lat, position.lng], { animate: true });
+  }, [position, map]);
+  return null;
+}
+
+export default function MapView({ center, route, fitRoute = false, checkpoints = [], followPlayer = false }: MapViewProps) {
   const latLngs = route.map((p) => [p.lat, p.lng]) as [number, number][];
   return (
     <MapContainer center={[center.lat, center.lng]} zoom={15}
-      className="h-full w-full rounded-2xl overflow-hidden" style={{ minHeight: 300 }}>
+      className="h-full w-full" style={{ minHeight: 300, zIndex: 0 }}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
       <MapResizer />
-      {fitRoute && route.length >= 2 && <RouteFitter route={route} />}
-      <Marker position={[center.lat, center.lng]} />
-      {checkpoints.map((cp, i) => <Marker key={i} position={[cp.lat, cp.lng]} />)}
-      {latLngs.length >= 2 && <Polyline positions={latLngs} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.8 }} />}
+      {fitRoute && <RouteFitter route={route} />}
+      {followPlayer && <PlayerFollower position={route.length > 0 ? route[route.length - 1] : null} />}
+      <Marker position={[center.lat, center.lng]} icon={playerIcon} />
+      {checkpoints.map((cp, i) => <Marker key={i} position={[cp.lat, cp.lng]} icon={checkpointIcon} />)}
+      {latLngs.length >= 2 && <Polyline positions={latLngs} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.85 }} />}
     </MapContainer>
   );
 }

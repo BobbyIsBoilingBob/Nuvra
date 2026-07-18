@@ -1,10 +1,9 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data/gameData';
-import type { Adventure } from '../types';
+import type { Adventure, Quest } from '../types';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import { Target, ChevronRight, MapPin, Ruler, Eye } from 'lucide-react';
-import type { Quest } from '../types';
 
 const TYPE_ICON = { distance: Ruler, checkpoint: MapPin, challenge: Eye };
 
@@ -27,7 +26,7 @@ export default function Quests() {
     <div className="pb-24">
       <Header title="Quests" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
-        <p className="text-ink-400 text-sm">Tap a quest to view details and start its adventure.</p>
+        {quests.length === 0 && <p className="text-ink-400 text-sm text-center py-8">No quests available.</p>}
         {quests.map((q) => {
           const Icon = TYPE_ICON[q.type] ?? Target;
           return (

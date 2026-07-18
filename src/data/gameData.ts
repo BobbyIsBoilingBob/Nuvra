@@ -130,6 +130,14 @@ export function generateAIAdventure(prompt: string): Adventure {
     adventureId: id,
     adventureTitle: title,
   });
+  quests.push({
+    id: 'q-challenge',
+    type: 'challenge',
+    title: 'Photo challenge',
+    description: 'Snap a photo of something interesting you discover.',
+    adventureId: id,
+    adventureTitle: title,
+  });
 
   const xp = Math.round(distanceKm * 60);
   const coins = Math.round(distanceKm * 30);

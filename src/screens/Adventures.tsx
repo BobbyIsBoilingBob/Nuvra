@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import { ADVENTURES } from '../data/gameData';
+import type { Adventure } from '../types';
 import { Clock, MapPin, TrendingUp, Sparkles } from 'lucide-react';
 
 const DIFF_COLOR: Record<string, string> = {
@@ -17,7 +18,7 @@ export default function Adventures() {
   const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest } = useAuth();
 
-  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
 
   return (
     <div className="pb-24">
@@ -31,6 +32,9 @@ export default function Adventures() {
           <p className="text-ink-400 text-sm bg-ink-800/50 rounded-xl p-3 border border-ink-700/50">
             You're browsing as a guest. Sign in to start and track adventures.
           </p>
+        )}
+        {allAdventures.length === 0 && (
+          <p className="text-ink-400 text-sm text-center py-8">No adventures available yet.</p>
         )}
         {allAdventures.map((adv) => (
           <Card key={adv.id} className="overflow-hidden" onClick={() => { setActiveAdventure(adv.id); navigate('adventureDetail'); }}>

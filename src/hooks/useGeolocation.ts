@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GeoPoint } from '../types';
 
-const DRIFT_THRESHOLD_M = 5;
-const SPEED_CAP_KMH = 15;
+const DRIFT_THRESHOLD_M = 8;
+const SPEED_CAP_KMH = 18;
+const MIN_UPDATE_INTERVAL_MS = 2000;
 
 function haversineMeters(a: GeoPoint, b: GeoPoint): number {
   const R = 6371000;
@@ -57,14 +58,25 @@ export function useGeolocation(): GeoState & GeoActions {
         const pt: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPosition(pt);
         setRoute((prev) => {
-          if (prev.length === 0) { lastPointRef.current = pt; lastTimeRef.current = Date.now(); return [pt]; }
+          if (prev.length === 0) {
+            lastPointRef.current = pt;
+            lastTimeRef.current = Date.now();
+            return [pt];
+          }
           const last = lastPointRef.current;
-          if (!last) { lastPointRef.current = pt; lastTimeRef.current = Date.now(); return [...prev, pt]; }
+          if (!last) {
+            lastPointRef.current = pt;
+            lastTimeRef.current = Date.now();
+            return [...prev, pt];
+          }
           const dMeters = haversineMeters(last, pt);
           const now = Date.now();
           const dtSec = Math.max((now - lastTimeRef.current) / 1000, 1);
           const speedKmh = (dMeters / 1000) / (dtSec / 3600);
+          // Reject GPS drift: too small a movement or impossible speed.
           if (dMeters < DRIFT_THRESHOLD_M || speedKmh > SPEED_CAP_KMH) return prev;
+          // Reject updates that come too fast (GPS jitter).
+          if (now - lastTimeRef.current < MIN_UPDATE_INTERVAL_MS) return prev;
           setDistance((dist) => dist + dMeters);
           lastPointRef.current = pt;
           lastTimeRef.current = now;
@@ -72,22 +84,33 @@ export function useGeolocation(): GeoState & GeoActions {
         });
       },
       (err) => { setError(err.message || 'Unable to get your location.'); },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
     );
   }, []);
 
   const stop = useCallback(() => {
     setActive(false);
-    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
   }, []);
 
   const reset = useCallback(() => {
-    setRoute([]); setDistance(0); setPosition(null);
-    lastPointRef.current = null; lastTimeRef.current = 0;
+    setRoute([]);
+    setDistance(0);
+    setPosition(null);
+    lastPointRef.current = null;
+    lastTimeRef.current = 0;
   }, []);
 
   useEffect(() => {
-    return () => { if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; } };
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
   }, []);
 
   return { position, route, distance, active, error, start, stop, reset };
