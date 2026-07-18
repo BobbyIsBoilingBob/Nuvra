@@ -1,18 +1,41 @@
+import Header from '../components/Header';
+import Card from '../components/Card';
+import { Users, MessageCircle, Globe } from 'lucide-react';
+import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { Card, Screen, EmptyState, Badge } from '../components/ui';
-import { Users, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { supabase, type Profile } from '../lib/supabase';
 
 export default function Community() {
-  const { profile } = useAuth(); const [players, setPlayers] = useState<Profile[]>([]); const [loading, setLoading] = useState(true);
-  useEffect(() => { (async () => { const { data } = await supabase.from('profiles').select('*').order('xp', { ascending: false }).limit(50); setPlayers((data as Profile[]) ?? []); setLoading(false); })(); }, []);
-  const myRank = players.findIndex((p) => p.id === profile?.id) + 1;
+  const setScreen = useStore((s) => s.setScreen);
+  const { isGuest } = useAuth();
+
   return (
-    <Screen>
-      <h1 className="font-display text-2xl font-bold text-white mb-4">Community</h1>
-      {profile && <Card className="p-4 mb-4"><div className="flex items-center gap-3"><div className="text-2xl">{profile.avatar_emoji}</div><div className="flex-1"><p className="text-white font-semibold">{profile.username}</p><p className="text-ink-400 text-xs">Your rank: {myRank > 0 ? `#${myRank}` : 'Unranked'}</p></div><Badge color="#fbbf24"><Zap size={10} className="inline" /> {profile.xp.toLocaleString()}</Badge></div></Card>}
-      {loading ? <p className="text-ink-400 text-center py-8">Loading...</p> : players.length === 0 ? <EmptyState icon={Users} title="No players found" /> : <div className="space-y-2">{players.map((p, i) => <Card key={p.id} className="p-3 flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i < 3 ? 'bg-zeviqo-500/20 text-zeviqo-400' : 'bg-ink-700/50 text-ink-400'}`}>{i + 1}</div><div className="text-2xl">{p.avatar_emoji}</div><div className="flex-1"><p className="text-white font-semibold text-sm">{p.username}</p><p className="text-ink-400 text-xs">Level {p.level}</p></div><Badge color="#fbbf24"><Zap size={10} className="inline" /> {p.xp.toLocaleString()}</Badge></Card>)}</div>}
-    </Screen>
+    <div className="pb-24">
+      <Header title="Community" back={false} />
+      <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
+        {isGuest && (
+          <p className="text-ink-400 text-sm bg-ink-800/50 rounded-xl p-3 border border-ink-700/50">
+            You're browsing as a guest. Sign in to post and interact.
+          </p>
+        )}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="p-4 flex flex-col items-center gap-1" onClick={() => setScreen('friends')}>
+            <Users size={24} className="text-brand-400" />
+            <span className="text-xs text-ink-200">Friends</span>
+          </Card>
+          <Card className="p-4 flex flex-col items-center gap-1" onClick={() => setScreen('party')}>
+            <MessageCircle size={24} className="text-brand-400" />
+            <span className="text-xs text-ink-200">Party</span>
+          </Card>
+          <Card className="p-4 flex flex-col items-center gap-1" onClick={() => setScreen('creator')}>
+            <Globe size={24} className="text-brand-400" />
+            <span className="text-xs text-ink-200">Create</span>
+          </Card>
+        </div>
+        <Card className="p-4">
+          <p className="text-white font-semibold">Recent activity</p>
+          <p className="text-ink-400 text-sm mt-1">No recent community activity.</p>
+        </Card>
+      </div>
+    </div>
   );
 }

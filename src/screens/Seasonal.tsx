@@ -1,11 +1,39 @@
-import { SEASONAL_ITEMS, RARITY_COLORS, RARITY_LABELS } from '../cosmetics';
-import { useAuth } from '../lib/auth';
+import Header from '../components/Header';
+import Card from '../components/Card';
+import Button from '../components/Button';
 import { useStore } from '../store';
-import { Card, Screen, Button, Badge, EmptyState } from '../components/ui';
-import { Calendar, Coins, Gem, Check, LogIn } from 'lucide-react';
+import { useAuth } from '../lib/auth';
+import { Sparkles, Snowflake } from 'lucide-react';
 
 export default function Seasonal() {
-  const { profile, updateProfile, isGuest, exitGuest } = useAuth(); const { ownedItems, buyItem, equipItem } = useStore();
-  if (isGuest || !profile) return <Screen><h1 className="font-display text-2xl font-bold text-white mb-4">Seasonal Items</h1><Card className="p-6 text-center"><Calendar size={32} color="#fbbf24" className="mx-auto mb-3" /><h2 className="font-display text-lg font-bold text-white mb-2">Sign in to shop seasonal items</h2><Button className="w-full flex items-center justify-center gap-2" onClick={() => exitGuest()}><LogIn size={18} /> Sign In or Create Account</Button></Card></Screen>;
-  return <Screen><h1 className="font-display text-2xl font-bold text-white mb-4">Seasonal Items</h1><div className="flex gap-2 mb-4"><Badge color="#fbbf24"><Coins size={12} className="inline" /> {profile.coins.toLocaleString()}</Badge><Badge color="#a78bfa"><Gem size={12} className="inline" /> {profile.gems}</Badge></div>{SEASONAL_ITEMS.length === 0 ? <EmptyState icon={Calendar} title="No seasonal items" subtitle="Check back during special events" /> : <div className="grid grid-cols-2 gap-3">{SEASONAL_ITEMS.map((item) => { const owned = ownedItems.includes(item.id); const canAfford = profile ? (item.currency === 'coins' ? profile.coins >= item.price : profile.gems >= item.price) : false; return <Card key={item.id} className="p-3" style={{ borderColor: `${RARITY_COLORS[item.rarity]}33` }}><div className="text-3xl text-center mb-2">{item.emoji}</div><h3 className="font-semibold text-white text-sm text-center">{item.name}</h3><p className="text-ink-400 text-xs text-center mb-2">{item.description}</p><Badge color={RARITY_COLORS[item.rarity]}>{RARITY_LABELS[item.rarity]}</Badge>{owned ? <Button size="sm" variant="secondary" className="w-full mt-2" onClick={() => equipItem(item.category, item.id)}><Check size={14} className="inline" /> Equip</Button> : <Button size="sm" variant={item.currency === 'gems' ? 'gold' : 'primary'} className="w-full mt-2" disabled={!canAfford} onClick={async () => { if (!profile) return; const success = buyItem(item.id); if (success) await updateProfile(item.currency === 'coins' ? { coins: profile.coins - item.price } : { gems: profile.gems - item.price }); }}>{item.currency === 'coins' ? <><Coins size={12} className="inline" /> {item.price}</> : <><Gem size={12} className="inline" /> {item.price}</>}</Button>}</Card>; })}</div>}</Screen>;
+  const setScreen = useStore((s) => s.setScreen);
+  const { isGuest } = useAuth();
+  if (isGuest) {
+    return (
+      <div className="pb-24">
+        <Header title="Seasonal" back={false} />
+        <div className="px-4 py-10 text-center">
+          <Snowflake size={48} className="text-ink-500 mx-auto" />
+          <p className="text-ink-300 mt-4">Sign in to join seasonal events.</p>
+          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="pb-24">
+      <Header title="Seasonal" back={false} />
+      <div className="px-4 py-4 max-w-lg mx-auto">
+        <Card className="p-5 text-center">
+          <Sparkles size={36} className="text-brand-400 mx-auto" />
+          <p className="text-white font-semibold mt-2">Summer Walking Festival</p>
+          <p className="text-ink-400 text-sm mt-1">Complete 5 summer adventures for exclusive rewards.</p>
+          <div className="mt-3 h-1.5 rounded-full bg-ink-700 overflow-hidden">
+            <div className="h-full bg-brand-400" style={{ width: '0%' }} />
+          </div>
+          <p className="text-ink-400 text-xs mt-1">0/5 completed</p>
+        </Card>
+      </div>
+    </div>
+  );
 }

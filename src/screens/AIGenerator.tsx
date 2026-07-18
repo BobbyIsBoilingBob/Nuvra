@@ -1,11 +1,40 @@
-import { useState } from 'react';
+import Header from '../components/Header';
+import Card from '../components/Card';
+import Button from '../components/Button';
 import { useStore } from '../store';
-import { generateAdventure } from '../data';
-import { Card, Screen, Button, Badge } from '../components/ui';
-import { Wand as Wand2, Sparkles, MapPin, Clock, Zap, RefreshCw } from 'lucide-react';
+import { useAuth } from '../lib/auth';
+import { Sparkles } from 'lucide-react';
 
 export default function AIGenerator() {
-  const { setScreen, setActiveAdventure } = useStore(); const [loading, setLoading] = useState(false); const [generated, setGenerated] = useState<ReturnType<typeof generateAdventure> | null>(null);
-  const generate = () => { setLoading(true); setTimeout(() => { setGenerated(generateAdventure()); setLoading(false); }, 1200); };
-  return <Screen><h1 className="font-display text-2xl font-bold text-white mb-4">AI Adventure Generator</h1><Card className="p-4 mb-4"><div className="flex items-center gap-3 mb-3"><Wand2 size={24} color="#a78bfa" /><div><h3 className="font-semibold text-white">Generate a unique adventure</h3><p className="text-ink-400 text-sm">AI creates a custom adventure tailored for you</p></div></div><Button onClick={generate} disabled={loading} className="w-full flex items-center justify-center gap-2">{loading ? <><RefreshCw size={18} className="animate-spin" /> Generating...</> : <><Sparkles size={18} /> Generate Adventure</>}</Button></Card>{generated && <Card className="p-4"><div className="flex items-start justify-between mb-3"><div><h3 className="font-semibold text-white text-lg">{generated.name}</h3><p className="text-ink-400 text-sm">{generated.description}</p></div><Badge color="#a78bfa">{generated.theme}</Badge></div><div className="grid grid-cols-3 gap-2 mb-4"><div className="flex items-center gap-1.5"><MapPin size={14} color="#94a3b8" /><span className="text-white text-sm">{generated.quests.length} quests</span></div><div className="flex items-center gap-1.5"><Clock size={14} color="#94a3b8" /><span className="text-white text-sm">~{generated.estimatedMinutes} min</span></div><div className="flex items-center gap-1.5"><Zap size={14} color="#fbbf24" /><span className="text-white text-sm">{generated.totalXp} XP</span></div></div><Button onClick={() => { setActiveAdventure(generated.id); setScreen('adventureDetail'); }} className="w-full">Start Adventure</Button></Card>}</Screen>;
+  const setScreen = useStore((s) => s.setScreen);
+  const { isGuest } = useAuth();
+  if (isGuest) {
+    return (
+      <div className="pb-24">
+        <Header title="AI Adventure Generator" back={false} />
+        <div className="px-4 py-10 text-center">
+          <Sparkles size={48} className="text-ink-500 mx-auto" />
+          <p className="text-ink-300 mt-4">Sign in to generate custom adventures.</p>
+          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="pb-24">
+      <Header title="AI Adventure Generator" back={false} />
+      <div className="px-4 py-4 max-w-lg mx-auto">
+        <Card className="p-5">
+          <Sparkles size={32} className="text-brand-400" />
+          <p className="text-white font-semibold mt-2">Generate a new adventure</p>
+          <p className="text-ink-400 text-sm mt-1">Describe what you want and the AI will create a route.</p>
+          <textarea
+            placeholder="A relaxed riverside walk with two checkpoints…"
+            className="w-full mt-3 px-3 py-2 rounded-xl bg-ink-900 border border-ink-700 text-white outline-none focus:border-brand-500 min-h-24"
+          />
+          <Button className="w-full mt-3">Generate</Button>
+        </Card>
+      </div>
+    </div>
+  );
 }

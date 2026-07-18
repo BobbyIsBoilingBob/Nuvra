@@ -1,25 +1,48 @@
 import { useStore } from '../store';
-import { ADVENTURES } from '../data';
-import { Card, Screen, Badge, EmptyState } from '../components/ui';
-import { MapPin, Clock, Zap, Heart } from 'lucide-react';
+import { useAuth } from '../lib/auth';
+import Header from '../components/Header';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import { ADVENTURES } from '../data/gameData';
+import { Clock, MapPin, TrendingUp } from 'lucide-react';
+
+const DIFF_COLOR: Record<string, string> = {
+  easy: 'text-success-400 bg-success-500/10',
+  medium: 'text-accent-400 bg-accent-500/10',
+  hard: 'text-error-400 bg-error-500/10',
+};
 
 export default function Adventures() {
-  const { setScreen, setActiveAdventure, favorites, toggleFavorite } = useStore();
+  const setScreen = useStore((s) => s.setScreen);
+  const { isGuest } = useAuth();
   return (
-    <Screen>
-      <h1 className="font-display text-2xl font-bold text-white mb-4">Adventures</h1>
-      <div className="space-y-3">
-        {ADVENTURES.map((a) => (
-          <Card key={a.id} className="p-4" style={{ borderColor: `${a.color}22` }}>
-            <div className="flex items-start gap-3"><div className="text-4xl">{a.emoji}</div><div className="flex-1">
-              <div className="flex items-center justify-between"><h3 className="font-semibold text-white">{a.name}</h3><button onClick={() => toggleFavorite(a.id)}><Heart size={18} color={favorites.includes(a.id) ? '#ef4444' : '#64748b'} fill={favorites.includes(a.id) ? '#ef4444' : 'transparent'} /></button></div>
-              <p className="text-ink-400 text-sm mb-2">{a.description}</p>
-              <div className="flex gap-2 mb-3"><Badge color={a.color}>{a.difficulty}</Badge><Badge color="#94a3b8"><Clock size={10} className="inline" /> {a.estimatedMinutes}m</Badge><Badge color="#fbbf24"><Zap size={10} className="inline" /> {a.totalXp}</Badge><Badge color="#3b82f6"><MapPin size={10} className="inline" /> {a.quests.length}</Badge></div>
-              <button onClick={() => { setActiveAdventure(a.id); setScreen('adventureDetail'); }} className="w-full bg-zeviqo-500/20 text-zeviqo-400 font-semibold py-2 rounded-xl text-sm hover:bg-zeviqo-500/30 transition-colors">View Details</button>
-            </div></div>
+    <div className="pb-24">
+      <Header title="Adventures" back={false} />
+      <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
+        {isGuest && (
+          <p className="text-ink-400 text-sm bg-ink-800/50 rounded-xl p-3 border border-ink-700/50">
+            You're browsing as a guest. Sign in to start and track adventures.
+          </p>
+        )}
+        {ADVENTURES.map((adv) => (
+          <Card key={adv.id} className="overflow-hidden" onClick={() => setScreen('adventureDetail')}>
+            <div className="h-32 bg-ink-700 relative" style={adv.imageUrl ? { backgroundImage: `url(${adv.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+              <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold capitalize ${DIFF_COLOR[adv.difficulty]}`}>
+                {adv.difficulty}
+              </span>
+            </div>
+            <div className="p-4">
+              <h3 className="font-display font-bold text-white">{adv.title}</h3>
+              <p className="text-ink-400 text-sm mt-1 line-clamp-2">{adv.description}</p>
+              <div className="flex items-center gap-4 mt-3 text-ink-300 text-xs">
+                <span className="flex items-center gap-1"><Clock size={14} /> {adv.durationMin} min</span>
+                <span className="flex items-center gap-1"><MapPin size={14} /> {adv.distanceKm} km</span>
+                <span className="flex items-center gap-1"><TrendingUp size={14} /> {adv.rewards.xp} XP</span>
+              </div>
+            </div>
           </Card>
         ))}
       </div>
-    </Screen>
+    </div>
   );
 }

@@ -1,17 +1,39 @@
+import Header from '../components/Header';
+import Card from '../components/Card';
+import { CHALLENGES } from '../data/gameData';
 import { useStore } from '../store';
-import { CHALLENGES } from '../data';
 import { useAuth } from '../lib/auth';
-import { Card, Screen, ProgressBar, Badge } from '../components/ui';
-import { Target, CircleCheck as CheckCircle2, Zap } from 'lucide-react';
+import Button from '../components/Button';
 
 export default function Challenges() {
-  const { challengeProgress } = useStore(); const { profile, isGuest } = useAuth();
-  if (isGuest || !profile) return <Screen><h1 className="font-display text-2xl font-bold text-white mb-4">Challenges</h1><Card className="p-6 text-center"><p className="text-ink-400 text-sm">Sign in to participate in challenges.</p></Card></Screen>;
-  const getProgress = (id: string, type: string) => { if (type === 'distance') return profile.distance_walked ?? 0; if (type === 'adventures') return profile.completed_adventures ?? 0; if (type === 'streak') return profile.walking_streak ?? 0; return challengeProgress[id] ?? 0; };
+  const setScreen = useStore((s) => s.setScreen);
+  const { isGuest } = useAuth();
+  if (isGuest) {
+    return (
+      <div className="pb-24">
+        <Header title="Challenges" back={false} />
+        <div className="px-4 py-10 text-center">
+          <p className="text-ink-300">Sign in to join challenges.</p>
+          <Button className="mt-4" onClick={() => setScreen('auth')}>Sign In</Button>
+        </div>
+      </div>
+    );
+  }
   return (
-    <Screen>
-      <h1 className="font-display text-2xl font-bold text-white mb-4">Challenges</h1>
-      <div className="space-y-3">{CHALLENGES.map((c) => { const prog = getProgress(c.id, c.type); const done = prog >= c.target; return <Card key={c.id} className="p-4"><div className="flex items-center gap-3 mb-2">{done ? <CheckCircle2 size={20} color="#22c55e" /> : <Target size={20} color="#fbbf24" />}<div className="flex-1"><p className="text-white font-semibold text-sm">{c.title}</p><p className="text-ink-400 text-xs">{c.description}</p></div><Badge color="#fbbf24"><Zap size={10} className="inline" /> {c.xp}</Badge></div><ProgressBar value={prog} max={c.target} color={done ? '#22c55e' : '#fbbf24'} /><p className="text-ink-400 text-xs mt-1">{Math.min(prog, c.target)} / {c.target}</p></Card>; })}</div>
-    </Screen>
+    <div className="pb-24">
+      <Header title="Challenges" back={false} />
+      <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
+        {CHALLENGES.map((c) => (
+          <Card key={c.id} className="p-4">
+            <p className="text-white font-semibold">{c.title}</p>
+            <p className="text-ink-400 text-sm">{c.description}</p>
+            <div className="mt-2 h-1.5 rounded-full bg-ink-700 overflow-hidden">
+              <div className="h-full bg-brand-400" style={{ width: `${Math.min((c.progress / c.target) * 100, 100)}%` }} />
+            </div>
+            <p className="text-ink-400 text-xs mt-1">{c.progress}/{c.target} • {c.reward.xp} XP</p>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -1,64 +1,106 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useStore } from './store';
-import { BottomNav } from './components/BottomNav';
-import { LoadingScreen } from './components/ui';
-import { useDataSync } from './hooks/useDataSync';
+import Spinner from './components/Spinner';
+import BottomNav from './components/BottomNav';
+import type { Screen } from './types';
 
-const Auth = lazy(() => import('./screens/Auth'));
 const Home = lazy(() => import('./screens/Home'));
+const Auth = lazy(() => import('./screens/Auth'));
+const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Adventures = lazy(() => import('./screens/Adventures'));
 const AdventureDetail = lazy(() => import('./screens/AdventureDetail'));
 const AdventureMap = lazy(() => import('./screens/AdventureMap'));
+const AdventurePreview = lazy(() => import('./screens/AdventurePreview'));
+const Community = lazy(() => import('./screens/Community'));
+const AIGenerator = lazy(() => import('./screens/AIGenerator'));
+const Creator = lazy(() => import('./screens/Creator'));
+const Profile = lazy(() => import('./screens/Profile'));
+const Friends = lazy(() => import('./screens/Friends'));
 const Quests = lazy(() => import('./screens/Quests'));
 const Achievements = lazy(() => import('./screens/Achievements'));
 const DailyRewards = lazy(() => import('./screens/DailyRewards'));
-const Profile = lazy(() => import('./screens/Profile'));
 const Challenges = lazy(() => import('./screens/Challenges'));
-const Community = lazy(() => import('./screens/Community'));
-const Friends = lazy(() => import('./screens/Friends'));
 const Party = lazy(() => import('./screens/Party'));
 const Shop = lazy(() => import('./screens/Shop'));
 const Settings = lazy(() => import('./screens/Settings'));
 const History = lazy(() => import('./screens/History'));
-const AIGenerator = lazy(() => import('./screens/AIGenerator'));
-const AdventurePreview = lazy(() => import('./screens/AdventurePreview'));
-const Creator = lazy(() => import('./screens/Creator'));
 const Customise = lazy(() => import('./screens/Customise'));
 const Inventory = lazy(() => import('./screens/Inventory'));
 const Rewards = lazy(() => import('./screens/Rewards'));
 const Seasonal = lazy(() => import('./screens/Seasonal'));
-const Onboarding = lazy(() => import('./screens/Onboarding'));
 
-const SCREENS: Record<string, React.ComponentType> = {
-  auth: Auth, home: Home, adventures: Adventures, adventureDetail: AdventureDetail, adventureMap: AdventureMap,
-  quests: Quests, achievements: Achievements, dailyRewards: DailyRewards, profile: Profile, challenges: Challenges,
-  community: Community, friends: Friends, party: Party, shop: Shop, settings: Settings, history: History,
-  aiGenerator: AIGenerator, adventurePreview: AdventurePreview, creator: Creator, customise: Customise,
-  inventory: Inventory, rewards: Rewards, seasonal: Seasonal, onboarding: Onboarding,
+const SCREENS: Record<Screen, ComponentType> = {
+  home: Home,
+  auth: Auth,
+  onboarding: Onboarding,
+  adventures: Adventures,
+  adventureDetail: AdventureDetail,
+  adventureMap: AdventureMap,
+  adventurePreview: AdventurePreview,
+  community: Community,
+  aiGenerator: AIGenerator,
+  creator: Creator,
+  profile: Profile,
+  friends: Friends,
+  quests: Quests,
+  achievements: Achievements,
+  dailyRewards: DailyRewards,
+  challenges: Challenges,
+  party: Party,
+  shop: Shop,
+  settings: Settings,
+  history: History,
+  customise: Customise,
+  inventory: Inventory,
+  rewards: Rewards,
+  seasonal: Seasonal,
 };
 
-const GUEST_ALLOWED: string[] = ['home', 'adventures', 'adventureDetail', 'adventureMap', 'community', 'aiGenerator', 'adventurePreview', 'creator'];
+// Screens guests are allowed to browse without signing in.
+const GUEST_ALLOWED: Screen[] = [
+  'home',
+  'adventures',
+  'adventureDetail',
+  'adventureMap',
+  'community',
+  'aiGenerator',
+  'adventurePreview',
+  'creator',
+];
 
-function AppContent() {
-  const { session, profile, loading, isGuest } = useAuth();
-  const { screen, setScreen } = useStore();
-  useDataSync();
+function Router() {
+  const screen = useStore((s) => s.screen);
+  const setScreen = useStore((s) => s.setScreen);
+  const { isGuest, loading } = useAuth();
 
-  useEffect(() => {
-    if (loading) return;
-    if (session && profile && !profile.onboarding_complete) { setScreen('onboarding'); }
-    else if (!session && !isGuest) { setScreen('auth'); }
-    else if (isGuest && !GUEST_ALLOWED.includes(screen)) { setScreen('home'); }
-  }, [session, profile, isGuest, loading, setScreen]);
+  if (loading) return <Spinner label="Loading Zeviqo…" />;
 
-  if (loading) return <LoadingScreen />;
-  if (!session && !isGuest) { const C = SCREENS['auth']; return <C />; }
+  // Guests can only access allowed screens; redirect others to home.
+  let active = screen;
+  if (isGuest && !GUEST_ALLOWED.includes(screen)) {
+    active = 'home';
+  }
 
-  const effectiveScreen = isGuest && !GUEST_ALLOWED.includes(screen) ? 'home' : screen;
-  const Current = SCREENS[effectiveScreen] ?? SCREENS['home'];
+  const Component = SCREENS[active] as ComponentType;
+  const showNav = ['home', 'adventures', 'rewards', 'shop', 'profile'].includes(active);
 
-  return <div className="min-h-screen bg-ink-950"><Suspense fallback={<LoadingScreen />}><Current /></Suspense><BottomNav /></div>;
+  return (
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <Suspense fallback={<Spinner label="Loading…" />}>
+          <Component />
+        </Suspense>
+      </main>
+      {showNav && <BottomNav />}
+    </div>
+  );
 }
 
-export default function App() { return <AuthProvider><AppContent /></AuthProvider>; }
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router />
+    </AuthProvider>
+  );
+}

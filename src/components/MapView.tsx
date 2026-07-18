@@ -1,19 +1,73 @@
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { routeToLatLngs } from '../lib/map-utils';
+import type { GeoPoint } from '../types';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({ iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png', iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png' });
+// Fix default marker icon for bundlers.
+const defaultIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+L.Marker.prototype.options.icon = defaultIcon;
 
-function MapResizer() { const map = useMap(); useEffect(() => { const t = setTimeout(() => map.invalidateSize(), 200); const ro = new ResizeObserver(() => map.invalidateSize()); const container = map.getContainer(); ro.observe(container); return () => { clearTimeout(t); ro.disconnect(); }; }, [map]); return null; }
-function RouteFitter({ route }: { route: { lat: number; lng: number }[] }) { const map = useMap(); useEffect(() => { if (route.length >= 2) { const bounds = L.latLngBounds(route.map((p) => [p.lat, p.lng] as [number, number])); map.fitBounds(bounds, { padding: [40, 40] }); } }, [route, map]); return null; }
+interface MapViewProps {
+  center: GeoPoint;
+  route: GeoPoint[];
+  fitRoute?: boolean;
+  checkpoints?: GeoPoint[];
+}
 
-type MapViewProps = { center: [number, number]; markers?: { position: [number, number]; popup?: string }[]; route?: { lat: number; lng: number }[]; zoom?: number; fitRoute?: boolean };
+/** Invalidates map size when it mounts or resizes — fixes grey tiles. */
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 200);
+    const onResize = () => map.invalidateSize();
+    window.addEventListener('resize', onResize);
+    return () => { clearTimeout(t); window.removeEventListener('resize', onResize); };
+  }, [map]);
+  return null;
+}
 
-export function MapView({ center, markers = [], route = [], zoom = 15, fitRoute = false }: MapViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const latLngs = routeToLatLngs(route);
-  return <div ref={containerRef} style={{ height: '100%', width: '100%', minHeight: '200px' }}><MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', minHeight: '200px' }} className="rounded-2xl"><TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' /><MapResizer />{fitRoute && <RouteFitter route={route} />}{markers.map((m, i) => <Marker key={i} position={m.position}>{m.popup && <Popup>{m.popup}</Popup>}</Marker>)}{latLngs.length >= 2 && <Polyline positions={latLngs} color="#fbbf24" weight={4} opacity={0.8} />}</MapContainer></div>;
+/** Fits the map bounds to the route when there are >= 2 points. */
+function RouteFitter({ route }: { route: GeoPoint[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (route.length >= 2) {
+      const bounds = L.latLngBounds(route.map((p) => [p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }, [route, map]);
+  return null;
+}
+
+export default function MapView({ center, route, fitRoute = false, checkpoints = [] }: MapViewProps) {
+  const latLngs = route.map((p) => [p.lat, p.lng]) as [number, number][];
+  return (
+    <MapContainer
+      center={[center.lat, center.lng]}
+      zoom={15}
+      className="h-full w-full rounded-2xl overflow-hidden"
+      style={{ minHeight: 300 }}
+    >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; OpenStreetMap contributors'
+      />
+      <MapResizer />
+      {fitRoute && route.length >= 2 && <RouteFitter route={route} />}
+      <Marker position={[center.lat, center.lng]} />
+      {checkpoints.map((cp, i) => (
+        <Marker key={i} position={[cp.lat, cp.lng]} />
+      ))}
+      {latLngs.length >= 2 && (
+        <Polyline positions={latLngs} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.8 }} />
+      )}
+    </MapContainer>
+  );
 }

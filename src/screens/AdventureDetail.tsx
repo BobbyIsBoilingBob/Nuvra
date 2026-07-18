@@ -1,28 +1,58 @@
 import { useStore } from '../store';
-import { ADVENTURES } from '../data';
-import { Card, Screen, Button, Badge, EmptyState, ProgressBar } from '../components/ui';
-import { ArrowLeft, MapPin, Zap, Clock, CircleCheck as CheckCircle2, Circle } from 'lucide-react';
+import Header from '../components/Header';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import { ADVENTURES } from '../data/gameData';
+import { Clock, MapPin, TrendingUp, Coins, Target } from 'lucide-react';
 
 export default function AdventureDetail() {
-  const { activeAdventureId, setScreen, questProgress } = useStore();
-  const adventure = ADVENTURES.find((a) => a.id === activeAdventureId);
-  if (!adventure) return <Screen><EmptyState icon={MapPin} title="Adventure not found" /><Button onClick={() => setScreen('adventures')} className="mt-4">Browse Adventures</Button></Screen>;
-  const completedCount = adventure.quests.filter((q) => questProgress[q.id]?.completed).length;
+  const setScreen = useStore((s) => s.setScreen);
+  const setActiveAdventure = useStore((s) => s.setActiveAdventure);
+  const adv = ADVENTURES[0];
+
+  const start = () => {
+    setActiveAdventure(adv.id);
+    setScreen('adventurePreview');
+  };
+
   return (
-    <Screen>
-      <button onClick={() => setScreen('adventures')} className="flex items-center gap-1 text-ink-400 text-sm mb-4"><ArrowLeft size={16} /> Back</button>
-      <Card className="p-4 mb-4" style={{ borderColor: `${adventure.color}33` }}>
-        <div className="text-5xl mb-2">{adventure.emoji}</div><h1 className="font-display text-2xl font-bold text-white mb-1">{adventure.name}</h1><p className="text-ink-400 text-sm mb-3">{adventure.description}</p>
-        <div className="flex gap-2 mb-3"><Badge color={adventure.color}>{adventure.difficulty}</Badge><Badge color="#94a3b8"><Clock size={10} className="inline" /> {adventure.estimatedMinutes}m</Badge><Badge color="#fbbf24"><Zap size={10} className="inline" /> {adventure.totalXp} XP</Badge></div>
-        <ProgressBar value={completedCount} max={adventure.quests.length} /><p className="text-ink-400 text-xs mt-1">{completedCount} / {adventure.quests.length} quests complete</p>
-      </Card>
-      <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">Quests</h2>
-      <div className="space-y-2 mb-4">
-        {adventure.quests.map((q, i) => { const prog = questProgress[q.id]; const done = prog?.completed; return (
-          <Card key={q.id} className="p-3 flex items-center gap-3">{done ? <CheckCircle2 size={20} color="#22c55e" /> : <Circle size={20} color="#64748b" />}<div className="flex-1"><p className="text-white font-semibold text-sm">{i + 1}. {q.title}</p><p className="text-ink-400 text-xs">{q.description}</p>{q.target && <ProgressBar value={prog?.progress ?? 0} max={q.target} color="#3b82f6" />}</div><Badge color="#fbbf24"><Zap size={10} className="inline" /> {q.xp}</Badge></Card>
-        ); })}
+    <div className="pb-24">
+      <Header title="Adventure Details" />
+      <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
+        <div className="h-48 rounded-2xl bg-ink-700" style={adv.imageUrl ? { backgroundImage: `url(${adv.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
+        <div>
+          <h2 className="font-display text-2xl font-bold text-white">{adv.title}</h2>
+          <p className="text-ink-300 mt-1">{adv.description}</p>
+        </div>
+        <Card className="p-4 grid grid-cols-3 gap-3 text-center">
+          <div><Clock size={18} className="text-brand-400 mx-auto" /><p className="text-white font-semibold mt-1">{adv.durationMin}m</p></div>
+          <div><MapPin size={18} className="text-brand-400 mx-auto" /><p className="text-white font-semibold mt-1">{adv.distanceKm} km</p></div>
+          <div><TrendingUp size={18} className="text-brand-400 mx-auto" /><p className="text-white font-semibold mt-1">{adv.rewards.xp} XP</p></div>
+        </Card>
+        <Card className="p-4">
+          <h3 className="font-display font-bold text-white flex items-center gap-2"><Target size={18} className="text-brand-400" /> Quests</h3>
+          <ul className="mt-3 space-y-2">
+            {adv.quests.map((q) => (
+              <li key={q.id} className="flex items-start gap-2 text-ink-200 text-sm">
+                <span className="h-5 w-5 rounded-full bg-ink-700 flex items-center justify-center text-[10px] font-bold text-ink-300 mt-0.5">Q</span>
+                <div>
+                  <p className="font-medium text-white">{q.title}</p>
+                  <p className="text-ink-400 text-xs">{q.description}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card className="p-4">
+          <h3 className="font-display font-bold text-white flex items-center gap-2"><Coins size={18} className="text-accent-400" /> Rewards</h3>
+          <div className="flex gap-4 mt-2 text-sm">
+            <span className="text-ink-200">{adv.rewards.xp} XP</span>
+            <span className="text-ink-200">{adv.rewards.coins} coins</span>
+            {adv.rewards.items?.map((i) => <span key={i} className="text-ink-200">{i}</span>)}
+          </div>
+        </Card>
+        <Button className="w-full" size="lg" onClick={start}>Start Adventure</Button>
       </div>
-      <Button className="w-full" onClick={() => setScreen('adventureMap')}>Start Adventure</Button>
-    </Screen>
+    </div>
   );
 }
