@@ -57,24 +57,14 @@ export function useGeolocation(): GeoState & GeoActions {
         const pt: GeoPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPosition(pt);
         setRoute((prev) => {
-          if (prev.length === 0) {
-            lastPointRef.current = pt;
-            lastTimeRef.current = Date.now();
-            return [pt];
-          }
+          if (prev.length === 0) { lastPointRef.current = pt; lastTimeRef.current = Date.now(); return [pt]; }
           const last = lastPointRef.current;
-          if (!last) {
-            lastPointRef.current = pt;
-            lastTimeRef.current = Date.now();
-            return [...prev, pt];
-          }
+          if (!last) { lastPointRef.current = pt; lastTimeRef.current = Date.now(); return [...prev, pt]; }
           const dMeters = haversineMeters(last, pt);
           const now = Date.now();
           const dtSec = Math.max((now - lastTimeRef.current) / 1000, 1);
           const speedKmh = (dMeters / 1000) / (dtSec / 3600);
-          if (dMeters < DRIFT_THRESHOLD_M || speedKmh > SPEED_CAP_KMH) {
-            return prev;
-          }
+          if (dMeters < DRIFT_THRESHOLD_M || speedKmh > SPEED_CAP_KMH) return prev;
           setDistance((dist) => dist + dMeters);
           lastPointRef.current = pt;
           lastTimeRef.current = now;
@@ -88,10 +78,7 @@ export function useGeolocation(): GeoState & GeoActions {
 
   const stop = useCallback(() => {
     setActive(false);
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
   }, []);
 
   const reset = useCallback(() => {
@@ -100,12 +87,7 @@ export function useGeolocation(): GeoState & GeoActions {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-    };
+    return () => { if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; } };
   }, []);
 
   return { position, route, distance, active, error, start, stop, reset };

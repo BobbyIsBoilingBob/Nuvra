@@ -8,7 +8,9 @@ import { MapPin, CircleCheck as CheckCircle2, Navigation } from 'lucide-react';
 export default function AdventurePreview() {
   const navigate = useStore((s) => s.navigate);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
-  const adv = ADVENTURES.find((a) => a.id === activeAdventureId) ?? ADVENTURES[0];
+  const customAdventures = useStore((s) => s.customAdventures);
+  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const adv = allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0];
 
   return (
     <div className="pb-24">
@@ -18,8 +20,7 @@ export default function AdventurePreview() {
           <h2 className="font-display text-xl font-bold text-white">{adv.title}</h2>
           <p className="text-ink-300 text-sm mt-1">{adv.description}</p>
           <div className="flex items-center gap-2 mt-3 text-ink-300 text-sm">
-            <MapPin size={16} className="text-brand-400" />
-            Start: {adv.startLat.toFixed(4)}, {adv.startLng.toFixed(4)}
+            <MapPin size={16} className="text-brand-400" /> Start: {adv.startLat.toFixed(4)}, {adv.startLng.toFixed(4)}
           </div>
         </Card>
         <Card className="p-5">
@@ -28,10 +29,7 @@ export default function AdventurePreview() {
             {adv.quests.map((q) => (
               <li key={q.id} className="flex items-start gap-2 text-sm">
                 <CheckCircle2 size={16} className="text-ink-500 mt-0.5" />
-                <div>
-                  <p className="text-white font-medium">{q.title}</p>
-                  <p className="text-ink-400 text-xs">{q.description}</p>
-                </div>
+                <div><p className="text-white font-medium">{q.title}</p><p className="text-ink-400 text-xs">{q.description}</p></div>
               </li>
             ))}
           </ul>

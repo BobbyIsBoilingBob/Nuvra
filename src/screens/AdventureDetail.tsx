@@ -1,20 +1,19 @@
 import { useStore } from '../store';
+import { ADVENTURES } from '../data/gameData';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { ADVENTURES } from '../data/gameData';
 import { Clock, MapPin, TrendingUp, Coins, Target } from 'lucide-react';
 
 export default function AdventureDetail() {
   const navigate = useStore((s) => s.navigate);
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
-  const adv = ADVENTURES.find((a) => a.id === activeAdventureId) ?? ADVENTURES[0];
+  const customAdventures = useStore((s) => s.customAdventures);
+  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const adv = allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0];
 
-  const start = () => {
-    setActiveAdventure(adv.id);
-    navigate('adventurePreview');
-  };
+  const start = () => { setActiveAdventure(adv.id); navigate('adventurePreview'); };
 
   return (
     <div className="pb-24">
@@ -36,10 +35,7 @@ export default function AdventureDetail() {
             {adv.quests.map((q) => (
               <li key={q.id} className="flex items-start gap-2 text-ink-200 text-sm">
                 <span className="h-5 w-5 rounded-full bg-ink-700 flex items-center justify-center text-[10px] font-bold text-ink-300 mt-0.5">Q</span>
-                <div>
-                  <p className="font-medium text-white">{q.title}</p>
-                  <p className="text-ink-400 text-xs">{q.description}</p>
-                </div>
+                <div><p className="font-medium text-white">{q.title}</p><p className="text-ink-400 text-xs">{q.description}</p></div>
               </li>
             ))}
           </ul>

@@ -39,11 +39,13 @@ export default function AdventureMap() {
   const unlockAchievement = useStore((s) => s.unlockAchievement);
   const markAdventureClaimed = useStore((s) => s.markAdventureClaimed);
   const hasClaimedAdventure = useStore((s) => s.hasClaimedAdventure);
+  const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest, profile } = useAuth();
 
+  const allAdventures = [...customAdventures, ...ADVENTURES];
   const adventure = useMemo(
-    () => ADVENTURES.find((a) => a.id === activeAdventureId) ?? ADVENTURES[0],
-    [activeAdventureId],
+    () => allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0],
+    [activeAdventureId, customAdventures],
   );
 
   const geo = useGeolocation();
@@ -86,9 +88,7 @@ export default function AdventureMap() {
   useEffect(() => { updateDistanceQuests(); }, [geo.distance, adventure.quests]);
 
   const allQuestsComplete = () => adventure.quests.every((q) => questProgress[q.id]?.completed);
-  const minDistance = Math.max(
-    ...adventure.quests.filter((q) => q.type === 'distance' && q.target).map((q) => q.target ?? 0), 0,
-  );
+  const minDistance = Math.max(...adventure.quests.filter((q) => q.type === 'distance' && q.target).map((q) => q.target ?? 0), 0);
   const distanceMet = geo.distance >= minDistance;
   const routeMet = geo.route.length >= 2;
   const requirementsMet = allQuestsComplete() && distanceMet && routeMet;
@@ -103,36 +103,21 @@ export default function AdventureMap() {
     addCoins(adventure.rewards.coins);
     adventure.rewards.items?.forEach((id) => addItem({ id, name: id, type: 'cosmetic', quantity: 1 }));
     adventure.rewards.achievements?.forEach((id) => unlockAchievement(id));
-    addHistory({
-      id: `${adventure.id}-${Date.now()}`, adventureId: adventure.id, adventureTitle: adventure.title,
-      completedAt: new Date().toISOString(), distance: geo.distance, duration: adventure.durationMin,
-      xp: adventure.rewards.xp, coins: adventure.rewards.coins,
-    });
+    addHistory({ id: `${adventure.id}-${Date.now()}`, adventureId: adventure.id, adventureTitle: adventure.title, completedAt: new Date().toISOString(), distance: geo.distance, duration: adventure.durationMin, xp: adventure.rewards.xp, coins: adventure.rewards.coins });
     if (activeAdventureId) markAdventureClaimed(activeAdventureId);
     geo.stop(); setDone(true); setShowFinishScreen(true);
   };
 
   const cancel = () => { geo.stop(); geo.reset(); resetTo('home'); };
-
-  const checkpoints = adventure.quests
-    .filter((q) => q.type === 'checkpoint' && q.lat != null && q.lng != null)
-    .map((q) => ({ lat: q.lat!, lng: q.lng! }));
+  const checkpoints = adventure.quests.filter((q) => q.type === 'checkpoint' && q.lat != null && q.lng != null).map((q) => ({ lat: q.lat!, lng: q.lng! }));
 
   return (
     <div className="flex flex-col h-screen">
       <Header title={adventure.title} back={false} right={
-        <button onClick={cancel} className="text-ink-300 hover:text-error-400 transition-colors">
-          <X size={20} />
-        </button>
+        <button onClick={cancel} className="text-ink-300 hover:text-error-400 transition-colors"><X size={20} /></button>
       } />
-
       <div className="flex-1 relative">
-        <MapView
-          center={geo.position ?? { lat: adventure.startLat, lng: adventure.startLng }}
-          route={geo.route}
-          fitRoute={geo.route.length >= 2}
-          checkpoints={checkpoints}
-        />
+        <MapView center={geo.position ?? { lat: adventure.startLat, lng: adventure.startLng }} route={geo.route} fitRoute={geo.route.length >= 2} checkpoints={checkpoints} />
         <div className="absolute top-3 left-3 right-3 pointer-events-none">
           <Card className="p-3 pointer-events-auto">
             <div className="flex items-center justify-between">
@@ -145,26 +130,21 @@ export default function AdventureMap() {
           </Card>
         </div>
       </div>
-
       <div className="px-4 py-4 bg-ink-900/90 backdrop-blur-md border-t border-ink-800 max-w-lg mx-auto w-full">
         {geo.error && (
           <div className="mb-3 p-3 rounded-xl bg-error-500/10 border border-error-500/30 flex items-start gap-2">
-            <AlertCircle size={18} color="#f87171" className="flex-shrink-0 mt-0.5" />
-            <p className="text-error-400 text-sm">{geo.error}</p>
+            <AlertCircle size={18} color="#f87171" className="flex-shrink-0 mt-0.5" /><p className="text-error-400 text-sm">{geo.error}</p>
           </div>
         )}
         {alreadyClaimed && (
           <div className="mb-3 p-3 rounded-xl bg-success-500/10 border border-success-500/30 flex items-start gap-2">
-            <CheckCircle2 size={18} color="#4ade80" className="flex-shrink-0 mt-0.5" />
-            <p className="text-success-400 text-sm">Rewards already claimed for this adventure.</p>
+            <CheckCircle2 size={18} color="#4ade80" className="flex-shrink-0 mt-0.5" /><p className="text-success-400 text-sm">Rewards already claimed for this adventure.</p>
           </div>
         )}
         {!alreadyClaimed && !requirementsMet && (
           <div className="mb-3 p-3 rounded-xl bg-ink-700/30 border border-ink-600/30 flex items-start gap-2">
             <AlertCircle size={18} color="#94a3b8" className="flex-shrink-0 mt-0.5" />
-            <p className="text-ink-300 text-sm">
-              Complete the adventure to finish. {completedCount}/{adventure.quests.length} quests done, {formatDistance(geo.distance)}/{formatDistance(minDistance)} distance.
-            </p>
+            <p className="text-ink-300 text-sm">Complete the adventure to finish. {completedCount}/{adventure.quests.length} quests done, {formatDistance(geo.distance)}/{formatDistance(minDistance)} distance.</p>
           </div>
         )}
         <div className="flex gap-3">
@@ -174,7 +154,6 @@ export default function AdventureMap() {
           </Button>
         </div>
       </div>
-
       {showFinishScreen && (
         <div className="fixed inset-0 z-50 bg-ink-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <Card className="p-6 max-w-sm w-full text-center animate-slide-up">

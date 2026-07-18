@@ -6,9 +6,7 @@ import { useAuth } from '../lib/auth';
 import { ACHIEVEMENTS } from '../data/gameData';
 import { Award, Footprints, Compass, Mountain, Users, Medal, Sunrise } from 'lucide-react';
 
-const ICONS: Record<string, typeof Award> = {
-  Footprints, Compass, Mountain, Users, Medal, Sunrise, Award,
-};
+const ICONS: Record<string, typeof Award> = { Footprints, Compass, Mountain, Users, Medal, Sunrise, Award };
 
 export default function Achievements() {
   const navigate = useStore((s) => s.navigate);
@@ -17,10 +15,7 @@ export default function Achievements() {
     return (
       <div className="pb-24">
         <Header title="Achievements" />
-        <div className="px-4 py-10 text-center">
-          <p className="text-ink-300">Sign in to view your achievements.</p>
-          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
-        </div>
+        <div className="px-4 py-10 text-center"><p className="text-ink-300">Sign in to view your achievements.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
       </div>
     );
   }

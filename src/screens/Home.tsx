@@ -20,10 +20,8 @@ export default function Home() {
             {isGuest ? 'Explorer' : profile?.username ?? 'Adventurer'}
           </h1>
         </div>
-        <button
-          onClick={() => navigate('profile')}
-          className="h-11 w-11 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center"
-        >
+        <button onClick={() => navigate('profile')}
+          className="h-11 w-11 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center">
           <User size={20} className="text-brand-300" />
         </button>
       </header>
@@ -86,6 +84,19 @@ export default function Home() {
             <span className="text-xs text-ink-200">Seasonal</span>
           </Card>
         </div>
+      </section>
+
+      {/* Fix #3: AI Generator accessible from Home. */}
+      <section>
+        <Card className="p-5 flex items-center gap-4" onClick={() => navigate('aiGenerator')}>
+          <div className="h-12 w-12 rounded-xl bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+            <Sparkles size={24} className="text-brand-300" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-bold text-white">AI Adventure Generator</p>
+            <p className="text-ink-400 text-sm">Create a custom walking adventure with AI.</p>
+          </div>
+        </Card>
       </section>
     </div>
   );

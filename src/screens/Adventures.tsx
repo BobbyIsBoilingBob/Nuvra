@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import { ADVENTURES } from '../data/gameData';
-import { Clock, MapPin, TrendingUp } from 'lucide-react';
+import { Clock, MapPin, TrendingUp, Sparkles } from 'lucide-react';
 
 const DIFF_COLOR: Record<string, string> = {
   easy: 'text-success-400 bg-success-500/10',
@@ -14,22 +14,34 @@ const DIFF_COLOR: Record<string, string> = {
 export default function Adventures() {
   const navigate = useStore((s) => s.navigate);
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
+  const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest } = useAuth();
+
+  // Fix #3: AI-generated adventures appear in the list.
+  const allAdventures = [...customAdventures, ...ADVENTURES];
+
   return (
     <div className="pb-24">
-      <Header title="Adventures" back={false} />
+      <Header title="Adventures" back={false} right={
+        <button onClick={() => navigate('aiGenerator')} className="text-brand-300 hover:text-brand-200 transition-colors">
+          <Sparkles size={20} />
+        </button>
+      } />
       <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
         {isGuest && (
           <p className="text-ink-400 text-sm bg-ink-800/50 rounded-xl p-3 border border-ink-700/50">
             You're browsing as a guest. Sign in to start and track adventures.
           </p>
         )}
-        {ADVENTURES.map((adv) => (
+        {allAdventures.map((adv) => (
           <Card key={adv.id} className="overflow-hidden" onClick={() => { setActiveAdventure(adv.id); navigate('adventureDetail'); }}>
             <div className="h-32 bg-ink-700 relative" style={adv.imageUrl ? { backgroundImage: `url(${adv.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-              <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold capitalize ${DIFF_COLOR[adv.difficulty]}`}>
-                {adv.difficulty}
-              </span>
+              <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold capitalize ${DIFF_COLOR[adv.difficulty]}`}>{adv.difficulty}</span>
+              {adv.aiGenerated && (
+                <span className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold bg-brand-500/20 text-brand-300 flex items-center gap-1">
+                  <Sparkles size={12} /> AI
+                </span>
+              )}
             </div>
             <div className="p-4">
               <h3 className="font-display font-bold text-white">{adv.title}</h3>

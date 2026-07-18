@@ -38,46 +38,32 @@ export default function Friends() {
       <div className="px-4 py-4 max-w-lg mx-auto">
         <div className="flex gap-2 mb-4">
           {(['friends', 'requests', 'search', 'notifications'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${tab === t ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-300'}`}>
-              {t}
-            </button>
+            <button key={t} onClick={() => setTab(t)} className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${tab === t ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-300'}`}>{t}</button>
           ))}
         </div>
-
         {tab === 'friends' && (
           <div className="space-y-2">
             {friends.length === 0 && <p className="text-ink-400 text-sm">No friends yet. Search for players to add.</p>}
             {friends.map((f) => (
               <Card key={f.id} className="p-3 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-brand-500/20 flex items-center justify-center">
-                  <UserPlus size={18} className="text-brand-300" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-medium">{f.username}</p>
-                  <p className="text-ink-400 text-xs capitalize">{f.status}</p>
-                </div>
+                <div className="h-10 w-10 rounded-full bg-brand-500/20 flex items-center justify-center"><UserPlus size={18} className="text-brand-300" /></div>
+                <div className="flex-1"><p className="text-white font-medium">{f.username}</p><p className="text-ink-400 text-xs capitalize">{f.status}</p></div>
               </Card>
             ))}
           </div>
         )}
-
         {tab === 'requests' && (
           <div className="space-y-2">
             {requests.length === 0 && <p className="text-ink-400 text-sm">No pending requests.</p>}
             {requests.map((r: FriendRequest) => (
               <Card key={r.id} className="p-3 flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-white font-medium">{r.fromUsername}</p>
-                  <p className="text-ink-400 text-xs">wants to be your friend</p>
-                </div>
+                <div className="flex-1"><p className="text-white font-medium">{r.fromUsername}</p><p className="text-ink-400 text-xs">wants to be your friend</p></div>
                 <Button size="sm" onClick={() => acceptRequest(r)}>Accept</Button>
                 <Button size="sm" variant="ghost" onClick={() => declineRequest(r)}>Decline</Button>
               </Card>
             ))}
           </div>
         )}
-
         {tab === 'search' && (
           <div>
             <div className="flex gap-2 mb-3">
@@ -96,15 +82,11 @@ export default function Friends() {
             </div>
           </div>
         )}
-
         {tab === 'notifications' && (
           <div className="space-y-2">
             {notifications.length === 0 && <p className="text-ink-400 text-sm">No notifications.</p>}
             {notifications.map((n) => (
-              <Card key={n.id} className="p-3">
-                <p className="text-white font-medium text-sm">{n.title}</p>
-                <p className="text-ink-400 text-xs mt-0.5">{n.body}</p>
-              </Card>
+              <Card key={n.id} className="p-3"><p className="text-white font-medium text-sm">{n.title}</p><p className="text-ink-400 text-xs mt-0.5">{n.body}</p></Card>
             ))}
           </div>
         )}

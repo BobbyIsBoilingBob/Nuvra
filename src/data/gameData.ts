@@ -1,4 +1,4 @@
-import type { Adventure, ShopItem, Achievement, DailyReward, Challenge } from '../types';
+import type { Adventure, ShopItem, Achievement, DailyReward, Challenge, Quest } from '../types';
 
 export const ADVENTURES: Adventure[] = [
   {
@@ -13,9 +13,9 @@ export const ADVENTURES: Adventure[] = [
     imageUrl: 'https://images.pexels.com/photos/103871/pexels-photo-103871.jpeg?auto=compress&cs=tinysrgb&w=800',
     tags: ['nature', 'waterfront', 'beginner'],
     quests: [
-      { id: 'q1', type: 'checkpoint', title: 'Reach the boathouse', description: 'Walk to the old boathouse by the pier.', lat: 51.508, lng: -0.128 },
-      { id: 'q2', type: 'distance', title: 'Walk 2 km', description: 'Cover at least 2 km on foot.', target: 2000 },
-      { id: 'q3', type: 'checkpoint', title: 'Find the willow tree', description: 'Locate the ancient willow at the bend.', lat: 51.509, lng: -0.13 },
+      { id: 'q1', type: 'checkpoint', title: 'Reach the boathouse', description: 'Walk to the old boathouse by the pier.', lat: 51.508, lng: -0.128, adventureId: 'adv-riverside', adventureTitle: 'Riverside Ramble' },
+      { id: 'q2', type: 'distance', title: 'Walk 2 km', description: 'Cover at least 2 km on foot.', target: 2000, adventureId: 'adv-riverside', adventureTitle: 'Riverside Ramble' },
+      { id: 'q3', type: 'checkpoint', title: 'Find the willow tree', description: 'Locate the ancient willow at the bend.', lat: 51.509, lng: -0.13, adventureId: 'adv-riverside', adventureTitle: 'Riverside Ramble' },
     ],
     rewards: { xp: 150, coins: 80, items: ['river-badge'], achievements: ['first-steps'] },
   },
@@ -31,9 +31,9 @@ export const ADVENTURES: Adventure[] = [
     imageUrl: 'https://images.pexels.com/photos/1486577/pexels-photo-1486577.jpeg?auto=compress&cs=tinysrgb&w=800',
     tags: ['city', 'art', 'landmarks'],
     quests: [
-      { id: 'q1', type: 'checkpoint', title: 'Reach the mural', description: 'Find the giant mural on Bridge Street.', lat: 51.51, lng: -0.125 },
-      { id: 'q2', type: 'distance', title: 'Walk 4 km', description: 'Cover at least 4 km.', target: 4000 },
-      { id: 'q3', type: 'challenge', title: 'Photo challenge', description: 'Snap a photo of your favourite piece of street art.' },
+      { id: 'q1', type: 'checkpoint', title: 'Reach the mural', description: 'Find the giant mural on Bridge Street.', lat: 51.51, lng: -0.125, adventureId: 'adv-urban', adventureTitle: 'Urban Explorer' },
+      { id: 'q2', type: 'distance', title: 'Walk 4 km', description: 'Cover at least 4 km.', target: 4000, adventureId: 'adv-urban', adventureTitle: 'Urban Explorer' },
+      { id: 'q3', type: 'challenge', title: 'Photo challenge', description: 'Snap a photo of your favourite piece of street art.', adventureId: 'adv-urban', adventureTitle: 'Urban Explorer' },
     ],
     rewards: { xp: 300, coins: 150, items: ['urban-badge'], achievements: ['explorer'] },
   },
@@ -49,10 +49,10 @@ export const ADVENTURES: Adventure[] = [
     imageUrl: 'https://images.pexels.com/photos/12715946/pexels-photo-12715946.jpeg?auto=compress&cs=tinysrgb&w=800',
     tags: ['nature', 'hiking', 'summit'],
     quests: [
-      { id: 'q1', type: 'checkpoint', title: 'Reach the trailhead', description: 'Start at the marked trailhead.', lat: 51.51, lng: -0.13 },
-      { id: 'q2', type: 'distance', title: 'Walk 8 km', description: 'Cover at least 8 km of trail.', target: 8000 },
-      { id: 'q3', type: 'checkpoint', title: 'Summit viewpoint', description: 'Reach the summit viewpoint.', lat: 51.515, lng: -0.135 },
-      { id: 'q4', type: 'challenge', title: 'Wildlife spot', description: 'Spot and log three types of wildlife.' },
+      { id: 'q1', type: 'checkpoint', title: 'Reach the trailhead', description: 'Start at the marked trailhead.', lat: 51.51, lng: -0.13, adventureId: 'adv-forest', adventureTitle: 'Forest Trail Trek' },
+      { id: 'q2', type: 'distance', title: 'Walk 8 km', description: 'Cover at least 8 km of trail.', target: 8000, adventureId: 'adv-forest', adventureTitle: 'Forest Trail Trek' },
+      { id: 'q3', type: 'checkpoint', title: 'Summit viewpoint', description: 'Reach the summit viewpoint.', lat: 51.515, lng: -0.135, adventureId: 'adv-forest', adventureTitle: 'Forest Trail Trek' },
+      { id: 'q4', type: 'challenge', title: 'Wildlife spot', description: 'Spot and log three types of wildlife.', adventureId: 'adv-forest', adventureTitle: 'Forest Trail Trek' },
     ],
     rewards: { xp: 600, coins: 300, items: ['forest-badge', 'trail-compass'], achievements: ['trailblazer'] },
   },
@@ -90,3 +90,65 @@ export const CHALLENGES: Challenge[] = [
   { id: 'ch2', title: 'Distance Demon', description: 'Walk 20 km this week.', progress: 0, target: 20000, reward: { xp: 300, coins: 150 } },
   { id: 'ch3', title: 'Social Butterfly', description: 'Complete an adventure with 3 friends.', progress: 0, target: 3, reward: { xp: 250, coins: 120 } },
 ];
+
+// Fix #3: AI adventure generation templates.
+const ADJECTIVES = ['Hidden', 'Secret', 'Mystic', 'Golden', 'Forgotten', 'Winding', 'Ancient', 'Crystal'];
+const NOUNS = ['Garden Path', 'Canal Walk', 'Castle Trail', 'Park Loop', 'Hillside Stroll', 'Bridge Route', 'Market Mile', 'Lakeside Ramble'];
+const TAGS = ['nature', 'city', 'historic', 'waterfront', 'park', 'hills', 'market', 'relaxed'];
+
+function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+function round(n: number, dp = 4): number { const f = 10 ** dp; return Math.round(n * f) / f; }
+
+export function generateAIAdventure(prompt: string): Adventure {
+  const id = `adv-ai-${Date.now()}`;
+  const title = `${pick(ADJECTIVES)} ${pick(NOUNS)}`;
+  const difficulty = pick(['easy', 'medium', 'hard'] as const);
+  const distanceKm = Math.round((1 + Math.random() * 8) * 10) / 10;
+  const durationMin = Math.round(distanceKm * 12);
+  const baseLat = 51.5 + (Math.random() - 0.5) * 0.05;
+  const baseLng = -0.12 + (Math.random() - 0.5) * 0.05;
+
+  const numCheckpoints = 2 + Math.floor(Math.random() * 3);
+  const quests: Quest[] = [];
+  for (let i = 0; i < numCheckpoints; i++) {
+    quests.push({
+      id: `q-cp-${i}`,
+      type: 'checkpoint',
+      title: `Checkpoint ${i + 1}`,
+      description: `Reach checkpoint ${i + 1} on your route.`,
+      lat: round(baseLat + (Math.random() - 0.5) * 0.01),
+      lng: round(baseLng + (Math.random() - 0.5) * 0.01),
+      adventureId: id,
+      adventureTitle: title,
+    });
+  }
+  quests.push({
+    id: 'q-dist',
+    type: 'distance',
+    title: `Walk ${distanceKm} km`,
+    description: `Cover at least ${distanceKm} km on foot.`,
+    target: Math.round(distanceKm * 1000),
+    adventureId: id,
+    adventureTitle: title,
+  });
+
+  const xp = Math.round(distanceKm * 60);
+  const coins = Math.round(distanceKm * 30);
+
+  return {
+    id,
+    title,
+    description: prompt.trim() || `An AI-generated walking adventure with ${numCheckpoints} checkpoints.`,
+    difficulty,
+    durationMin,
+    distanceKm,
+    startLat: round(baseLat),
+    startLng: round(baseLng),
+    quests,
+    rewards: { xp, coins, items: [`ai-badge-${difficulty}`] },
+    imageUrl: 'https://images.pexels.com/photos/3752878/pexels-photo-3752878.jpeg?auto=compress&cs=tinysrgb&w=800',
+    tags: [pick(TAGS), 'ai-generated'],
+    creator: 'Zeviqo AI',
+    aiGenerated: true,
+  };
+}

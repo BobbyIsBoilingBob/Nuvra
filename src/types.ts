@@ -12,6 +12,7 @@ export type Screen =
   | 'profile'
   | 'friends'
   | 'quests'
+  | 'questDetail'
   | 'achievements'
   | 'dailyRewards'
   | 'challenges'
@@ -34,6 +35,8 @@ export interface Quest {
   target?: number;
   lat?: number;
   lng?: number;
+  adventureId?: string;
+  adventureTitle?: string;
 }
 
 export interface Adventure {
@@ -50,6 +53,7 @@ export interface Adventure {
   imageUrl?: string;
   tags: string[];
   creator?: string;
+  aiGenerated?: boolean;
 }
 
 export interface Reward {
@@ -155,4 +159,12 @@ export interface HistoryEntry {
   duration: number;
   xp: number;
   coins: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  username: string;
+  xp: number;
+  level: number;
+  avatar?: string;
 }

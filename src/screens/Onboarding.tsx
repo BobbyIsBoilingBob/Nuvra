@@ -13,13 +13,7 @@ export default function Onboarding() {
   const resetTo = useStore((s) => s.resetTo);
   const setOnboarded = useStore((s) => s.setOnboarded);
   const [step, setStep] = useState(0);
-
-  const next = () => {
-    if (step < STEPS.length - 1) { setStep(step + 1); return; }
-    setOnboarded(true);
-    resetTo('home');
-  };
-
+  const next = () => { if (step < STEPS.length - 1) { setStep(step + 1); return; } setOnboarded(true); resetTo('home'); };
   const Icon = STEPS[step].icon;
 
   return (
@@ -31,20 +25,12 @@ export default function Onboarding() {
         <h1 className="font-display text-3xl font-bold text-white">{STEPS[step].title}</h1>
         <p className="text-ink-300 mt-3 max-w-xs">{STEPS[step].desc}</p>
         <div className="flex gap-2 mt-8">
-          {STEPS.map((_, i) => (
-            <span key={i} className={`h-2 rounded-full transition-all ${i === step ? 'w-6 bg-brand-400' : 'w-2 bg-ink-600'}`} />
-          ))}
+          {STEPS.map((_, i) => <span key={i} className={`h-2 rounded-full transition-all ${i === step ? 'w-6 bg-brand-400' : 'w-2 bg-ink-600'}`} />)}
         </div>
       </div>
       <div className="pb-6">
-        <Button className="w-full" size="lg" onClick={next}>
-          {step < STEPS.length - 1 ? 'Continue' : "You're all set! Start exploring"}
-        </Button>
-        {step > 0 && (
-          <button onClick={() => setStep(step - 1)} className="w-full text-ink-400 text-sm mt-3 hover:text-ink-200">
-            Back
-          </button>
-        )}
+        <Button className="w-full" size="lg" onClick={next}>{step < STEPS.length - 1 ? 'Continue' : "You're all set! Start exploring"}</Button>
+        {step > 0 && <button onClick={() => setStep(step - 1)} className="w-full text-ink-400 text-sm mt-3 hover:text-ink-200">Back</button>}
       </div>
     </div>
   );

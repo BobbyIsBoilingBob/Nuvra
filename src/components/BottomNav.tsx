@@ -19,11 +19,8 @@ export default function BottomNav() {
         const Icon = item.icon;
         const active = screen === item.screen;
         return (
-          <button
-            key={item.screen}
-            onClick={() => navigate(item.screen)}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${active ? 'text-brand-400' : 'text-ink-400 hover:text-ink-200'}`}
-          >
+          <button key={item.screen} onClick={() => navigate(item.screen)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${active ? 'text-brand-400' : 'text-ink-400 hover:text-ink-200'}`}>
             <Icon size={20} />
             <span className="text-[10px] font-medium">{item.label}</span>
           </button>

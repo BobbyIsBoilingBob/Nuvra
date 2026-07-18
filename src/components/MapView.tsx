@@ -7,10 +7,7 @@ const defaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
 L.Marker.prototype.options.icon = defaultIcon;
 
@@ -46,25 +43,14 @@ function RouteFitter({ route }: { route: GeoPoint[] }) {
 export default function MapView({ center, route, fitRoute = false, checkpoints = [] }: MapViewProps) {
   const latLngs = route.map((p) => [p.lat, p.lng]) as [number, number][];
   return (
-    <MapContainer
-      center={[center.lat, center.lng]}
-      zoom={15}
-      className="h-full w-full rounded-2xl overflow-hidden"
-      style={{ minHeight: 300 }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
-      />
+    <MapContainer center={[center.lat, center.lng]} zoom={15}
+      className="h-full w-full rounded-2xl overflow-hidden" style={{ minHeight: 300 }}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
       <MapResizer />
       {fitRoute && route.length >= 2 && <RouteFitter route={route} />}
       <Marker position={[center.lat, center.lng]} />
-      {checkpoints.map((cp, i) => (
-        <Marker key={i} position={[cp.lat, cp.lng]} />
-      ))}
-      {latLngs.length >= 2 && (
-        <Polyline positions={latLngs} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.8 }} />
-      )}
+      {checkpoints.map((cp, i) => <Marker key={i} position={[cp.lat, cp.lng]} />)}
+      {latLngs.length >= 2 && <Polyline positions={latLngs} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.8 }} />}
     </MapContainer>
   );
 }

@@ -21,21 +21,16 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Bug #2 fix: detect guest mode synchronously from localStorage BEFORE any
-  // async work, so guests never wait on a loading spinner.
   const [isGuest, setIsGuest] = useState<boolean>(() => {
     try { return localStorage.getItem(GUEST_KEY) === '1'; } catch { return false; }
   });
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  // Only block on auth if we have NO session AND we're not a guest.
-  // Guests render immediately; signed-in users resolve the session fast.
   const [loading, setLoading] = useState<boolean>(() => {
     try { return localStorage.getItem(GUEST_KEY) !== '1'; } catch { return true; }
   });
 
-  // Restore session asynchronously — does NOT block guests.
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
@@ -52,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { mounted = false; sub.subscription.unsubscribe(); };
   }, []);
 
-  // Load profile only when a real user exists — guests skip this entirely.
   useEffect(() => {
     if (!user) { setProfile(null); return; }
     let active = true;
@@ -74,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           createdAt: data.created_at,
         });
       } else {
-        // Show basic profile immediately even before DB row loads.
         setProfile({ id: user.id, username: 'Adventurer', level: 1, xp: 0, coins: 0 });
       }
     })();
@@ -104,11 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) return { error: error.message };
     if (data.user) {
       await supabase.from('profiles').insert({
-        id: data.user.id,
-        username,
-        level: 1,
-        xp: 0,
-        coins: 0,
+        id: data.user.id, username, level: 1, xp: 0, coins: 0,
       });
     }
     return { error: null };
@@ -120,7 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
-  // Clear guest mode when a real session appears.
   useEffect(() => {
     if (session && isGuest) exitGuest();
   }, [session, isGuest]);

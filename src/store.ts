@@ -1,12 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Screen, InventoryItem, HistoryEntry } from './types';
+import type { Screen, InventoryItem, HistoryEntry, Adventure } from './types';
 
-// Top-level screens that belong in the bottom nav — these reset the nav stack.
 const TOP_LEVEL: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
 
 interface AppState {
-  // Navigation stack — Bug #1 fix: proper back navigation.
   stack: Screen[];
   screen: Screen;
   navigate: (s: Screen) => void;
@@ -15,6 +13,10 @@ interface AppState {
 
   activeAdventureId: string | null;
   setActiveAdventure: (id: string | null) => void;
+
+  // Fix #3: AI-generated adventures stored in state so they appear immediately.
+  customAdventures: Adventure[];
+  addCustomAdventure: (adv: Adventure) => void;
 
   level: number;
   xp: number;
@@ -48,33 +50,25 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       stack: ['home'],
       screen: 'home',
-      // Push onto the stack. Top-level screens reset the stack to avoid duplicates.
       navigate: (s) => set((state) => {
-        if (TOP_LEVEL.includes(s)) {
-          return { screen: s, stack: [s] };
-        }
-        // Avoid pushing the same screen twice in a row.
-        if (state.stack[state.stack.length - 1] === s) {
-          return { screen: s };
-        }
+        if (TOP_LEVEL.includes(s)) return { screen: s, stack: [s] };
+        if (state.stack[state.stack.length - 1] === s) return { screen: s };
         return { screen: s, stack: [...state.stack, s] };
       }),
-      // Pop the stack. Returns true if there was a previous screen.
       goBack: () => {
         const { stack } = get();
-        if (stack.length <= 1) {
-          set({ screen: 'home', stack: ['home'] });
-          return false;
-        }
+        if (stack.length <= 1) { set({ screen: 'home', stack: ['home'] }); return false; }
         const next = stack[stack.length - 2];
         set({ screen: next, stack: stack.slice(0, -1) });
         return true;
       },
-      // Reset the stack to a single screen.
       resetTo: (s) => set({ screen: s, stack: [s] }),
 
       activeAdventureId: null,
       setActiveAdventure: (id) => set({ activeAdventureId: id }),
+
+      customAdventures: [],
+      addCustomAdventure: (adv) => set((s) => ({ customAdventures: [adv, ...s.customAdventures] })),
 
       level: 1,
       xp: 0,
@@ -127,17 +121,13 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'zeviqo-store',
-      // Don't persist the navigation stack — always start fresh.
       partialize: (state) => ({
-        level: state.level,
-        xp: state.xp,
-        coins: state.coins,
-        inventory: state.inventory,
-        history: state.history,
+        level: state.level, xp: state.xp, coins: state.coins,
+        inventory: state.inventory, history: state.history,
         claimedAdventureIds: state.claimedAdventureIds,
         unlockedAchievements: state.unlockedAchievements,
-        dailyStreak: state.dailyStreak,
-        onboarded: state.onboarded,
+        dailyStreak: state.dailyStreak, onboarded: state.onboarded,
+        customAdventures: state.customAdventures,
       }),
     },
   ),

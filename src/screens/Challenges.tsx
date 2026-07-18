@@ -12,10 +12,7 @@ export default function Challenges() {
     return (
       <div className="pb-24">
         <Header title="Challenges" />
-        <div className="px-4 py-10 text-center">
-          <p className="text-ink-300">Sign in to join challenges.</p>
-          <Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button>
-        </div>
+        <div className="px-4 py-10 text-center"><p className="text-ink-300">Sign in to join challenges.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
       </div>
     );
   }

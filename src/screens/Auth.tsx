@@ -18,26 +18,17 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    setError(null);
-    setBusy(true);
-    const res = mode === 'signin'
-      ? await signIn(email, password)
-      : await signUp(email, password, username || 'Adventurer');
+    setError(null); setBusy(true);
+    const res = mode === 'signin' ? await signIn(email, password) : await signUp(email, password, username || 'Adventurer');
     setBusy(false);
     if (res.error) { setError(res.error); return; }
-    setOnboarded(true);
-    resetTo('home');
+    setOnboarded(true); resetTo('home');
   };
 
   return (
     <div className="px-4 py-10 max-w-md mx-auto">
-      <h1 className="font-display text-3xl font-bold text-white text-center">
-        {mode === 'signin' ? 'Welcome back' : 'Join Zeviqo'}
-      </h1>
-      <p className="text-ink-400 text-center mt-2">
-        {mode === 'signin' ? 'Sign in to continue your adventure.' : 'Create an account to start exploring.'}
-      </p>
-
+      <h1 className="font-display text-3xl font-bold text-white text-center">{mode === 'signin' ? 'Welcome back' : 'Join Zeviqo'}</h1>
+      <p className="text-ink-400 text-center mt-2">{mode === 'signin' ? 'Sign in to continue your adventure.' : 'Create an account to start exploring.'}</p>
       <Card className="p-5 mt-6 space-y-4">
         {mode === 'signup' && (
           <div>
@@ -61,19 +52,14 @@ export default function Auth() {
           {busy ? <Spinner /> : mode === 'signin' ? 'Sign In' : 'Create Account'}
         </Button>
       </Card>
-
       <p className="text-center text-ink-400 text-sm mt-4">
         {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-        <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }}
-          className="text-brand-400 font-semibold hover:text-brand-300">
+        <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }} className="text-brand-400 font-semibold hover:text-brand-300">
           {mode === 'signin' ? 'Sign up' : 'Sign in'}
         </button>
       </p>
-
       <p className="text-center mt-3">
-        <button onClick={() => resetTo('home')} className="text-ink-400 text-sm hover:text-ink-200">
-          Continue as guest
-        </button>
+        <button onClick={() => resetTo('home')} className="text-ink-400 text-sm hover:text-ink-200">Continue as guest</button>
       </p>
     </div>
   );
