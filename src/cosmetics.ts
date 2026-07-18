@@ -1,30 +1,8 @@
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type InventoryCategory = 'trails' | 'pets' | 'themes' | 'stickers' | 'badges';
-
-export const RARITY_COLORS: Record<Rarity, string> = {
-  common: '#94a3b8',
-  rare: '#3b82f6',
-  epic: '#a78bfa',
-  legendary: '#f59e0b',
-};
-
-export const RARITY_LABELS: Record<Rarity, string> = {
-  common: 'Common',
-  rare: 'Rare',
-  epic: 'Epic',
-  legendary: 'Legendary',
-};
-
-export type CosmeticItem = {
-  id: string;
-  name: string;
-  description: string;
-  emoji: string;
-  category: InventoryCategory;
-  rarity: Rarity;
-  price: number;
-  currency: 'coins' | 'gems';
-};
+export const RARITY_COLORS: Record<Rarity, string> = { common: '#94a3b8', rare: '#3b82f6', epic: '#a78bfa', legendary: '#f59e0b' };
+export const RARITY_LABELS: Record<Rarity, string> = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+export type CosmeticItem = { id: string; name: string; description: string; emoji: string; category: InventoryCategory; rarity: Rarity; price: number; currency: 'coins' | 'gems' };
 
 export const COSMETICS: CosmeticItem[] = [
   { id: 'trail-sparkle', name: 'Sparkle Trail', description: 'Leave sparkles as you walk', emoji: '✨', category: 'trails', rarity: 'common', price: 200, currency: 'coins' },

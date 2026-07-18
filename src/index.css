@@ -8,10 +8,8 @@ body { background: #0a0e1a; color: #fff; font-family: 'Inter', system-ui, sans-s
 .no-select { -webkit-user-select: none; user-select: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
 .leaflet-container { background: #0f1525; }
 .leaflet-popup-content-wrapper { background: #161d33; color: #fff; border-radius: 12px; }
 .leaflet-popup-tip { background: #161d33; }
-
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .animate-float { animation: float 3s ease-in-out infinite; }
