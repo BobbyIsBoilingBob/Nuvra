@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase, type NotificationRow } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
@@ -6,42 +6,45 @@ export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const loadNotifications = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
-    const rows = (data as NotificationRow[]) ?? [];
-    setNotifications(rows);
-    setUnreadCount(rows.filter(n => !n.read).length);
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (data) {
+      setNotifications(data as NotificationRow[]);
+      setUnreadCount((data as NotificationRow[]).filter(n => !n.read).length);
+    }
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    let mounted = true;
-    loadNotifications();
+    setLoading(true);
+    load().finally(() => setLoading(false));
 
-    const channel = supabase
-      .channel('notifications-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => { if (mounted) loadNotifications(); })
+    const channel = supabase.channel('notifications-realtime');
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, load)
       .subscribe();
-    channelRef.current = channel;
 
-    return () => { mounted = false; if (channelRef.current) supabase.removeChannel(channelRef.current); };
-  }, [user, loadNotifications]);
+    return () => { supabase.removeChannel(channel); };
+  }, [user, load]);
 
-  const markAsRead = useCallback(async (id: string) => {
+  const markRead = useCallback(async (id: string) => {
     await supabase.from('notifications').update({ read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
-  }, []);
+    load();
+  }, [load]);
 
-  const markAllAsRead = useCallback(async () => {
+  const markAllRead = useCallback(async () => {
     if (!user) return;
     await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
-  }, [user]);
+    load();
+  }, [user, load]);
 
-  return { notifications, unreadCount, markAsRead, markAllAsRead };
+  return { notifications, unreadCount, loading, markRead, markAllRead, reload: load };
 }

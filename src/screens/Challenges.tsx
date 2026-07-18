@@ -1,66 +1,45 @@
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { TopBar, BottomNav } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { CHALLENGES, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
-import { vibrate } from '../lib/settings';
+import { CHALLENGES } from '../data';
+import { Card, Screen, Badge, Button } from '../components/ui';
+import { getIcon } from '../components/ui';
+import { Check, Zap } from 'lucide-react';
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
 
-export function Challenges() {
-  const { completedChallenges, recordChallengeComplete, addQuestProgress } = useStore();
-  const { profile, updateProfile } = useAuth();
-
-  async function handleComplete(challengeId: string) {
-    const challenge = CHALLENGES.find(c => c.id === challengeId);
-    if (!challenge || !profile || completedChallenges.includes(challengeId)) return;
-    vibrate(30);
-    recordChallengeComplete(challengeId);
-    await updateProfile({
-      xp: (profile.xp ?? 0) + challenge.xpReward,
-      coins: (profile.coins ?? 0) + challenge.coinReward,
-      completed_challenges: (profile.completed_challenges ?? 0) + 1,
-    });
-    addQuestProgress('combo', 1);
-  }
+export default function Challenges() {
+  const { completedChallenges, recordChallengeComplete, setScreen } = useStore();
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#fb923c" />
-      <TopBar title="Challenges" showCurrencies />
-      <div className="relative z-10 px-4 pt-3 space-y-3">
-        {CHALLENGES.map(ch => {
-          const isDone = completedChallenges.includes(ch.id);
-          const diffColor = DIFFICULTY_COLORS[ch.difficulty];
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Challenges</h1>
+      <div className="space-y-3">
+        {CHALLENGES.map(c => {
+          const done = completedChallenges.includes(c.id);
+          const Icon = getIcon(c.icon);
           return (
-            <GlassCard key={ch.id} className="p-4">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl glass flex items-center justify-center flex-shrink-0">
-                  <Icon name={ch.icon} size={18} className="text-ember-400" />
+            <Card key={c.id} className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-ember-500/10 flex items-center justify-center">
+                  <Icon size={20} color="#fb923c" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-white">{ch.title}</p>
-                  <p className="text-[10px] text-white/40">{ch.description}</p>
+                  <h3 className="font-semibold text-white">{c.title}</h3>
+                  <p className="text-ink-400 text-sm">{c.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge color={DIFFICULTY_COLORS[c.difficulty]}>{DIFFICULTY_LABELS[c.difficulty]}</Badge>
+                    <Badge color="#00c4ff"><Zap size={10} className="inline" /> {c.xpReward} XP</Badge>
+                  </div>
                 </div>
-                <Pill accent="text-white/60 border-white/10">
-                  <span style={{ color: diffColor }}>{DIFFICULTY_LABELS[ch.difficulty]}</span>
-                </Pill>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex gap-1.5">
-                  <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{ch.xpReward} XP</Pill>
-                  <Pill icon="Coins" accent="text-gold-400 border-gold-500/30">+{ch.coinReward}</Pill>
-                </div>
-                {isDone ? (
-                  <Button variant="ghost" disabled icon="Check">Completed</Button>
+                {done ? (
+                  <Check size={24} color="#22c55e" />
                 ) : (
-                  <Button size="sm" icon="Check" onClick={() => handleComplete(ch.id)}>Complete</Button>
+                  <Button size="sm" variant="gold" onClick={() => recordChallengeComplete(c.id)}>Complete</Button>
                 )}
               </div>
-            </GlassCard>
+            </Card>
           );
         })}
       </div>
-      <BottomNav />
-    </div>
+      <Button variant="ghost" className="w-full mt-4" onClick={() => setScreen('home')}>Back to Home</Button>
+    </Screen>
   );
 }

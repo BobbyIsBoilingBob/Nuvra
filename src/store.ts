@@ -16,44 +16,35 @@ type StoreState = {
   selectedAdventureId: string | null;
   selectedAdventureObj: Adventure | null;
 
-  // UI state (not persisted to DB)
   setScreen: (s: Screen) => void;
   goBack: () => void;
   setSelectedAdventure: (id: string) => void;
   setSelectedAdventureObj: (a: Adventure) => void;
 
-  // Quest progress (synced to DB)
   questProgress: Record<string, number>;
   claimedQuests: string[];
   setQuestProgress: (metric: string, value: number) => void;
   addQuestProgress: (metric: string, amount: number) => void;
   claimQuest: (questId: string) => void;
   syncQuestProgressFromDb: (rows: QuestProgressRow[]) => void;
-  upsertQuestProgressToDb: (userId: string) => Promise<void>;
 
-  // Owned items (synced to DB)
   ownedItems: string[];
   equippedItems: Record<string, string>;
   buyItem: (itemId: string) => boolean;
   equipItem: (category: string, itemId: string) => void;
   syncOwnedItemsFromDb: (rows: OwnedItemRow[]) => void;
-  syncOwnedItemsToDb: (userId: string) => Promise<void>;
 
-  // Adventure history (synced to DB)
   history: AdventureHistoryRow[];
   recordAdventureComplete: (entry: Omit<AdventureHistoryRow, 'id' | 'user_id' | 'completed_at' | 'is_favorite'>) => Promise<void>;
   syncHistoryFromDb: (rows: AdventureHistoryRow[]) => void;
   toggleHistoryFavorite: (id: string, userId: string) => Promise<void>;
 
-  // Favorites
   favoriteAdventures: string[];
   toggleFavoriteAdventure: (adventureId: string) => void;
 
-  // Completed challenges
   completedChallenges: string[];
   recordChallengeComplete: (challengeId: string) => void;
 
-  // Daily rewards
   lastDailyRewardDay: number | null;
   lastDailyRewardDate: string | null;
   dailyRewardStreak: number;
@@ -84,21 +75,13 @@ export const useStore = create<StoreState>()(
         const progress: Record<string, number> = {};
         const claimed: string[] = [];
         for (const row of rows) {
-          const quest = row.quest_id;
-          if (row.claimed) claimed.push(quest);
-          // Map quest_id to metric via QUESTS lookup
-          progress[quest] = row.progress;
+          progress[row.quest_id] = row.progress;
+          if (row.claimed) claimed.push(row.quest_id);
         }
-        set({ questProgress: progress, claimedQuests: claimed });
-      },
-      upsertQuestProgressToDb: async (userId) => {
-        const { questProgress, claimedQuests } = get();
-        const rows = Object.entries(questProgress).map(([questId, progress]) => ({
-          user_id: userId, quest_id: questId, progress, claimed: claimedQuests.includes(questId), updated_at: new Date().toISOString(),
+        set((state) => ({
+          questProgress: { ...progress, ...state.questProgress },
+          claimedQuests: [...new Set([...claimed, ...state.claimedQuests])],
         }));
-        for (const row of rows) {
-          await supabase.from('quest_progress').upsert(row, { onConflict: 'user_id,quest_id' });
-        }
       },
 
       ownedItems: [],
@@ -114,14 +97,10 @@ export const useStore = create<StoreState>()(
         const owned = rows.map(r => r.item_id);
         const equipped: Record<string, string> = {};
         for (const r of rows) { if (r.equipped) equipped[r.item_id] = r.item_id; }
-        set({ ownedItems: owned, equippedItems: equipped });
-      },
-      syncOwnedItemsToDb: async (userId) => {
-        const { ownedItems, equippedItems } = get();
-        for (const itemId of ownedItems) {
-          const isEquipped = !!equippedItems[itemId];
-          await supabase.from('owned_items').upsert({ user_id: userId, item_id: itemId, equipped: isEquipped }, { onConflict: 'user_id,item_id' });
-        }
+        set((state) => ({
+          ownedItems: [...new Set([...owned, ...state.ownedItems])],
+          equippedItems: { ...equipped, ...state.equippedItems },
+        }));
       },
 
       history: [],

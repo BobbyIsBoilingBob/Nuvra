@@ -1,103 +1,62 @@
-import { useState, useMemo } from 'react';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, ProgressBar, Pill } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
 import { ACHIEVEMENTS, ACHIEVEMENT_CATEGORIES } from '../cosmetics';
-import { getLevelInfo } from '../data';
+import { useAuth } from '../lib/auth';
+import { Card, Screen, Badge } from '../components/ui';
+import { getIcon } from '../components/ui';
+import { CircleCheck as CheckCircle2, Circle, Lock } from 'lucide-react';
 
-const TIER_COLORS: Record<string, string> = {
-  bronze: '#cd7f32', silver: '#c0c0c0', gold: '#fbbf24', legendary: '#ef4444',
-};
-
-export function Achievements() {
-  const { questProgress, history, completedChallenges } = useStore();
+export default function Achievements() {
+  const { questProgress, setScreen } = useStore();
   const { profile } = useAuth();
-  const [category, setCategory] = useState<string>('all');
 
-  const metrics = useMemo(() => {
-    const levelInfo = getLevelInfo(profile?.xp ?? 0);
-    return {
-      adventures: profile?.completed_adventures ?? history.length,
-      distance: profile?.distance_walked ?? 0,
-      treasures: profile?.treasure_collected ?? 0,
-      streak: profile?.walking_streak ?? 0,
-      level: levelInfo.level,
-      challenges: completedChallenges.length,
-    };
-  }, [profile, history, completedChallenges]);
-
-  const filtered = useMemo(() => {
-    if (category === 'all') return ACHIEVEMENTS;
-    return ACHIEVEMENTS.filter(a => a.category === category);
-  }, [category]);
+  const getMetricValue = (metric: string): number => {
+    if (metric === 'level') return profile?.level ?? 0;
+    if (metric === 'distance') return profile?.distance_walked ?? 0;
+    if (metric === 'adventures') return profile?.completed_adventures ?? 0;
+    if (metric === 'treasures') return profile?.treasure_collected ?? 0;
+    if (metric === 'streak') return profile?.walking_streak ?? 0;
+    return questProgress[metric] ?? 0;
+  };
 
   return (
-    <div className="relative min-h-screen pb-8">
-      <AdventureBg />
-      <TopBar title="Achievements" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          <button
-            onClick={() => setCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${category === 'all' ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}
-          >
-            All
-          </button>
-          {ACHIEVEMENT_CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${category === cat ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          {filtered.map(ach => {
-            const current = metrics[ach.metric as keyof typeof metrics] ?? 0;
-            const pct = Math.min(100, (current / ach.requirement) * 100);
-            const isUnlocked = current >= ach.requirement;
-            const tierColor = TIER_COLORS[ach.tier] ?? '#94a3b8';
-            return (
-              <GlassCard key={ach.id} className="p-4">
-                <div className="flex items-start gap-3 mb-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: `${tierColor}22`, border: `1px solid ${tierColor}44` }}
-                  >
-                    <Icon name={ach.icon} size={18} style={{ color: tierColor }} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-white">{ach.title}</p>
-                      {isUnlocked && <Icon name="CheckCircle" size={14} className="text-zeviqo-400" />}
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Achievements</h1>
+      {ACHIEVEMENT_CATEGORIES.map(cat => {
+        const items = ACHIEVEMENTS.filter(a => a.category === cat);
+        if (items.length === 0) return null;
+        return (
+          <div key={cat} className="mb-6">
+            <h2 className="text-ink-400 text-sm font-semibold uppercase mb-3">{cat}</h2>
+            <div className="space-y-3">
+              {items.map(a => {
+                const value = getMetricValue(a.metric);
+                const unlocked = value >= a.requirement;
+                const Icon = getIcon(a.icon);
+                const tierColors: Record<string, string> = { bronze: '#fb923c', silver: '#94a3b8', gold: '#fbbf24', legendary: '#a78bfa' };
+                return (
+                  <Card key={a.id} className={`p-4 ${unlocked ? 'border-zeviqo-500/30' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${unlocked ? 'bg-zeviqo-500/10' : 'bg-ink-700/30'}`}>
+                        <Icon size={24} color={unlocked ? tierColors[a.tier] : '#5a6a9a'} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-white">{a.title}</h3>
+                          <Badge color={tierColors[a.tier]}>{a.tier}</Badge>
+                        </div>
+                        <p className="text-ink-400 text-sm">{a.description}</p>
+                        <p className="text-ink-500 text-xs mt-1">{Math.min(value, a.requirement)} / {a.requirement}</p>
+                      </div>
+                      {unlocked ? <CheckCircle2 size={24} color="#22c55e" /> : <Lock size={20} color="#5a6a9a" />}
                     </div>
-                    <p className="text-[10px] text-white/40">{ach.description}</p>
-                  </div>
-                  <Pill accent="text-white/60 border-white/10">
-                    <span style={{ color: tierColor }}>{ach.tier}</span>
-                  </Pill>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ProgressBar
-                    value={current}
-                    max={ach.requirement}
-                    className="flex-1"
-                    accent={isUnlocked ? 'from-gold-300 to-ember-500' : 'from-zeviqo-400 to-zeviqo-500'}
-                  />
-                  <span className="text-[10px] text-white/40 font-bold whitespace-nowrap">
-                    {Math.floor(current)}/{ach.requirement}
-                  </span>
-                </div>
-              </GlassCard>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <button onClick={() => setScreen('home')} className="text-zeviqo-400 text-sm mt-4">Back to Home</button>
+    </Screen>
   );
 }

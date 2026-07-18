@@ -1,73 +1,72 @@
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { TopBar, BottomNav } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
 import { DAILY_REWARDS } from '../data';
+import { useAuth } from '../lib/auth';
+import { Card, Screen, Button, Badge } from '../components/ui';
+import { Coins, Gem, Crown, Check, Flame } from 'lucide-react';
+import { getIcon } from '../components/ui';
 
-export function DailyRewards() {
-  const { lastDailyRewardDay, lastDailyRewardDate, dailyRewardStreak, claimDailyReward } = useStore();
+export default function DailyRewards() {
+  const { lastDailyRewardDay, lastDailyRewardDate, dailyRewardStreak, claimDailyReward, setScreen } = useStore();
   const { profile, updateProfile } = useAuth();
-
   const today = new Date().toISOString().split('T')[0];
-  const alreadyClaimedToday = lastDailyRewardDate === today;
-  const currentDay = alreadyClaimedToday ? (lastDailyRewardDay ?? 0) : Math.min(dailyRewardStreak + 1, 7);
+  const alreadyClaimed = lastDailyRewardDate === today;
 
-  async function handleClaim(day: number) {
+  const handleClaim = async (day: number) => {
+    if (alreadyClaimed) return;
     const reward = DAILY_REWARDS.find(r => r.day === day);
-    if (!reward || !profile || alreadyClaimedToday) return;
+    if (!reward || !profile) return;
     claimDailyReward(day);
     await updateProfile({
-      coins: (profile.coins ?? 0) + reward.coins,
-      gems: (profile.gems ?? 0) + reward.gems,
+      coins: profile.coins + reward.coins,
+      gems: profile.gems + reward.gems,
     });
-  }
+  };
+
+  const currentDay = alreadyClaimed ? (lastDailyRewardDay ?? 0) + 1 : dailyRewardStreak + 1;
+  const claimableDay = Math.min(7, currentDay);
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#fbbf24" />
-      <TopBar title="Daily Rewards" showCurrencies />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        <GlassCard className="p-5 text-center">
-          <div className="text-4xl mb-2">🎁</div>
-          <h2 className="text-lg font-display font-bold text-white">{dailyRewardStreak}-Day Streak</h2>
-          <p className="text-xs text-white/40 mt-1">
-            {alreadyClaimedToday ? 'Come back tomorrow for more rewards!' : 'Claim today\'s reward and keep your streak alive!'}
-          </p>
-        </GlassCard>
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-2">Daily Rewards</h1>
+      <p className="text-ink-400 mb-4">Log in every day to earn more rewards!</p>
 
-        <div className="space-y-2">
-          {DAILY_REWARDS.map(reward => {
-            const isClaimed = (lastDailyRewardDay ?? 0) >= reward.day && alreadyClaimedToday && reward.day <= currentDay;
-            const isCurrent = reward.day === currentDay && !alreadyClaimedToday;
-            const isLocked = reward.day > currentDay;
-            return (
-              <GlassCard key={reward.day} className={`p-4 flex items-center gap-3 ${isCurrent ? 'ring-2 ring-zeviqo-400/40' : ''}`}>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isClaimed ? 'bg-zeviqo-500/20' : 'glass'}`}>
-                  {isClaimed ? (
-                    <Icon name="CheckCircle" size={24} className="text-zeviqo-400" />
-                  ) : (
-                    <span className="text-lg font-bold text-white/60">{reward.day}</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-white">Day {reward.day}</p>
-                  <div className="flex gap-1.5 mt-1">
-                    <Pill icon="Coins" accent="text-gold-400 border-gold-500/30">+{reward.coins}</Pill>
-                    {reward.gems > 0 && <Pill icon="Gem" accent="text-zeviqo-300 border-zeviqo-500/30">+{reward.gems}</Pill>}
-                  </div>
-                </div>
-                {isClaimed && <Pill accent="text-zeviqo-300 border-zeviqo-500/30">Claimed</Pill>}
-                {isCurrent && (
-                  <Button size="sm" variant="gold" icon="Gift" onClick={() => handleClaim(reward.day)}>Claim</Button>
-                )}
-                {isLocked && <Icon name="Lock" size={16} className="text-white/30" />}
-              </GlassCard>
-            );
-          })}
+      <Card className="p-4 mb-4 flex items-center gap-3">
+        <Flame size={24} color="#f97316" />
+        <div>
+          <p className="text-white font-semibold">{dailyRewardStreak} day streak</p>
+          <p className="text-ink-400 text-sm">{alreadyClaimed ? 'Come back tomorrow!' : 'Claim today\'s reward!'}</p>
         </div>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        {DAILY_REWARDS.map(reward => {
+          const isClaimed = lastDailyRewardDay === reward.day && alreadyClaimed;
+          const isClaimable = reward.day === claimableDay && !alreadyClaimed;
+          const isFuture = reward.day > claimableDay;
+          const Icon = getIcon(reward.icon);
+          return (
+            <Card key={reward.day} className={`p-4 ${isClaimable ? 'border-zeviqo-500/50 animate-pulse' : ''} ${isFuture ? 'opacity-50' : ''}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-ink-400 text-xs">Day {reward.day}</span>
+                {isClaimed && <Check size={16} color="#22c55e" />}
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-ink-700/50 flex items-center justify-center">
+                  <Icon size={24} color={reward.gems > 0 ? '#a78bfa' : '#fbbf24'} />
+                </div>
+                <div className="flex gap-2">
+                  {reward.coins > 0 && <Badge color="#fbbf24"><Coins size={10} className="inline" /> {reward.coins}</Badge>}
+                  {reward.gems > 0 && <Badge color="#a78bfa"><Gem size={10} className="inline" /> {reward.gems}</Badge>}
+                </div>
+                {isClaimable && (
+                  <Button size="sm" variant="gold" onClick={() => handleClaim(reward.day)}>Claim</Button>
+                )}
+              </div>
+            </Card>
+          );
+        })}
       </div>
-      <BottomNav />
-    </div>
+      <Button variant="ghost" className="w-full mt-4" onClick={() => setScreen('home')}>Back to Home</Button>
+    </Screen>
   );
 }

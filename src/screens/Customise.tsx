@@ -1,79 +1,64 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
+import { useAuth } from '../lib/auth';
 import { useStore } from '../store';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Button, RarityBadge, RarityBorder } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { COSMETICS, RARITY_COLORS, type InventoryCategory } from '../cosmetics';
+import { Card, Screen, Button } from '../components/ui';
+import { Palette, Check } from 'lucide-react';
 
-const CATEGORIES: { key: InventoryCategory; label: string; icon: string }[] = [
-  { key: 'trails', label: 'Trails', icon: 'Sparkles' },
-  { key: 'pets', label: 'Pets', icon: 'Paw' },
-  { key: 'themes', label: 'Themes', icon: 'Palette' },
-];
+const AVATAR_EMOJIS = ['🧭', '🗺️', '⚔️', '🏔️', '⭐', '👑', '🔥', '💎', '🌊', '🌿', '🌅', '🌙', '⚡', '🦉', '🐉', '🐱'];
+const AVATAR_COLORS = ['#00c4ff', '#22c55e', '#fbbf24', '#fb923c', '#ef4444', '#a78bfa', '#ec4899', '#06b6d4'];
 
-export function Customise() {
-  const { ownedItems, equippedItems, equipItem } = useStore();
+export default function Customise() {
+  const { profile, updateProfile } = useAuth();
+  const { setScreen } = useStore();
+  const [emoji, setEmoji] = useState(profile?.avatar_emoji ?? '🧭');
+  const [color, setColor] = useState(profile?.avatar_color ?? '#00c4ff');
+  const [saved, setSaved] = useState(false);
 
-  const itemsByCategory = useMemo(() => {
-    const map: Record<InventoryCategory, typeof COSMETICS> = { trails: [], pets: [], themes: [], stickers: [], badges: [] };
-    for (const item of COSMETICS) {
-      if (ownedItems.includes(item.id)) {
-        map[item.category].push(item);
-      }
-    }
-    return map;
-  }, [ownedItems]);
+  const handleSave = async () => {
+    await updateProfile({ avatar_emoji: emoji, avatar_color: color });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
-    <div className="relative min-h-screen pb-8">
-      <AdventureBg accent="#8b5cf6" />
-      <TopBar title="Customise" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        {CATEGORIES.map(cat => {
-          const items = itemsByCategory[cat.key];
-          if (items.length === 0) return null;
-          return (
-            <div key={cat.key}>
-              <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                <Icon name={cat.icon} size={14} className="text-zeviqo-400" />
-                {cat.label}
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {items.map(item => {
-                  const isEquipped = equippedItems[item.category] === item.id || equippedItems[item.id] === item.id;
-                  return (
-                    <RarityBorder key={item.id} rarity={item.rarity} active={isEquipped}>
-                      <GlassCard className="p-3 text-center">
-                        <div className="text-2xl mb-1">{item.emoji}</div>
-                        <p className="text-[10px] font-bold text-white truncate">{item.name}</p>
-                        <div className="flex justify-center my-1">
-                          <RarityBadge rarity={item.rarity} size="sm" showLabel={false} />
-                        </div>
-                        <Button
-                          size="sm"
-                          variant={isEquipped ? 'ghost' : 'secondary'}
-                          disabled={isEquipped}
-                          onClick={() => equipItem(item.category, item.id)}
-                        >
-                          {isEquipped ? '✓ Equipped' : 'Equip'}
-                        </Button>
-                      </GlassCard>
-                    </RarityBorder>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4 flex items-center gap-2">
+        <Palette size={24} color="#a78bfa" /> Customise
+      </h1>
 
-        {CATEGORIES.every(cat => itemsByCategory[cat.key].length === 0) && (
-          <GlassCard className="p-8 text-center">
-            <Icon name="ShoppingBag" size={32} className="text-white/30 mx-auto mb-2" />
-            <p className="text-sm text-white/40">No items to customise yet</p>
-            <Button variant="secondary" className="mt-3" onClick={() => useStore.getState().setScreen('shop')}>Visit Shop</Button>
-          </GlassCard>
-        )}
-      </div>
-    </div>
+      <Card className="p-4 mb-4 text-center">
+        <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-4xl mb-2" style={{ background: `${color}22` }}>
+          {emoji}
+        </div>
+        <p className="text-white font-semibold">{profile?.username}</p>
+      </Card>
+
+      <Card className="p-4 mb-4">
+        <h3 className="text-ink-400 text-sm font-semibold uppercase mb-3">Avatar</h3>
+        <div className="grid grid-cols-8 gap-2">
+          {AVATAR_EMOJIS.map(e => (
+            <button key={e} onClick={() => setEmoji(e)}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${emoji === e ? 'bg-zeviqo-500/30 border-2 border-zeviqo-500' : 'bg-ink-700/30'}`}>
+              {e}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-4 mb-4">
+        <h3 className="text-ink-400 text-sm font-semibold uppercase mb-3">Color</h3>
+        <div className="flex flex-wrap gap-3">
+          {AVATAR_COLORS.map(c => (
+            <button key={c} onClick={() => setColor(c)}
+              className={`w-10 h-10 rounded-full transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-900' : ''}`}
+              style={{ background: c }} />
+          ))}
+        </div>
+      </Card>
+
+      <Button onClick={handleSave} className="w-full flex items-center justify-center gap-2">
+        {saved ? <><Check size={18} /> Saved!</> : 'Save Changes'}
+      </Button>
+    </Screen>
   );
 }

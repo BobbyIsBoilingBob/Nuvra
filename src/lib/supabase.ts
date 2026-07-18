@@ -30,88 +30,18 @@ export type Profile = {
   created_at: string;
 };
 
-export type Friend = {
-  id: string;
-  friend_id: string;
-  created_at: string;
-  profile: Profile;
-};
-
-export type FriendRequest = {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  status: 'pending' | 'accepted' | 'declined';
-  created_at: string;
-  updated_at: string;
-  sender: Profile;
-  receiver: Profile;
-};
-
-export type PartyData = {
-  id: string;
-  name: string;
-  leader_id: string;
-  adventure_id: string | null;
-  status: 'active' | 'completed' | 'disbanded';
-  created_at: string;
-  members: PartyMember[];
-};
-
-export type PartyMember = {
-  id: string;
-  party_id: string;
-  user_id: string;
-  role: 'leader' | 'member';
-  joined_at: string;
-  profile: Profile;
-};
-
-export type QuestProgressRow = {
-  id: string;
-  user_id: string;
-  quest_id: string;
-  progress: number;
-  claimed: boolean;
-  updated_at: string;
-};
-
-export type OwnedItemRow = {
-  id: string;
-  user_id: string;
-  item_id: string;
-  equipped: boolean;
-  acquired_at: string;
-};
-
-export type NotificationRow = {
-  id: string;
-  user_id: string;
-  type: string;
-  title: string;
-  body: string | null;
-  data: Record<string, unknown>;
-  read: boolean;
-  created_at: string;
-};
-
+export type Friend = { id: string; friend_id: string; created_at: string; profile: Profile };
+export type FriendRequest = { id: string; sender_id: string; receiver_id: string; status: 'pending' | 'accepted' | 'declined'; created_at: string; updated_at: string; sender: Profile; receiver: Profile };
+export type PartyData = { id: string; name: string; leader_id: string; adventure_id: string | null; status: 'active' | 'completed' | 'disbanded'; created_at: string; members: PartyMember[] };
+export type PartyMember = { id: string; party_id: string; user_id: string; role: 'leader' | 'member'; joined_at: string; profile: Profile };
+export type QuestProgressRow = { id: string; user_id: string; quest_id: string; progress: number; claimed: boolean; updated_at: string };
+export type OwnedItemRow = { id: string; user_id: string; item_id: string; equipped: boolean; acquired_at: string };
+export type NotificationRow = { id: string; user_id: string; type: string; title: string; body: string | null; data: Record<string, unknown>; read: boolean; created_at: string };
 export type AdventureHistoryRow = {
-  id: string;
-  user_id: string;
-  adventure_id: string;
-  adventure_name: string;
-  emoji: string | null;
-  type: string | null;
-  difficulty: string | null;
-  distance: number;
-  duration: number;
-  xp_earned: number;
-  coins_earned: number;
-  gems_earned: number;
-  treasures_found: number;
-  max_combo: number;
-  is_favorite: boolean;
-  completed_at: string;
+  id: string; user_id: string; adventure_id: string; adventure_name: string; emoji: string | null;
+  type: string | null; difficulty: string | null; distance: number; duration: number;
+  xp_earned: number; coins_earned: number; gems_earned: number; treasures_found: number;
+  max_combo: number; is_favorite: boolean; completed_at: string;
 };
 
 export type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];

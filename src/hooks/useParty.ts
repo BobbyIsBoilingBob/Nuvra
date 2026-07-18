@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase, type PartyData, type PartyMember } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
@@ -6,82 +6,76 @@ export function useParty() {
   const { user } = useAuth();
   const [party, setParty] = useState<PartyData | null>(null);
   const [loading, setLoading] = useState(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const loadParty = useCallback(async () => {
     if (!user) return;
-    const { data: membership } = await supabase
+    const { data: memberRow } = await supabase
       .from('party_members')
       .select('party_id')
       .eq('user_id', user.id)
       .maybeSingle();
-    if (!membership) { setParty(null); setLoading(false); return; }
+    if (!memberRow) { setParty(null); return; }
 
     const { data: partyRow } = await supabase
       .from('parties')
       .select('*')
-      .eq('id', membership.party_id)
+      .eq('id', memberRow.party_id)
       .maybeSingle();
-    if (!partyRow) { setParty(null); setLoading(false); return; }
+    if (!partyRow) { setParty(null); return; }
 
     const { data: members } = await supabase
       .from('party_members')
-      .select('id, party_id, user_id, role, joined_at, profile:profiles!user_id(*)')
-      .eq('party_id', membership.party_id);
-    const typedMembers = (members as unknown as PartyMember[]) ?? [];
-
-    setParty({ ...(partyRow as PartyData), members: typedMembers });
-    setLoading(false);
+      .select('id, party_id, user_id, role, joined_at, profile:profiles(*)')
+      .eq('party_id', partyRow.id);
+    setParty({ ...partyRow, members: (members as unknown as PartyMember[]) ?? [] } as PartyData);
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    let mounted = true;
-    loadParty();
+    setLoading(true);
+    loadParty().finally(() => setLoading(false));
 
-    const channel = supabase
-      .channel('party-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'party_members', filter: `user_id=eq.${user.id}` }, () => { if (mounted) loadParty(); })
+    const channel = supabase.channel('party-realtime');
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'party_members', filter: `user_id=eq.${user.id}` }, loadParty)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'parties' }, loadParty)
       .subscribe();
-    channelRef.current = channel;
 
-    return () => { mounted = false; if (channelRef.current) supabase.removeChannel(channelRef.current); };
+    return () => { supabase.removeChannel(channel); };
   }, [user, loadParty]);
 
-  const createParty = useCallback(async (name: string): Promise<{ error: string | null; partyId: string | null }> => {
-    if (!user) return { error: 'Not signed in.', partyId: null };
-    const { data, error } = await supabase.from('parties').insert({ name, leader_id: user.id }).select().maybeSingle();
-    if (error || !data) return { error: error?.message ?? 'Failed to create party.', partyId: null };
-    const partyId = data.id;
-    const { error: memberErr } = await supabase.from('party_members').insert({ party_id: partyId, user_id: user.id, role: 'leader' });
-    if (memberErr) return { error: memberErr.message, partyId: null };
-    await loadParty();
-    return { error: null, partyId };
+  const createParty = useCallback(async (name: string, adventureId: string | null) => {
+    if (!user) return { error: 'Not signed in' };
+    const { data: partyRow, error } = await supabase.from('parties').insert({
+      name, leader_id: user.id, adventure_id: adventureId, status: 'active',
+    }).select().maybeSingle();
+    if (error || !partyRow) return { error: error?.message ?? 'Failed to create party' };
+    await supabase.from('party_members').insert({
+      party_id: partyRow.id, user_id: user.id, role: 'leader',
+    });
+    loadParty();
+    return { error: null, partyId: partyRow.id };
   }, [user, loadParty]);
 
-  const joinParty = useCallback(async (partyId: string): Promise<{ error: string | null }> => {
-    if (!user) return { error: 'Not signed in.' };
-    const { error } = await supabase.from('party_members').insert({ party_id: partyId, user_id: user.id, role: 'member' });
+  const joinParty = useCallback(async (partyId: string) => {
+    if (!user) return { error: 'Not signed in' };
+    const { error } = await supabase.from('party_members').insert({
+      party_id: partyId, user_id: user.id, role: 'member',
+    });
     if (error) return { error: error.message };
-    await loadParty();
+    loadParty();
     return { error: null };
   }, [user, loadParty]);
 
-  const leaveParty = useCallback(async (): Promise<{ error: string | null }> => {
-    if (!user || !party) return { error: 'Not in a party.' };
-    await supabase.from('party_members').delete().eq('party_id', party.id).eq('user_id', user.id);
+  const leaveParty = useCallback(async () => {
+    if (!user || !party) return { error: 'No party' };
+    await supabase.from('party_members').delete().eq('user_id', user.id).eq('party_id', party.id);
     if (party.leader_id === user.id) {
-      const remaining = party.members.filter(m => m.user_id !== user.id);
-      if (remaining.length === 0) {
-        await supabase.from('parties').delete().eq('id', party.id);
-      } else {
-        await supabase.from('party_members').update({ role: 'leader' }).eq('id', remaining[0].id);
-        await supabase.from('parties').update({ leader_id: remaining[0].user_id }).eq('id', party.id);
-      }
+      await supabase.from('parties').update({ status: 'disbanded' }).eq('id', party.id);
     }
     setParty(null);
     return { error: null };
   }, [user, party]);
 
-  return { party, loading, createParty, joinParty, leaveParty, loadParty };
+  return { party, loading, createParty, joinParty, leaveParty, reload: loadParty };
 }

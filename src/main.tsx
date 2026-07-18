@@ -1,11 +1,21 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import './index.css';
+import App from './App';
 
-const boot = document.getElementById('boot');
-if (boot) { boot.style.transition = 'opacity 0.3s'; boot.style.opacity = '0'; setTimeout(() => boot.remove(), 300); }
+const root = createRoot(document.getElementById('root')!);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><App /></React.StrictMode>,
+root.render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
 );
+
+// Remove boot screen after mount
+requestAnimationFrame(() => {
+  const boot = document.getElementById('boot');
+  if (boot) {
+    boot.classList.add('hidden');
+    setTimeout(() => boot.remove(), 300);
+  }
+});

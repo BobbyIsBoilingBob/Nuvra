@@ -1,96 +1,48 @@
-import { useMemo } from 'react';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { TopBar, BottomNav } from '../components/BottomNav';
-import { GlassCard, Icon, ProgressBar, Pill } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { getLevelProgress, LEVELS } from '../data';
-import { ACHIEVEMENTS } from '../cosmetics';
+import { DAILY_REWARDS } from '../data';
+import { Card, Screen, Badge } from '../components/ui';
+import { Coins, Gem, Crown, Calendar } from 'lucide-react';
+import { getIcon } from '../components/ui';
 
-const TIER_COLORS: Record<string, string> = {
-  bronze: '#cd7f32', silver: '#c0c0c0', gold: '#fbbf24', legendary: '#ef4444',
-};
-
-export function Rewards() {
-  const { history, completedChallenges } = useStore();
-  const { profile } = useAuth();
-  const levelInfo = getLevelProgress(profile?.xp ?? 0);
-
-  const metrics = useMemo(() => ({
-    adventures: profile?.completed_adventures ?? history.length,
-    distance: profile?.distance_walked ?? 0,
-    treasures: profile?.treasure_collected ?? 0,
-    streak: profile?.walking_streak ?? 0,
-    level: levelInfo.info.level,
-    challenges: completedChallenges.length,
-  }), [profile, history, completedChallenges, levelInfo]);
-
-  const unlockedAchievements = ACHIEVEMENTS.filter(a => (metrics[a.metric as keyof typeof metrics] ?? 0) >= a.requirement);
-  const nextMilestones = LEVELS.filter(l => l.level > levelInfo.info.level).slice(0, 3);
+export default function Rewards() {
+  const { dailyRewardStreak, lastDailyRewardDay, setScreen } = useStore();
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg accent="#fbbf24" />
-      <TopBar title="Rewards" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        <GlassCard className="p-5 text-center">
-          <div className="text-4xl mb-2">{levelInfo.info.emoji}</div>
-          <h2 className="text-lg font-display font-bold text-white">Level {levelInfo.info.level}</h2>
-          <p className="text-xs text-white/40">{levelInfo.info.title}</p>
-          <div className="flex items-center gap-2 mt-3">
-            <ProgressBar value={levelInfo.current} max={levelInfo.needed} className="flex-1" accent="from-gold-300 to-ember-500" />
-            <span className="text-[10px] text-white/40 font-bold whitespace-nowrap">{levelInfo.current}/{levelInfo.needed}</span>
-          </div>
-        </GlassCard>
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4 flex items-center gap-2">
+        <Calendar size={24} color="#fbbf24" /> Rewards
+      </h1>
 
-        <div>
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Icon name="Trophy" size={14} className="text-gold-400" />
-            Level Milestones
-          </h3>
-          <div className="space-y-2">
-            {nextMilestones.map(lvl => (
-              <GlassCard key={lvl.level} className="p-3 flex items-center gap-3">
-                <div className="text-2xl">{lvl.emoji}</div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-white">Level {lvl.level} · {lvl.title}</p>
-                  <p className="text-[10px] text-white/40">{lvl.minXp} XP required</p>
+      <Card className="p-4 mb-4 text-center">
+        <div className="text-4xl mb-2">🎁</div>
+        <p className="text-white font-semibold text-lg">{dailyRewardStreak} day streak</p>
+        <p className="text-ink-400 text-sm">Keep walking every day to earn more!</p>
+      </Card>
+
+      <h3 className="text-ink-400 text-sm font-semibold uppercase mb-3">Weekly Rewards</h3>
+      <div className="grid grid-cols-2 gap-3">
+        {DAILY_REWARDS.map(reward => {
+          const isClaimed = lastDailyRewardDay === reward.day;
+          const Icon = getIcon(reward.icon);
+          return (
+            <Card key={reward.day} className={`p-4 ${isClaimed ? 'opacity-60' : ''}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-ink-400 text-xs">Day {reward.day}</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-ink-700/50 flex items-center justify-center">
+                  <Icon size={24} color={reward.gems > 0 ? '#a78bfa' : '#fbbf24'} />
                 </div>
-                <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">{lvl.minXp}</Pill>
-              </GlassCard>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Icon name="Award" size={14} className="text-gold-400" />
-            Badges ({unlockedAchievements.length})
-          </h3>
-          <div className="grid grid-cols-4 gap-2">
-            {ACHIEVEMENTS.map(ach => {
-              const isUnlocked = (metrics[ach.metric as keyof typeof metrics] ?? 0) >= ach.requirement;
-              const tierColor = TIER_COLORS[ach.tier] ?? '#94a3b8';
-              return (
-                <GlassCard key={ach.id} className={`p-3 text-center ${isUnlocked ? '' : 'opacity-40'}`}>
-                  <div
-                    className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center mb-1"
-                    style={isUnlocked ? { background: `${tierColor}22`, border: `1px solid ${tierColor}44` } : undefined}
-                  >
-                    {isUnlocked ? (
-                      <Icon name={ach.icon} size={18} style={{ color: tierColor }} />
-                    ) : (
-                      <Icon name="Lock" size={16} className="text-white/30" />
-                    )}
-                  </div>
-                  <p className="text-[9px] font-bold text-white truncate">{ach.title}</p>
-                </GlassCard>
-              );
-            })}
-          </div>
-        </div>
+                <div className="flex gap-2">
+                  {reward.coins > 0 && <Badge color="#fbbf24"><Coins size={10} className="inline" /> {reward.coins}</Badge>}
+                  {reward.gems > 0 && <Badge color="#a78bfa"><Gem size={10} className="inline" /> {reward.gems}</Badge>}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
-      <BottomNav />
-    </div>
+      <button onClick={() => setScreen('daily-rewards')} className="text-zeviqo-400 text-sm mt-4">Claim daily rewards</button>
+    </Screen>
   );
 }

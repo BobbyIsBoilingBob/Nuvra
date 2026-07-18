@@ -7,7 +7,7 @@ export type Adventure = {
   id: string; title: string; description: string; type: AdventureType; difficulty: Difficulty;
   distance: number; duration: number; xp: number; coins: number; gems: number;
   emoji: string; route: { x: number; y: number }[]; objectives: string[]; challenges: string[];
-  image: string; tags: string[]; isFavorite?: boolean; isAI?: boolean;
+  tags: string[]; isFavorite?: boolean; isAI?: boolean;
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = { relaxed: 'Relaxed', easy: 'Easy', medium: 'Medium', hard: 'Hard', extreme: 'Extreme' };
@@ -32,7 +32,6 @@ export const LEVELS: LevelInfo[] = [
   { level: 15, title: 'Pathfinder', emoji: '⭐', minXp: 22500, maxXp: 25600 },
   { level: 25, title: 'Zeviqo Legend', emoji: '👑', minXp: 62500, maxXp: 67600 },
   { level: 50, title: 'Mythic Walker', emoji: '🔮', minXp: 250000, maxXp: 260100 },
-  { level: 100, title: 'Eternal', emoji: '∞', minXp: 1000000, maxXp: 999999 },
 ];
 
 export function getLevelInfo(xp: number): LevelInfo {
@@ -81,12 +80,12 @@ function genRoute(seed: number, complexity: number): { x: number; y: number }[] 
 }
 
 const ADVENTURES: Adventure[] = [
-  { id: 'adv1', title: 'Riverside Discovery', description: 'Follow the river path and discover hidden landmarks along the way.', type: 'explorer', difficulty: 'easy', distance: 1.2, duration: 15, xp: 80, coins: 120, gems: 0, emoji: '🌊', route: genRoute(1, 2), objectives: ['Reach the riverside', 'Find 3 landmarks', 'Complete the loop'], challenges: ['ch1'], image: '', tags: ['nature', 'landmarks'] },
-  { id: 'adv2', title: 'Treasure Cove Hunt', description: 'Hunt for hidden treasures scattered across the old town district.', type: 'treasure_hunt', difficulty: 'medium', distance: 2.5, duration: 30, xp: 150, coins: 250, gems: 1, emoji: '💎', route: genRoute(2, 3), objectives: ['Find the first clue', 'Collect 5 treasures', 'Reach the final chest'], challenges: ['ch1', 'ch2'], image: '', tags: ['treasure', 'urban'] },
-  { id: 'adv3', title: 'Sunset Stroll', description: 'A relaxing walk perfect for unwinding after a long day.', type: 'relaxed_walk', difficulty: 'relaxed', distance: 0.8, duration: 10, xp: 50, coins: 80, gems: 0, emoji: '🌅', route: genRoute(3, 1), objectives: ['Enjoy the sunset', 'Take 500 steps', 'Reach the viewpoint'], challenges: [], image: '', tags: ['relaxed', 'scenic'] },
-  { id: 'adv4', title: 'Speed Demon Circuit', description: 'Push your limits on this high-intensity challenge run.', type: 'challenge_run', difficulty: 'hard', distance: 3.0, duration: 25, xp: 250, coins: 400, gems: 2, emoji: '⚡', route: genRoute(4, 4), objectives: ['Complete in under 25 min', 'Hit 5 checkpoints', 'Maintain combo x10'], challenges: ['ch1', 'ch3'], image: '', tags: ['fitness', 'timed'] },
-  { id: 'adv5', title: 'Hidden Garden Path', description: 'Discover secret gardens and quiet courtyards off the beaten path.', type: 'explorer', difficulty: 'easy', distance: 1.5, duration: 20, xp: 100, coins: 150, gems: 0, emoji: '🌿', route: genRoute(5, 2), objectives: ['Find the garden entrance', 'Visit 3 courtyards', 'Collect herbs'], challenges: ['ch2'], image: '', tags: ['nature', 'discovery'] },
-  { id: 'adv6', title: 'Midnight Treasure Run', description: 'A thrilling night-time treasure hunt through the city center.', type: 'treasure_hunt', difficulty: 'extreme', distance: 4.0, duration: 45, xp: 350, coins: 500, gems: 3, emoji: '🌙', route: genRoute(6, 4), objectives: ['Navigate by moonlight', 'Find 8 treasures', 'Beat the clock'], challenges: ['ch1', 'ch2', 'ch3'], image: '', tags: ['night', 'treasure', 'extreme'] },
+  { id: 'adv1', title: 'Riverside Discovery', description: 'Follow the river path and discover hidden landmarks along the way.', type: 'explorer', difficulty: 'easy', distance: 1.2, duration: 15, xp: 80, coins: 120, gems: 0, emoji: '🌊', route: genRoute(1, 2), objectives: ['Reach the riverside', 'Find 3 landmarks', 'Complete the loop'], challenges: ['ch1'], tags: ['nature'] },
+  { id: 'adv2', title: 'Treasure Cove Hunt', description: 'Hunt for hidden treasures scattered across the old town district.', type: 'treasure_hunt', difficulty: 'medium', distance: 2.5, duration: 30, xp: 150, coins: 250, gems: 1, emoji: '💎', route: genRoute(2, 3), objectives: ['Find the first clue', 'Collect 5 treasures', 'Reach the final chest'], challenges: ['ch1', 'ch2'], tags: ['treasure'] },
+  { id: 'adv3', title: 'Sunset Stroll', description: 'A relaxing walk perfect for unwinding after a long day.', type: 'relaxed_walk', difficulty: 'relaxed', distance: 0.8, duration: 10, xp: 50, coins: 80, gems: 0, emoji: '🌅', route: genRoute(3, 1), objectives: ['Enjoy the sunset', 'Take 500 steps', 'Reach the viewpoint'], challenges: [], tags: ['relaxed'] },
+  { id: 'adv4', title: 'Speed Demon Circuit', description: 'Push your limits on this high-intensity challenge run.', type: 'challenge_run', difficulty: 'hard', distance: 3.0, duration: 25, xp: 250, coins: 400, gems: 2, emoji: '⚡', route: genRoute(4, 4), objectives: ['Complete in under 25 min', 'Hit 5 checkpoints', 'Maintain combo x10'], challenges: ['ch1', 'ch3'], tags: ['fitness'] },
+  { id: 'adv5', title: 'Hidden Garden Path', description: 'Discover secret gardens and quiet courtyards off the beaten path.', type: 'explorer', difficulty: 'easy', distance: 1.5, duration: 20, xp: 100, coins: 150, gems: 0, emoji: '🌿', route: genRoute(5, 2), objectives: ['Find the garden entrance', 'Visit 3 courtyards', 'Collect herbs'], challenges: ['ch2'], tags: ['nature'] },
+  { id: 'adv6', title: 'Midnight Treasure Run', description: 'A thrilling night-time treasure hunt through the city center.', type: 'treasure_hunt', difficulty: 'extreme', distance: 4.0, duration: 45, xp: 350, coins: 500, gems: 3, emoji: '🌙', route: genRoute(6, 4), objectives: ['Navigate by moonlight', 'Find 8 treasures', 'Beat the clock'], challenges: ['ch1', 'ch2', 'ch3'], tags: ['night', 'extreme'] },
 ];
 
 export function getAdventures(): Adventure[] { return ADVENTURES; }
@@ -107,7 +106,7 @@ export function generateAdventure(seed: number, type: AdventureType, difficulty:
     emoji: type === 'treasure_hunt' ? '💎' : type === 'challenge_run' ? '⚡' : type === 'relaxed_walk' ? '🌿' : '🧭',
     route: genRoute(seed, difficulty === 'extreme' ? 4 : difficulty === 'hard' ? 3 : 2),
     objectives: ['Explore the area', 'Find hidden points', 'Complete the route'],
-    challenges: difficulty === 'relaxed' ? [] : ['ch1'], image: '', tags: [type], isAI: true,
+    challenges: difficulty === 'relaxed' ? [] : ['ch1'], tags: [type], isAI: true,
   };
 }
 

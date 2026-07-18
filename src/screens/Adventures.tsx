@@ -1,113 +1,86 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { getAdventures, ADVENTURE_TYPES, type AdventureType } from '../data';
 import { useStore } from '../store';
-import { TopBar, BottomNav } from '../components/BottomNav';
-import { GlassCard, Icon, Pill } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { getAdventures, ADVENTURE_TYPES, DIFFICULTY_LABELS, DIFFICULTY_COLORS, type AdventureType } from '../data';
+import { Card, Screen, Badge, Button } from '../components/ui';
+import { Map, Clock, Zap, Coins, Gem, Filter, Search } from 'lucide-react';
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
 
-type FilterTab = 'all' | AdventureType | 'favorites';
+export default function Adventures() {
+  const { setScreen, setSelectedAdventure, setSelectedAdventureObj, favoriteAdventures, toggleFavoriteAdventure } = useStore();
+  const [filter, setFilter] = useState<AdventureType | 'all'>('all');
+  const [search, setSearch] = useState('');
 
-const TABS: { key: FilterTab; label: string; icon: string }[] = [
-  { key: 'all', label: 'All', icon: 'Grid' },
-  { key: 'explorer', label: 'Explorer', icon: 'Compass' },
-  { key: 'treasure_hunt', label: 'Treasure', icon: 'Gem' },
-  { key: 'relaxed_walk', label: 'Relaxed', icon: 'Leaf' },
-  { key: 'challenge_run', label: 'Challenge', icon: 'Zap' },
-  { key: 'favorites', label: 'Favorites', icon: 'Star' },
-];
+  const all = getAdventures();
+  const filtered = all.filter(a => {
+    if (filter !== 'all' && a.type !== filter) return false;
+    if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
-export function Adventures() {
-  const { setScreen, setSelectedAdventure, favoriteAdventures, toggleFavoriteAdventure } = useStore();
-  const [tab, setTab] = useState<FilterTab>('all');
-  const allAdventures = getAdventures();
-
-  const filtered = useMemo(() => {
-    if (tab === 'all') return allAdventures;
-    if (tab === 'favorites') return allAdventures.filter(a => favoriteAdventures.includes(a.id));
-    return allAdventures.filter(a => a.type === tab);
-  }, [tab, allAdventures, favoriteAdventures]);
+  const openAdventure = (id: string) => {
+    const adv = all.find(a => a.id === id);
+    if (adv) { setSelectedAdventureObj(adv); }
+    setSelectedAdventure(id);
+    setScreen('adventure-detail');
+  };
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg />
-      <TopBar title="Adventures" showCurrencies />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${tab === t.key ? 'bg-gradient-to-r from-zeviqo-400 to-zeviqo-500 text-ink-950' : 'glass text-white/60'}`}
-            >
-              <Icon name={t.icon} size={12} />
-              {t.label}
-            </button>
-          ))}
-        </div>
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Adventures</h1>
 
-        <GlassCard className="p-4 flex items-center gap-3" onClick={() => setScreen('ai-generator')}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-nova-400 to-zeviqo-500 flex items-center justify-center">
-            <Icon name="Sparkles" size={20} className="text-ink-950" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-white">AI Adventure Generator</p>
-            <p className="text-[10px] text-white/40">Generate a unique adventure with AI</p>
-          </div>
-          <Icon name="ChevronRight" size={16} className="text-white/40" />
-        </GlassCard>
-
-        <div className="space-y-3">
-          {filtered.map(adv => {
-            const typeInfo = ADVENTURE_TYPES.find(t => t.type === adv.type);
-            const isFav = favoriteAdventures.includes(adv.id);
-            return (
-              <GlassCard key={adv.id} className="p-4" onClick={() => { setSelectedAdventure(adv.id); setScreen('adventure-detail'); }}>
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl flex-shrink-0">{adv.emoji}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-bold text-white truncate">{adv.title}</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavoriteAdventure(adv.id); }}
-                        className="flex-shrink-0 active:scale-90 transition-transform"
-                      >
-                        <Icon name="Star" size={16} className={isFav ? 'text-gold-400' : 'text-white/30'} style={isFav ? { fill: '#fbbf24' } : undefined} />
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-white/40 mb-2">{typeInfo?.label ?? adv.type}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Pill icon="Activity" accent="text-white/60 border-white/10">
-                        <span style={{ color: DIFFICULTY_COLORS[adv.difficulty] }}>{DIFFICULTY_LABELS[adv.difficulty]}</span>
-                      </Pill>
-                      <Pill icon="Route">{adv.distance} km</Pill>
-                      <Pill icon="Clock">{adv.duration} min</Pill>
-                      <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{adv.xp} XP</Pill>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            );
-          })}
-          {filtered.length === 0 && (
-            <GlassCard className="p-8 text-center">
-              <Icon name="Compass" size={32} className="text-white/30 mx-auto mb-2" />
-              <p className="text-sm text-white/40">No adventures found</p>
-            </GlassCard>
-          )}
-        </div>
-
-        <GlassCard className="p-4 flex items-center gap-3" onClick={() => setScreen('creator')}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-300 to-ember-500 flex items-center justify-center">
-            <Icon name="PenTool" size={20} className="text-ink-950" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-white">Create Your Own</p>
-            <p className="text-[10px] text-white/40">Design a custom adventure</p>
-          </div>
-          <Icon name="ChevronRight" size={16} className="text-white/40" />
-        </GlassCard>
+      <div className="relative mb-4">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search adventures..."
+          className="w-full bg-ink-800/60 border border-ink-600/30 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-ink-500 focus:outline-none focus:border-zeviqo-500/50" />
       </div>
-      <BottomNav />
-    </div>
+
+      <div className="flex gap-2 mb-4 overflow-x-auto no-select pb-1">
+        <button onClick={() => setFilter('all')}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${filter === 'all' ? 'bg-zeviqo-500 text-ink-950' : 'bg-ink-700/50 text-ink-400'}`}>
+          All
+        </button>
+        {ADVENTURE_TYPES.map(t => (
+          <button key={t.type} onClick={() => setFilter(t.type)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${filter === t.type ? 'bg-zeviqo-500 text-ink-950' : 'bg-ink-700/50 text-ink-400'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {filtered.map(a => (
+          <Card key={a.id} className="p-4 cursor-pointer hover:border-zeviqo-500/30 transition-all" onClick={() => openAdventure(a.id)}>
+            <div className="flex items-start gap-3">
+              <div className="text-3xl">{a.emoji}</div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white">{a.title}</h3>
+                  <button onClick={(e) => { e.stopPropagation(); toggleFavoriteAdventure(a.id); }}
+                    className="text-ink-500 hover:text-gold-400">
+                    <span className="text-lg">{favoriteAdventures.includes(a.id) ? '⭐' : '☆'}</span>
+                  </button>
+                </div>
+                <p className="text-ink-400 text-sm mt-1 line-clamp-2">{a.description}</p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-ink-400">
+                  <span className="flex items-center gap-1"><Map size={12} /> {a.distance} km</span>
+                  <span className="flex items-center gap-1"><Clock size={12} /> {a.duration} min</span>
+                  <span className="flex items-center gap-1"><Zap size={12} color="#00c4ff" /> {a.xp} XP</span>
+                  <span className="flex items-center gap-1"><Coins size={12} color="#fbbf24" /> {a.coins}</span>
+                  {a.gems > 0 && <span className="flex items-center gap-1"><Gem size={12} color="#a78bfa" /> {a.gems}</span>}
+                </div>
+                <div className="mt-2">
+                  <Badge color={DIFFICULTY_COLORS[a.difficulty]}>{DIFFICULTY_LABELS[a.difficulty]}</Badge>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Button variant="secondary" className="w-full mt-4 flex items-center justify-center gap-2"
+        onClick={() => setScreen('ai-generator')}>
+        <Filter size={18} /> Generate Custom Adventure
+      </Button>
+    </Screen>
   );
 }

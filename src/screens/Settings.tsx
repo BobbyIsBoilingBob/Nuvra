@@ -1,122 +1,83 @@
-import { useState } from 'react';
-import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { TopBar, BottomNav } from '../components/BottomNav';
-import { GlassCard, Icon, Button, ConfirmDialog } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { loadSettings, saveSettings, type AppSettings, vibrate } from '../lib/settings';
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, type AppSettings } from '../lib/settings';
+import { useState } from 'react';
+import { Card, Screen, Button } from '../components/ui';
+import { Settings as SettingsIcon, Volume2, Vibrate, Mic, Map as MapIcon, Eye, Shield, LogOut, Mail, Lock, Trash2, ChevronRight } from 'lucide-react';
 
-function Toggle({ label, icon, value, onChange }: { label: string; icon: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between p-3 glass rounded-xl">
-      <div className="flex items-center gap-2">
-        <Icon name={icon} size={16} className="text-white/60" />
-        <span className="text-sm font-bold text-white">{label}</span>
-      </div>
-      <button
-        onClick={() => { onChange(!value); vibrate(20); }}
-        className={`w-11 h-6 rounded-full transition-all flex items-center ${value ? 'bg-zeviqo-500' : 'bg-white/10'}`}
-      >
-        <div className={`w-5 h-5 rounded-full bg-white transition-all ${value ? 'ml-5' : 'ml-0.5'}`} />
-      </button>
-    </div>
-  );
-}
-
-export function Settings() {
-  const { resetLocalState, goBack } = useStore();
-  const { signOut, resetPassword, deleteAccount } = useAuth();
-  const [settings, setSettings] = useState<AppSettings>(loadSettings);
-  const [showDelete, setShowDelete] = useState(false);
+export default function Settings() {
+  const { user, signOut, resetPassword, updatePassword, deleteAccount } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(loadSettings());
   const [showReset, setShowReset] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [newPw, setNewPw] = useState('');
+  const [msg, setMsg] = useState('');
 
-  function updateSetting(key: keyof AppSettings, value: boolean | string) {
-    const updated = { ...settings, [key]: value };
-    setSettings(updated);
-    saveSettings(updated);
-  }
+  const update = (partial: Partial<AppSettings>) => {
+    const next = { ...settings, ...partial };
+    setSettings(next);
+    saveSettings(next);
+  };
 
-  async function handleResetPassword() {
-    const { error } = await resetPassword(''); // Will use current user's email
-    setMessage(error ? error : 'Password reset link sent to your email.');
-    setShowReset(false);
-  }
-
-  async function handleDeleteAccount() {
-    const { error } = await deleteAccount();
-    if (error) setMessage(error);
-    setShowDelete(false);
-  }
+  const Toggle = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+    <button onClick={onClick} className={`w-12 h-7 rounded-full transition-colors ${on ? 'bg-zeviqo-500' : 'bg-ink-600'}`}>
+      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  );
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg />
-      <TopBar title="Settings" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        {message && (
-          <GlassCard className="p-3 flex items-center gap-2">
-            <Icon name="Info" size={14} className="text-zeviqo-400" />
-            <p className="text-xs text-white/60">{message}</p>
-          </GlassCard>
-        )}
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Settings</h1>
 
-        <div>
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Icon name="Volume2" size={14} className="text-zeviqo-400" />
-            Preferences
-          </h3>
-          <div className="space-y-2">
-            <Toggle label="Sound" icon="Volume2" value={settings.soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
-            <Toggle label="Haptics" icon="Vibrate" value={settings.hapticsEnabled} onChange={v => updateSetting('hapticsEnabled', v)} />
-            <Toggle label="Voice Guide" icon="User" value={settings.voiceEnabled} onChange={v => updateSetting('voiceEnabled', v)} />
-            <Toggle label="High Contrast" icon="Eye" value={settings.highContrast} onChange={v => updateSetting('highContrast', v)} />
+      <Card className="p-4 mb-4">
+        <h3 className="text-ink-400 text-sm font-semibold uppercase mb-3">Preferences</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Volume2 size={20} color="#00c4ff" />
+            <span className="flex-1 text-white">Sound Effects</span>
+            <Toggle on={settings.soundEnabled} onClick={() => update({ soundEnabled: !settings.soundEnabled })} />
+          </div>
+          <div className="flex items-center gap-3">
+            <Vibrate size={20} color="#22c55e" />
+            <span className="flex-1 text-white">Haptics</span>
+            <Toggle on={settings.hapticsEnabled} onClick={() => update({ hapticsEnabled: !settings.hapticsEnabled })} />
+          </div>
+          <div className="flex items-center gap-3">
+            <Mic size={20} color="#a78bfa" />
+            <span className="flex-1 text-white">Voice Navigation</span>
+            <Toggle on={settings.voiceEnabled} onClick={() => update({ voiceEnabled: !settings.voiceEnabled })} />
+          </div>
+          <div className="flex items-center gap-3">
+            <Eye size={20} color="#fbbf24" />
+            <span className="flex-1 text-white">High Contrast</span>
+            <Toggle on={settings.highContrast} onClick={() => update({ highContrast: !settings.highContrast })} />
           </div>
         </div>
+      </Card>
 
-        <div>
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Icon name="Shield" size={14} className="text-zeviqo-400" />
-            Account
-          </h3>
-          <div className="space-y-2">
-            <Button variant="secondary" fullWidth icon="Mail" onClick={() => setShowReset(true)}>Reset Password</Button>
-            <Button variant="secondary" fullWidth icon="LogOut" onClick={() => signOut()}>Sign Out</Button>
-            <Button variant="danger" fullWidth icon="Trash2" onClick={() => setShowDelete(true)}>Delete Account</Button>
-          </div>
+      <Card className="p-4 mb-4">
+        <h3 className="text-ink-400 text-sm font-semibold uppercase mb-3">Account</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex items-center gap-3 text-ink-300"><Mail size={18} /> {user?.email}</div>
+          <button onClick={() => setShowReset(!showReset)} className="w-full flex items-center gap-3 text-ink-300 hover:text-white">
+            <Lock size={18} /> Change Password <ChevronRight size={16} className="ml-auto" />
+          </button>
+          {showReset && (
+            <div className="flex gap-2">
+              <input value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="New password" type="password"
+                className="flex-1 bg-ink-700/50 border border-ink-600/30 rounded-xl px-3 py-2 text-white text-sm" />
+              <Button size="sm" onClick={async () => { const r = await updatePassword(newPw); setMsg(r.error ?? 'Password updated'); setNewPw(''); }}>Save</Button>
+            </div>
+          )}
+          {msg && <p className="text-ink-400 text-xs">{msg}</p>}
         </div>
+      </Card>
 
-        <div>
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Icon name="Trash2" size={14} className="text-zeviqo-400" />
-            Data
-          </h3>
-          <Button variant="secondary" fullWidth icon="RotateCcw" onClick={() => { resetLocalState(); setMessage('Local data cleared.'); }}>
-            Clear Local Data
-          </Button>
-        </div>
-
-        <p className="text-center text-[10px] text-white/30 pt-4">Zeviqo v1.0.0</p>
-      </div>
-      <BottomNav />
-
-      <ConfirmDialog
-        visible={showDelete}
-        title="Delete Account?"
-        message="This will permanently delete your account and all data. This cannot be undone."
-        confirmLabel="Delete Forever"
-        danger
-        onConfirm={handleDeleteAccount}
-        onCancel={() => setShowDelete(false)}
-      />
-      <ConfirmDialog
-        visible={showReset}
-        title="Reset Password?"
-        message="A password reset link will be sent to your email."
-        confirmLabel="Send Link"
-        onConfirm={handleResetPassword}
-        onCancel={() => setShowReset(false)}
-      />
-    </div>
+      <Button variant="danger" onClick={signOut} className="w-full mb-2 flex items-center justify-center gap-2">
+        <LogOut size={18} /> Sign Out
+      </Button>
+      <Button variant="ghost" onClick={async () => { if (confirm('Delete your account? This cannot be undone.')) { const r = await deleteAccount(); if (r.error) alert(r.error); } }}
+        className="w-full flex items-center justify-center gap-2 text-red-400">
+        <Trash2 size={18} /> Delete Account
+      </Button>
+    </Screen>
   );
 }

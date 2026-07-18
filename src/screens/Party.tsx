@@ -1,87 +1,70 @@
 import { useState } from 'react';
-import { useStore } from '../store';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, AvatarDisplay, Pill, Button, LoadingScreen } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
 import { useParty } from '../hooks/useParty';
+import { Card, Screen, Button, EmptyState, Badge } from '../components/ui';
+import { PartyPopper, Users, Plus, LogOut, Crown } from 'lucide-react';
 
-export function Party() {
-  const { goBack } = useStore();
+export default function Party() {
   const { party, loading, createParty, leaveParty } = useParty();
-  const [partyName, setPartyName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
 
-  if (loading) return <LoadingScreen />;
-
-  async function handleCreate() {
-    if (partyName.trim().length < 2) { setError('Party name must be at least 2 characters.'); return; }
-    setError(null);
-    const { error: err } = await createParty(partyName.trim());
-    if (err) setError(err);
-    else setPartyName('');
-  }
-
-  async function handleLeave() {
-    await leaveParty();
-  }
+  if (loading) return <Screen><div className="text-ink-400">Loading...</div></Screen>;
 
   return (
-    <div className="relative min-h-screen pb-8">
-      <AdventureBg accent="#8b5cf6" />
-      <TopBar title="Party" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        {error && (
-          <GlassCard className="p-3 flex items-center gap-2 border-rose-500/20">
-            <Icon name="AlertCircle" size={14} className="text-rose-400" />
-            <p className="text-xs text-rose-300">{error}</p>
-          </GlassCard>
-        )}
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Party</h1>
 
-        {!party ? (
-          <GlassCard className="p-5 space-y-4">
-            <div className="text-center">
-              <div className="text-4xl mb-2">🗺️</div>
-              <h2 className="text-lg font-display font-bold text-white">Create a Party</h2>
-              <p className="text-xs text-white/40 mt-1">Walk together with friends in real-time</p>
+      {!party ? (
+        <div>
+          <EmptyState icon={PartyPopper} title="No active party" subtitle="Create a party to adventure with friends" />
+          {showCreate ? (
+            <Card className="p-4 mt-4">
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Party name"
+                className="w-full bg-ink-700/50 border border-ink-600/30 rounded-xl px-4 py-2.5 text-white placeholder-ink-500 focus:outline-none focus:border-zeviqo-500/50 mb-3" />
+              <div className="flex gap-2">
+                <Button onClick={async () => { await createParty(name || 'My Party', null); setShowCreate(false); setName(''); }}>Create</Button>
+                <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+              </div>
+            </Card>
+          ) : (
+            <Button onClick={() => setShowCreate(true)} className="w-full mt-4 flex items-center justify-center gap-2">
+              <Plus size={18} /> Create Party
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div>
+          <Card className="p-4 mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <PartyPopper size={24} color="#fbbf24" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-white">{party.name}</h3>
+                <Badge color={party.status === 'active' ? '#22c55e' : '#94a3b8'}>{party.status}</Badge>
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-white/50 font-semibold mb-1 block">Party Name</label>
-              <input
-                value={partyName}
-                onChange={e => setPartyName(e.target.value)}
-                placeholder="Adventure Squad"
-                className="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-zeviqo-400/40"
-              />
-            </div>
-            <Button fullWidth size="lg" icon="Users" onClick={handleCreate}>Create Party</Button>
-          </GlassCard>
-        ) : (
-          <>
-            <GlassCard className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h2 className="text-lg font-display font-bold text-white">{party.name}</h2>
-                  <p className="text-[10px] text-white/40">{party.members.length} member{party.members.length !== 1 ? 's' : ''}</p>
+          </Card>
+
+          <h3 className="text-ink-400 text-sm font-semibold uppercase mb-3">Members ({party.members.length})</h3>
+          <div className="space-y-2">
+            {party.members.map(m => (
+              <Card key={m.id} className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-ink-700/50 flex items-center justify-center text-xl">{m.profile.avatar_emoji}</div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold text-sm flex items-center gap-2">
+                    {m.profile.username}
+                    {m.role === 'leader' && <Crown size={14} color="#fbbf24" />}
+                  </p>
+                  <p className="text-ink-400 text-xs">Level {m.profile.level}</p>
                 </div>
-                <Pill icon="Users" accent="text-zeviqo-300 border-zeviqo-500/30">{party.status}</Pill>
-              </div>
-              <div className="space-y-2">
-                {party.members.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 glass rounded-xl p-3">
-                    <AvatarDisplay emoji={m.profile?.avatar_emoji ?? '🧭'} color={m.profile?.avatar_color ?? '#00c4ff'} size={36} />
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-white">{m.profile?.username ?? 'Unknown'}</p>
-                      <p className="text-[10px] text-white/40">{m.role === 'leader' ? '👑 Leader' : 'Member'}</p>
-                    </div>
-                    {m.profile?.is_online && <div className="w-2 h-2 rounded-full bg-green-400" />}
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-            <Button variant="danger" fullWidth icon="LogOut" onClick={handleLeave}>Leave Party</Button>
-          </>
-        )}
-      </div>
-    </div>
+              </Card>
+            ))}
+          </div>
+
+          <Button variant="danger" onClick={leaveParty} className="w-full mt-4 flex items-center justify-center gap-2">
+            <LogOut size={18} /> {party.leader_id === party.members[0]?.user_id ? 'Disband Party' : 'Leave Party'}
+          </Button>
+        </div>
+      )}
+    </Screen>
   );
 }

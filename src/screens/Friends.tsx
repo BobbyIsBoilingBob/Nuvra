@@ -1,112 +1,174 @@
 import { useState } from 'react';
-import { useStore } from '../store';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, AvatarDisplay, Pill, Button, LoadingScreen } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
 import { useFriends } from '../hooks/useFriends';
-import { type Profile } from '../lib/supabase';
+import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../lib/auth';
+import { Card, Screen, Button, EmptyState, Badge, Spinner } from '../components/ui';
+import { Users, Search, UserPlus, Bell, Heart, Check, X, UserCheck, UserX, Clock, Activity } from 'lucide-react';
 
-export function Friends() {
-  const { goBack } = useStore();
-  const { friends, requests, loading, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
+type Tab = 'activity' | 'friends' | 'search' | 'requests' | 'notifications';
+
+export default function Friends() {
+  const [tab, setTab] = useState<Tab>('friends');
+  const { user } = useAuth();
+  const { friends, requests, loading, searchResults, searching, searchPlayers, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriends();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Profile[]>([]);
-  const [searching, setSearching] = useState(false);
 
-  async function handleSearch(query: string) {
-    setSearchQuery(query);
-    if (query.length < 2) { setSearchResults([]); return; }
-    setSearching(true);
-    const results = await searchUsers(query);
-    setSearchResults(results);
-    setSearching(false);
-  }
+  const tabs: { id: Tab; label: string; icon: typeof Users; badge?: number }[] = [
+    { id: 'activity', label: 'Activity', icon: Activity },
+    { id: 'friends', label: 'Friends', icon: Users },
+    { id: 'search', label: 'Search', icon: Search },
+    { id: 'requests', label: 'Requests', icon: UserPlus, badge: requests.length },
+    { id: 'notifications', label: 'Alerts', icon: Bell, badge: unreadCount },
+  ];
 
-  if (loading) return <LoadingScreen />;
+  const handleSearch = (q: string) => { setSearchQuery(q); searchPlayers(q); };
 
   return (
-    <div className="relative min-h-screen pb-8">
-      <AdventureBg accent="#8b5cf6" />
-      <TopBar title="Friends" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-4">
-        <div>
-          <div className="flex items-center gap-2 glass rounded-xl px-3 py-2.5">
-            <Icon name="Search" size={16} className="text-white/40" />
-            <input
-              value={searchQuery}
-              onChange={e => handleSearch(e.target.value)}
-              placeholder="Search by username..."
-              className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
-            />
-          </div>
-          {searching && <p className="text-[10px] text-white/40 mt-1">Searching...</p>}
-          {searchResults.length > 0 && (
-            <div className="space-y-2 mt-2">
-              {searchResults.map(user => (
-                <GlassCard key={user.id} className="p-3 flex items-center gap-3">
-                  <AvatarDisplay emoji={user.avatar_emoji ?? '🧭'} color={user.avatar_color ?? '#00c4ff'} size={36} />
-                  <div className="flex-1">
-                    <p className="text-xs font-bold text-white">{user.username}</p>
-                    <p className="text-[10px] text-white/40">{user.xp ?? 0} XP</p>
-                  </div>
-                  <Button size="sm" icon="UserPlus" onClick={() => sendRequest(user.id)}>Add</Button>
-                </GlassCard>
-              ))}
-            </div>
-          )}
-        </div>
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Social</h1>
 
-        {requests.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-              <Icon name="Bell" size={14} className="text-zeviqo-400" />
-              Pending Requests ({requests.length})
-            </h3>
-            <div className="space-y-2">
-              {requests.map(req => (
-                <GlassCard key={req.id} className="p-3 flex items-center gap-3">
-                  <AvatarDisplay emoji={req.sender?.avatar_emoji ?? '🧭'} color={req.sender?.avatar_color ?? '#00c4ff'} size={36} />
-                  <div className="flex-1">
-                    <p className="text-xs font-bold text-white">{req.sender?.username ?? 'Unknown'}</p>
-                    <p className="text-[10px] text-white/40">wants to be your friend</p>
-                  </div>
-                  <Button size="sm" icon="Check" onClick={() => acceptRequest(req.id, req.sender_id)}>Accept</Button>
-                  <Button size="sm" variant="ghost" icon="X" onClick={() => declineRequest(req.id)}>Decline</Button>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="flex gap-1 mb-4 overflow-x-auto no-select pb-1">
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${tab === t.id ? 'bg-zeviqo-500 text-ink-950' : 'bg-ink-700/50 text-ink-400'}`}>
+            <t.icon size={16} />
+            {t.label}
+            {t.badge ? <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400">{t.badge}</span> : null}
+          </button>
+        ))}
+      </div>
 
+      {loading && <div className="flex justify-center py-8"><Spinner /></div>}
+
+      {!loading && tab === 'activity' && (
         <div>
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Icon name="Users" size={14} className="text-zeviqo-400" />
-            Your Friends ({friends.length})
-          </h3>
           {friends.length === 0 ? (
-            <GlassCard className="p-6 text-center">
-              <Icon name="UserPlus" size={24} className="text-white/30 mx-auto mb-2" />
-              <p className="text-xs text-white/40">No friends yet. Search above to add some!</p>
-            </GlassCard>
+            <EmptyState icon={Activity} title="No activity yet" subtitle="Add friends to see their activity" />
           ) : (
             <div className="space-y-2">
               {friends.map(f => (
-                <GlassCard key={f.id} className="p-3 flex items-center gap-3">
-                  <div className="relative">
-                    <AvatarDisplay emoji={f.profile?.avatar_emoji ?? '🧭'} color={f.profile?.avatar_color ?? '#00c4ff'} size={36} />
-                    {f.profile?.is_online && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-ink-900" />}
-                  </div>
+                <Card key={f.id} className="p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-ink-700/50 flex items-center justify-center text-xl">{f.profile.avatar_emoji}</div>
                   <div className="flex-1">
-                    <p className="text-xs font-bold text-white">{f.profile?.username ?? 'Unknown'}</p>
-                    <p className="text-[10px] text-white/40">{f.profile?.is_online ? 'Online' : 'Offline'}</p>
+                    <p className="text-white font-semibold text-sm">{f.profile.username}</p>
+                    <p className="text-ink-400 text-xs flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${f.profile.is_online ? 'bg-green-500' : 'bg-ink-500'}`} />
+                      {f.profile.is_online ? 'Online' : `Last seen ${new Date(f.profile.last_seen ?? f.created_at).toLocaleDateString()}`}
+                    </p>
                   </div>
-                  <Button size="sm" variant="ghost" icon="X" onClick={() => removeFriend(f.friend_id)}>Remove</Button>
-                </GlassCard>
+                </Card>
               ))}
             </div>
           )}
         </div>
-      </div>
-    </div>
+      )}
+
+      {!loading && tab === 'friends' && (
+        <div>
+          {friends.length === 0 ? (
+            <EmptyState icon={Users} title="No friends yet" subtitle="Search for players to add them" />
+          ) : (
+            <div className="space-y-2">
+              {friends.map(f => (
+                <Card key={f.id} className="p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-ink-700/50 flex items-center justify-center text-xl">{f.profile.avatar_emoji}</div>
+                  <div className="flex-1">
+                    <p className="text-white font-semibold text-sm">{f.profile.username}</p>
+                    <p className="text-ink-400 text-xs flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${f.profile.is_online ? 'bg-green-500' : 'bg-ink-500'}`} />
+                      {f.profile.is_online ? 'Online' : 'Offline'}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => removeFriend(f.friend_id)}><UserX size={16} /></Button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!loading && tab === 'search' && (
+        <div>
+          <div className="relative mb-4">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+            <input value={searchQuery} onChange={e => handleSearch(e.target.value)} placeholder="Search players by username..."
+              className="w-full bg-ink-800/60 border border-ink-600/30 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-ink-500 focus:outline-none focus:border-zeviqo-500/50" />
+          </div>
+          {searching && <div className="flex justify-center py-4"><Spinner /></div>}
+          {!searching && searchResults.length === 0 && searchQuery && (
+            <EmptyState icon={Search} title="No players found" />
+          )}
+          <div className="space-y-2">
+            {searchResults.map(p => (
+              <Card key={p.id} className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-ink-700/50 flex items-center justify-center text-xl">{p.avatar_emoji}</div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold text-sm">{p.username}</p>
+                  <p className="text-ink-400 text-xs">Level {p.level}</p>
+                </div>
+                <Button size="sm" variant="primary" onClick={() => sendRequest(p.id)} className="flex items-center gap-1">
+                  <UserPlus size={14} /> Add
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!loading && tab === 'requests' && (
+        <div>
+          {requests.length === 0 ? (
+            <EmptyState icon={UserPlus} title="No pending requests" />
+          ) : (
+            <div className="space-y-2">
+              {requests.map(r => (
+                <Card key={r.id} className="p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-ink-700/50 flex items-center justify-center text-xl">{r.sender.avatar_emoji}</div>
+                  <div className="flex-1">
+                    <p className="text-white font-semibold text-sm">{r.sender.username}</p>
+                    <p className="text-ink-400 text-xs">wants to be your friend</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="primary" onClick={() => acceptRequest(r.id, r.sender_id)}><Check size={16} /></Button>
+                    <Button size="sm" variant="danger" onClick={() => declineRequest(r.id)}><X size={16} /></Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!loading && tab === 'notifications' && (
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-ink-400 text-sm">{notifications.length} notifications</p>
+            {unreadCount > 0 && <Button size="sm" variant="ghost" onClick={markAllRead}>Mark all read</Button>}
+          </div>
+          {notifications.length === 0 ? (
+            <EmptyState icon={Bell} title="No notifications" />
+          ) : (
+            <div className="space-y-2">
+              {notifications.map(n => (
+                <Card key={n.id} className={`p-3 ${!n.read ? 'border-zeviqo-500/30' : ''}`} onClick={() => markRead(n.id)}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-ink-700/50 flex items-center justify-center">
+                      <Bell size={16} color="#00c4ff" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">{n.title}</p>
+                      {n.body && <p className="text-ink-400 text-xs">{n.body}</p>}
+                      <p className="text-ink-500 text-xs mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                    </div>
+                    {!n.read && <span className="w-2 h-2 rounded-full bg-zeviqo-400" />}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Screen>
   );
 }

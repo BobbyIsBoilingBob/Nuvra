@@ -1,311 +1,163 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { TopBar } from '../components/BottomNav';
-import { GlassCard, Icon, Pill, Button, ProgressBar, ConfirmDialog, RewardPopup } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { getAdventureById, getComboTier, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
-import { routeToLatLngs, DEFAULT_CENTER, formatDistance, formatDuration, createGpsFilter, filterGpsReading, type GpsFilter } from '../lib/map-utils';
-import { MapView, type MapMarkerData, type MapRouteData } from '../components/MapView';
+import { getAdventureById } from '../data';
 import { useGeolocation } from '../hooks/useGeolocation';
-import { vibrate } from '../lib/settings';
+import { formatDistance, formatDuration, DEFAULT_CENTER } from '../lib/map-utils';
+import { getComboTier } from '../data';
+import { useAuth } from '../lib/auth';
+import { Card, Button, Spinner } from '../components/ui';
+import { Play, Pause, Clock, Footprints, Gem, Flame, Zap, Coins, Check, X } from 'lucide-react';
 
-type GpsState = 'idle' | 'starting' | 'tracking' | 'paused' | 'completed' | 'denied' | 'error';
+const MapView = lazy(() => import('../components/MapView'));
 
-export function AdventureMap() {
-  const { selectedAdventureId, goBack, recordAdventureComplete, addQuestProgress } = useStore();
+export default function AdventureMap() {
+  const { selectedAdventureId, selectedAdventureObj, setScreen, addQuestProgress, recordAdventureComplete } = useStore();
   const { profile, updateProfile } = useAuth();
-  const adventure = getAdventureById(selectedAdventureId ?? '');
-
-  const [gpsState, setGpsState] = useState<GpsState>('idle');
-  const geo = useGeolocation(gpsState === 'tracking' || gpsState === 'starting');
-  const [distance, setDistance] = useState(0);
+  const adventure = selectedAdventureObj ?? getAdventureById(selectedAdventureId ?? '');
+  const [geo, geoActions] = useGeolocation();
+  const [active, setActive] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [treasures, setTreasures] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
-  const [objectivesDone, setObjectivesDone] = useState<boolean[]>([]);
-  const [treasuresFound, setTreasuresFound] = useState(0);
-  const [showCancel, setShowCancel] = useState(false);
-  const [showReward, setShowReward] = useState(false);
-  const [rewardData, setRewardData] = useState<{ icon: string; label: string; amount: number; color: string }[]>([]);
+  const [completed, setCompleted] = useState(false);
+  const timerRef = useRef<number | null>(null);
 
-  const gpsFilterRef = useRef<GpsFilter>(createGpsFilter());
-  const startTimeRef = useRef<number>(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const completedRef = useRef(false);
-
-  const routeLatLngs = useMemo(() => {
-    if (!adventure) return [];
-    return routeToLatLngs(adventure.route, DEFAULT_CENTER);
-  }, [adventure]);
-
-  const mapMarkers: MapMarkerData[] = useMemo(() => {
-    const markers: MapMarkerData[] = [];
-    if (routeLatLngs.length > 0) {
-      markers.push({ id: 'start', position: routeLatLngs[0], type: 'start', label: 'Start' });
-      markers.push({ id: 'finish', position: routeLatLngs[routeLatLngs.length - 1], type: 'finish', label: 'Finish' });
-    }
-    if (geo.position) {
-      markers.push({ id: 'player', position: geo.position, type: 'player' });
-    }
-    return markers;
-  }, [routeLatLngs, geo.position]);
-
-  const mapRoutes: MapRouteData[] = useMemo(() => {
-    if (routeLatLngs.length < 2) return [];
-    return [{ id: 'route', positions: routeLatLngs, color: '#00c4ff', weight: 4, dashed: true }];
-  }, [routeLatLngs]);
-
-  // Start tracking when GPS is granted
   useEffect(() => {
-    if (gpsState === 'starting' && geo.status === 'granted') {
-      setGpsState('tracking');
-      startTimeRef.current = Date.now();
-      setObjectivesDone(new Array(adventure?.objectives.length ?? 0).fill(false));
+    if (active) {
+      timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
-    if (gpsState === 'starting' && (geo.status === 'denied' || geo.status === 'unavailable' || geo.status === 'error')) {
-      setGpsState('denied');
-    }
-  }, [geo.status, gpsState, adventure]);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [active]);
 
-  // Timer
   useEffect(() => {
-    if (gpsState === 'tracking') {
-      timerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-      }, 1000);
-      return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    if (active && geo.isMoving && geo.totalDistance > 0) {
+      setCombo(c => { const nc = c + 1; setMaxCombo(m => Math.max(m, nc)); return nc; });
+      addQuestProgress('distance', geo.totalDistance);
     }
-  }, [gpsState]);
-
-  // GPS reading processing
-  useEffect(() => {
-    if (gpsState !== 'tracking' || !geo.position) return;
-    const result = filterGpsReading(gpsFilterRef.current, geo.position.lat, geo.position.lng, Date.now());
-    if (result.accepted && result.distance > 0) {
-      setDistance(prev => prev + result.distance);
-      if (geo.movement === 'walking') {
-        setCombo(prev => {
-          const next = prev + 1;
-          setMaxCombo(m => Math.max(m, next));
-          return next;
-        });
-      } else {
-        setCombo(prev => prev > 0 ? 0 : prev);
-      }
+    if (active && !geo.isMoving) {
+      setCombo(0);
     }
-  }, [geo.position, geo.movement, gpsState]);
+  }, [geo.isMoving, geo.totalDistance, active, addQuestProgress]);
 
-  // Complete objectives based on distance progress
-  useEffect(() => {
-    if (!adventure || gpsState !== 'tracking') return;
-    const progress = adventure.distance > 0 ? distance / adventure.distance : 0;
-    const newDone = adventure.objectives.map((_, i) => {
-      const threshold = (i + 1) / adventure.objectives.length;
-      return progress >= threshold;
-    });
-    const justCompleted = newDone.some((d, i) => d && !objectivesDone[i]);
-    if (justCompleted) {
-      vibrate(30);
-      setTreasuresFound(prev => prev + 1);
-    }
-    setObjectivesDone(newDone);
-  }, [distance, adventure, gpsState]);
-
-  // Check completion
-  useEffect(() => {
-    if (!adventure || completedRef.current || gpsState !== 'tracking') return;
-    if (distance >= adventure.distance * 0.95) {
-      completedRef.current = true;
-      handleComplete();
-    }
-  }, [distance, adventure, gpsState]);
-
-  async function handleComplete() {
+  const handleStart = () => { setActive(true); geoActions.start(); geoActions.reset(); setElapsed(0); };
+  const handlePause = () => setActive(false);
+  const handleStop = async () => {
+    setActive(false);
+    geoActions.stop();
     if (!adventure || !profile) return;
-    setGpsState('completed');
-    if (timerRef.current) clearInterval(timerRef.current);
-    vibrate([50, 30, 50]);
-
-    const comboTier = getComboTier(maxCombo);
-    const xpEarned = Math.round(adventure.xp * comboTier.multiplier);
-    const coinsEarned = Math.round(adventure.coins * comboTier.multiplier);
+    const xpEarned = Math.round(adventure.xp * (1 + maxCombo * 0.01));
+    const coinsEarned = adventure.coins;
     const gemsEarned = adventure.gems;
-
-    setRewardData([
-      { icon: 'Zap', label: 'XP', amount: xpEarned, color: 'text-zeviqo-300' },
-      { icon: 'Coins', label: 'Coins', amount: coinsEarned, color: 'text-gold-400' },
-      ...(gemsEarned > 0 ? [{ icon: 'Gem', label: 'Gems', amount: gemsEarned, color: 'text-zeviqo-300' }] : []),
-      { icon: 'Route', label: 'Distance', amount: Math.round(distance * 1000), color: 'text-zeviqo-400' },
-    ]);
-
-    await recordAdventureComplete({
-      adventure_id: adventure.id,
-      adventure_name: adventure.title,
-      emoji: adventure.emoji,
-      type: adventure.type,
-      difficulty: adventure.difficulty,
-      distance,
-      duration: elapsed,
-      xp_earned: xpEarned,
-      coins_earned: coinsEarned,
-      gems_earned: gemsEarned,
-      treasures_found: treasuresFound,
-      max_combo: maxCombo,
-    });
-
     await updateProfile({
-      xp: (profile.xp ?? 0) + xpEarned,
-      coins: (profile.coins ?? 0) + coinsEarned,
-      gems: (profile.gems ?? 0) + gemsEarned,
-      distance_walked: (profile.distance_walked ?? 0) + distance,
-      steps: (profile.steps ?? 0) + Math.round(distance * 1300),
-      completed_adventures: (profile.completed_adventures ?? 0) + 1,
-      treasure_collected: (profile.treasure_collected ?? 0) + treasuresFound,
-      last_walk_date: new Date().toISOString().split('T')[0],
+      xp: profile.xp + xpEarned, coins: profile.coins + coinsEarned, gems: profile.gems + gemsEarned,
+      distance_walked: profile.distance_walked + geo.totalDistance,
+      steps: profile.steps + Math.round(geo.totalDistance * 1300),
+      completed_adventures: profile.completed_adventures + 1,
+      treasure_collected: profile.treasure_collected + treasures,
     });
-
-    addQuestProgress('distance', distance);
     addQuestProgress('adventures', 1);
-    addQuestProgress('treasures', treasuresFound);
+    addQuestProgress('treasures', treasures);
     addQuestProgress('combo', maxCombo);
-
-    setShowReward(true);
-  }
+    await recordAdventureComplete({
+      adventure_id: adventure.id, adventure_name: adventure.title, emoji: adventure.emoji,
+      type: adventure.type, difficulty: adventure.difficulty, distance: geo.totalDistance,
+      duration: elapsed, xp_earned: xpEarned, coins_earned: coinsEarned, gems_earned: gemsEarned,
+      treasures_found: treasures, max_combo: maxCombo,
+    });
+    setCompleted(true);
+  };
 
   if (!adventure) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center">
-        <AdventureBg />
-        <div className="relative z-10 text-center">
-          <p className="text-sm text-white/40">No adventure selected</p>
-          <Button onClick={goBack} className="mt-4">Go Back</Button>
-        </div>
+      <div className="px-4 pt-4">
+        <p className="text-ink-400">Adventure not found.</p>
+        <Button onClick={() => setScreen('adventures')} className="mt-4">Back</Button>
       </div>
     );
   }
 
   const comboTier = getComboTier(combo);
-  const progressPct = Math.min(100, (distance / adventure.distance) * 100);
 
   return (
-    <div className="relative min-h-screen">
-      <AdventureBg accent={DIFFICULTY_COLORS[adventure.difficulty]} />
-      <TopBar title={adventure.title} showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-3">
-        {gpsState === 'idle' && (
-          <GlassCard className="p-6 text-center">
-            <div className="text-4xl mb-3">{adventure.emoji}</div>
-            <h2 className="text-lg font-display font-bold text-white mb-2">{adventure.title}</h2>
-            <p className="text-sm text-white/50 mb-4">{formatDistance(adventure.distance)} · {formatDuration(adventure.duration * 60)}</p>
-            <Button fullWidth size="lg" icon="Play" onClick={() => setGpsState('starting')}>
-              Start GPS Tracking
-            </Button>
-          </GlassCard>
-        )}
-
-        {gpsState === 'starting' && (
-          <GlassCard className="p-6 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full border-2 border-zeviqo-400 border-t-transparent animate-spin" />
-            <p className="text-sm text-white/60">Finding your location...</p>
-          </GlassCard>
-        )}
-
-        {gpsState === 'denied' && (
-          <GlassCard className="p-6 text-center">
-            <Icon name="MapPin" size={32} className="text-rose-400 mx-auto mb-3" />
-            <p className="text-sm text-white/60 mb-4">Location permission denied. Enable GPS to start your adventure.</p>
-            <Button fullWidth onClick={() => setGpsState('starting')}>Try Again</Button>
-          </GlassCard>
-        )}
-
-        {(gpsState === 'tracking' || gpsState === 'paused' || gpsState === 'completed') && (
-          <>
-            <div className="grid grid-cols-3 gap-2">
-              <GlassCard className="p-3 text-center">
-                <p className="text-[10px] text-white/40 mb-1">Distance</p>
-                <p className="text-sm font-bold text-white">{formatDistance(distance)}</p>
-                <p className="text-[9px] text-white/30">of {formatDistance(adventure.distance)}</p>
-              </GlassCard>
-              <GlassCard className="p-3 text-center">
-                <p className="text-[10px] text-white/40 mb-1">Time</p>
-                <p className="text-sm font-bold text-white">{formatDuration(elapsed)}</p>
-              </GlassCard>
-              <GlassCard className="p-3 text-center">
-                <p className="text-[10px] text-white/40 mb-1">Combo</p>
-                <p className="text-sm font-bold" style={{ color: comboTier.color }}>{combo}x</p>
-                <p className="text-[9px]" style={{ color: comboTier.color }}>{comboTier.name}</p>
-              </GlassCard>
-            </div>
-
-            <GlassCard className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-white">Progress</span>
-                <span className="text-[10px] text-white/40">{Math.round(progressPct)}%</span>
-              </div>
-              <ProgressBar value={progressPct} max={100} accent="from-zeviqo-400 to-zeviqo-500" />
-            </GlassCard>
-
-            <GlassCard className="p-3">
-              <p className="text-xs font-bold text-white mb-2">Objectives</p>
-              <div className="space-y-1.5">
-                {adventure.objectives.map((obj, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${objectivesDone[i] ? 'bg-zeviqo-500/30' : 'glass'}`}>
-                      {objectivesDone[i] ? <Icon name="Check" size={12} className="text-zeviqo-300" /> : <span className="text-[9px] text-white/40">{i + 1}</span>}
-                    </div>
-                    <p className={`text-xs ${objectivesDone[i] ? 'text-zeviqo-300 line-through' : 'text-white/60'}`}>{obj}</p>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-          </>
-        )}
-
-        <GlassCard className="p-0 overflow-hidden h-64">
-          <MapView
-            center={geo.position ?? DEFAULT_CENTER}
-            zoom={16}
-            markers={mapMarkers}
-            routes={mapRoutes}
-            followPlayer={gpsState === 'tracking'}
-            playerHeading={geo.heading}
-            accuracy={geo.accuracy}
-          />
-        </GlassCard>
-
-        {gpsState === 'tracking' && (
-          <div className="flex gap-2">
-            <Button variant="secondary" fullWidth icon="Pause" onClick={() => setGpsState('paused')}>Pause</Button>
-            <Button variant="danger" fullWidth icon="X" onClick={() => setShowCancel(true)}>Cancel</Button>
+    <div className="fixed inset-0 flex flex-col bg-ink-950 z-20">
+      <div className="flex items-center gap-3 p-4 bg-ink-900/80 backdrop-blur-md z-10">
+        <button onClick={() => { geoActions.stop(); setScreen('adventure-detail'); }} className="text-ink-400 hover:text-white">
+          <X size={24} />
+        </button>
+        <div className="flex-1">
+          <p className="text-white font-semibold">{adventure.emoji} {adventure.title}</p>
+          <p className="text-ink-400 text-xs">{formatDistance(geo.totalDistance)} · {formatDuration(elapsed)}</p>
+        </div>
+        {combo > 0 && (
+          <div className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: `${comboTier.color}22`, color: comboTier.color }}>
+            {combo}x {comboTier.name}
           </div>
-        )}
-        {gpsState === 'paused' && (
-          <div className="flex gap-2">
-            <Button fullWidth icon="Play" onClick={() => setGpsState('tracking')}>Resume</Button>
-            <Button variant="danger" fullWidth icon="X" onClick={() => setShowCancel(true)}>Cancel</Button>
-          </div>
-        )}
-        {gpsState === 'completed' && !showReward && (
-          <Button fullWidth size="lg" icon="Check" onClick={goBack}>Finish</Button>
         )}
       </div>
 
-      <ConfirmDialog
-        visible={showCancel}
-        title="Cancel Adventure?"
-        message="Your progress will be lost. Are you sure?"
-        confirmLabel="Cancel Adventure"
-        danger
-        onConfirm={() => { if (timerRef.current) clearInterval(timerRef.current); goBack(); }}
-        onCancel={() => setShowCancel(false)}
-      />
+      <div className="flex-1 relative" style={{ minHeight: '300px' }}>
+        <div className="absolute inset-0 bg-ink-800/40 rounded-2xl m-2 overflow-hidden">
+          <Suspense fallback={<div className="flex items-center justify-center h-full"><Spinner /></div>}>
+            <MapView center={geo.position ?? DEFAULT_CENTER} route={adventure.route} showUserLocation />
+          </Suspense>
+        </div>
+        {!active && !completed && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Button size="lg" onClick={handleStart} className="flex items-center gap-2">
+              <Play size={20} /> Start Adventure
+            </Button>
+          </div>
+        )}
+        {completed && (
+          <div className="absolute inset-0 flex items-center justify-center bg-ink-950/80 backdrop-blur-sm">
+            <Card className="p-6 text-center max-w-xs">
+              <div className="text-4xl mb-3">🎉</div>
+              <h2 className="font-display text-xl font-bold text-white mb-2">Adventure Complete!</h2>
+              <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+                <div className="flex items-center gap-1 text-ink-300"><Footprints size={16} /> {formatDistance(geo.totalDistance)}</div>
+                <div className="flex items-center gap-1 text-ink-300"><Clock size={16} /> {formatDuration(elapsed)}</div>
+                <div className="flex items-center gap-1 text-zeviqo-400"><Zap size={16} /> +{Math.round(adventure.xp * (1 + maxCombo * 0.01))} XP</div>
+                <div className="flex items-center gap-1 text-gold-400"><Coins size={16} /> +{adventure.coins}</div>
+                <div className="flex items-center gap-1 text-nova-400"><Gem size={16} /> +{adventure.gems}</div>
+                <div className="flex items-center gap-1 text-ember-500"><Flame size={16} /> {maxCombo}x max</div>
+              </div>
+              <Button onClick={() => setScreen('home')} className="w-full">Done</Button>
+            </Card>
+          </div>
+        )}
+      </div>
 
-      <RewardPopup
-        visible={showReward}
-        onClose={() => { setShowReward(false); goBack(); }}
-        rewards={rewardData}
-      />
+      {active && (
+        <div className="p-4 bg-ink-900/80 backdrop-blur-md">
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            <StatItem icon={Footprints} label="Distance" value={formatDistance(geo.totalDistance)} color="#00c4ff" />
+            <StatItem icon={Clock} label="Time" value={formatDuration(elapsed)} color="#22c55e" />
+            <StatItem icon={Gem} label="Treasures" value={treasures} color="#fbbf24" />
+            <StatItem icon={Flame} label="Combo" value={`${combo}x`} color="#f97316" />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handlePause} className="flex-1 flex items-center justify-center gap-2">
+              <Pause size={18} /> Pause
+            </Button>
+            <Button variant="danger" onClick={handleStop} className="flex-1 flex items-center justify-center gap-2">
+              <Check size={18} /> Finish
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatItem({ icon: Icon, label, value, color }: { icon: typeof Clock; label: string; value: string | number; color: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <Icon size={18} color={color} />
+      <span className="text-sm font-bold text-white">{value}</span>
+      <span className="text-xs text-ink-400">{label}</span>
     </div>
   );
 }

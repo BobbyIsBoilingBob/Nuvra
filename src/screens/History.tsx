@@ -1,70 +1,50 @@
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { TopBar, BottomNav } from '../components/BottomNav';
-import { GlassCard, Icon, Pill } from '../components/ui';
-import { AdventureBg } from '../components/AdventureBg';
-import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../data';
+import { Card, Screen, EmptyState, Badge, Button } from '../components/ui';
+import { Map, Clock, Zap, Coins, Gem, Flame, Footprints, Heart } from 'lucide-react';
+import { formatDistance, formatDuration } from '../lib/map-utils';
 
-export function History() {
-  const { history, toggleHistoryFavorite } = useStore();
+export default function History() {
+  const { history, toggleHistoryFavorite, setScreen } = useStore();
   const { user } = useAuth();
 
+  if (history.length === 0) {
+    return (
+      <Screen>
+        <EmptyState icon={Map} title="No history yet" subtitle="Complete adventures to see them here" />
+        <Button onClick={() => setScreen('adventures')} className="w-full mt-4">Browse Adventures</Button>
+      </Screen>
+    );
+  }
+
   return (
-    <div className="relative min-h-screen pb-24">
-      <AdventureBg />
-      <TopBar title="History" showBack showCurrencies={false} />
-      <div className="relative z-10 px-4 pt-3 space-y-3">
-        {history.length === 0 ? (
-          <GlassCard className="p-8 text-center">
-            <Icon name="History" size={32} className="text-white/30 mx-auto mb-2" />
-            <p className="text-sm text-white/40">No adventures completed yet</p>
-            <p className="text-[10px] text-white/30 mt-1">Start an adventure to see it here!</p>
-          </GlassCard>
-        ) : (
-          history.map(h => (
-            <GlassCard key={h.id} className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="text-3xl flex-shrink-0">{h.emoji ?? '🧭'}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-white truncate">{h.adventure_name}</p>
-                    <button
-                      onClick={() => user && toggleHistoryFavorite(h.id, user.id)}
-                      className="flex-shrink-0 active:scale-90 transition-transform"
-                    >
-                      <Icon
-                        name="Star"
-                        size={16}
-                        className={h.is_favorite ? 'text-gold-400' : 'text-white/30'}
-                        style={h.is_favorite ? { fill: '#fbbf24' } : undefined}
-                      />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {h.difficulty && (
-                      <Pill accent="text-white/60 border-white/10">
-                        <span style={{ color: DIFFICULTY_COLORS[h.difficulty as keyof typeof DIFFICULTY_COLORS] }}>
-                          {DIFFICULTY_LABELS[h.difficulty as keyof typeof DIFFICULTY_LABELS] ?? h.difficulty}
-                        </span>
-                      </Pill>
-                    )}
-                    <Pill icon="Route">{h.distance.toFixed(2)} km</Pill>
-                    <Pill icon="Clock">{Math.floor(h.duration / 60)}m</Pill>
-                    <Pill icon="Zap" accent="text-zeviqo-300 border-zeviqo-500/30">+{h.xp_earned} XP</Pill>
-                    <Pill icon="Coins" accent="text-gold-400 border-gold-500/30">+{h.coins_earned}</Pill>
-                    {h.gems_earned > 0 && <Pill icon="Gem" accent="text-zeviqo-300 border-zeviqo-500/30">+{h.gems_earned}</Pill>}
-                    {h.max_combo > 0 && <Pill icon="Flame" accent="text-ember-400 border-ember-500/30">{h.max_combo}x</Pill>}
-                  </div>
-                  <p className="text-[10px] text-white/30 mt-2">
-                    {new Date(h.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
+    <Screen>
+      <h1 className="font-display text-2xl font-bold text-white mb-4">Adventure History</h1>
+      <div className="space-y-3">
+        {history.map(h => (
+          <Card key={h.id} className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">{h.emoji ?? '🗺️'}</div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-white">{h.adventure_name}</h3>
+                <p className="text-ink-400 text-xs">{new Date(h.completed_at).toLocaleDateString()}</p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-ink-400">
+                  <span className="flex items-center gap-1"><Footprints size={12} /> {formatDistance(h.distance)}</span>
+                  <span className="flex items-center gap-1"><Clock size={12} /> {formatDuration(h.duration)}</span>
+                  <span className="flex items-center gap-1"><Zap size={12} color="#00c4ff" /> {h.xp_earned}</span>
+                  <span className="flex items-center gap-1"><Coins size={12} color="#fbbf24" /> {h.coins_earned}</span>
+                  {h.gems_earned > 0 && <span className="flex items-center gap-1"><Gem size={12} color="#a78bfa" /> {h.gems_earned}</span>}
+                  {h.max_combo > 0 && <span className="flex items-center gap-1"><Flame size={12} color="#f97316" /> {h.max_combo}x</span>}
                 </div>
+                {h.difficulty && <div className="mt-2"><Badge color="#5a6a9a">{h.difficulty}</Badge></div>}
               </div>
-            </GlassCard>
-          ))
-        )}
+              <button onClick={() => user && toggleHistoryFavorite(h.id, user.id)} className="text-ink-500 hover:text-gold-400">
+                <Heart size={18} fill={h.is_favorite ? '#fbbf24' : 'none'} color={h.is_favorite ? '#fbbf24' : 'currentColor'} />
+              </button>
+            </div>
+          </Card>
+        ))}
       </div>
-      <BottomNav />
-    </div>
+    </Screen>
   );
 }

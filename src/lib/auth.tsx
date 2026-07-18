@@ -11,7 +11,6 @@ type AuthState = {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
-  updateEmail: (newEmail: string) => Promise<{ error: string | null }>;
   deleteAccount: () => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
   updateProfile: (partial: Partial<Profile>) => Promise<{ error: string | null }>;
@@ -25,16 +24,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const profileCache = useRef<Profile | null>(null);
+  const userIdRef = useRef<string | null>(null);
 
   const loadProfile = useCallback(async (uid: string): Promise<Profile | null> => {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
     if (error || !data) {
+      // Retry once after short delay — profile might still be creating via trigger
       await new Promise(r => setTimeout(r, 600));
       const { data: retry } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
       if (retry) { profileCache.current = retry as Profile; setProfile(retry as Profile); return retry as Profile; }
       return null;
     }
-    profileCache.current = data as Profile; setProfile(data as Profile); return data as Profile;
+    profileCache.current = data as Profile;
+    setProfile(data as Profile);
+    return data as Profile;
   }, []);
 
   const updateOnlineStatus = useCallback(async (uid: string, online: boolean) => {
@@ -43,45 +46,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+
+    // Get session first — this is the only blocking call for startup
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (!mounted) return;
-      setSession(s); setUser(s?.user ?? null);
-      if (s?.user) { loadProfile(s.user.id).finally(() => { if (mounted) setLoading(false); }); updateOnlineStatus(s.user.id, true); }
-      else setLoading(false);
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        userIdRef.current = s.user.id;
+        // Load profile in background — don't block the UI
+        loadProfile(s.user.id).finally(() => { if (mounted) setLoading(false); });
+        updateOnlineStatus(s.user.id, true);
+      } else {
+        setLoading(false);
+      }
     });
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
-      setSession(s); setUser(s?.user ?? null);
+      setSession(s);
+      setUser(s?.user ?? null);
       (async () => {
         if (s?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          userIdRef.current = s.user.id;
           await loadProfile(s.user.id);
           if (event === 'SIGNED_IN') updateOnlineStatus(s.user.id, true);
         } else if (event === 'SIGNED_OUT') {
-          if (user) updateOnlineStatus(user.id, false);
-          profileCache.current = null; setProfile(null);
+          if (userIdRef.current) updateOnlineStatus(userIdRef.current, false);
+          userIdRef.current = null;
+          profileCache.current = null;
+          setProfile(null);
         }
       })();
     });
-    const handleBeforeUnload = () => { if (user) updateOnlineStatus(user.id, false); };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => { mounted = false; sub.subscription.unsubscribe(); window.removeEventListener('beforeunload', handleBeforeUnload); if (user) updateOnlineStatus(user.id, false); };
-  }, [loadProfile, updateOnlineStatus, user]);
 
-  const validateSignup = (email: string, password: string, username: string): string | null => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.';
-    if (password.length < 6) return 'Password must be at least 6 characters long.';
-    if (username.length < 3 || username.length > 20) return 'Username must be 3-20 characters long.';
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) return 'Username can only contain letters, numbers, and underscores.';
-    return null;
-  };
+    const handleBeforeUnload = () => { if (userIdRef.current) updateOnlineStatus(userIdRef.current, false); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (userIdRef.current) updateOnlineStatus(userIdRef.current, false);
+    };
+  }, [loadProfile, updateOnlineStatus]);
 
   const signUp = useCallback(async (email: string, password: string, username: string): Promise<{ error: string | null }> => {
-    const validation = validateSignup(email, password, username);
-    if (validation) return { error: validation };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Please enter a valid email address.' };
+    if (password.length < 6) return { error: 'Password must be at least 6 characters long.' };
+    if (username.length < 3 || username.length > 20) return { error: 'Username must be 3-20 characters long.' };
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) return { error: 'Username can only contain letters, numbers, and underscores.' };
+
     const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
-    if (existing) return { error: 'That username is already taken. Please choose another.' };
+    if (existing) return { error: 'That username is already taken.' };
+
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
-    if (error) return { error: error.message.includes('already registered') ? 'An account with this email already exists. Try logging in.' : error.message };
+    if (error) return { error: error.message.includes('already registered') ? 'An account with this email already exists.' : error.message };
     if (data.user) { await loadProfile(data.user.id); updateOnlineStatus(data.user.id, true); }
     return { error: null };
   }, [loadProfile, updateOnlineStatus]);
@@ -96,10 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile, updateOnlineStatus]);
 
   const signOut = useCallback(async () => {
-    if (user) updateOnlineStatus(user.id, false);
+    if (userIdRef.current) updateOnlineStatus(userIdRef.current, false);
     await supabase.auth.signOut();
-    profileCache.current = null; setProfile(null); setSession(null); setUser(null);
-  }, [user, updateOnlineStatus]);
+    userIdRef.current = null;
+    profileCache.current = null;
+    setProfile(null);
+    setSession(null);
+    setUser(null);
+  }, [updateOnlineStatus]);
 
   const resetPassword = useCallback(async (email: string): Promise<{ error: string | null }> => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Please enter a valid email address.' };
@@ -113,32 +137,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
-  const updateEmail = useCallback(async (newEmail: string): Promise<{ error: string | null }> => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return { error: 'Please enter a valid email address.' };
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
-    return { error: error?.message ?? null };
-  }, []);
-
   const deleteAccount = useCallback(async (): Promise<{ error: string | null }> => {
-    if (!user) return { error: 'Not signed in.' };
-    const { error: profileErr } = await supabase.from('profiles').delete().eq('id', user.id);
-    if (profileErr) return { error: profileErr.message };
+    if (!userIdRef.current) return { error: 'Not signed in.' };
+    const { error } = await supabase.from('profiles').delete().eq('id', userIdRef.current);
+    if (error) return { error: error.message };
     await signOut();
     return { error: null };
-  }, [user, signOut]);
+  }, [signOut]);
 
-  const refreshProfile = useCallback(async () => { if (user) await loadProfile(user.id); }, [user, loadProfile]);
+  const refreshProfile = useCallback(async () => {
+    if (userIdRef.current) await loadProfile(userIdRef.current);
+  }, [loadProfile]);
 
   const updateProfile = useCallback(async (partial: Partial<Profile>): Promise<{ error: string | null }> => {
-    if (!user) return { error: 'Not signed in.' };
-    const { error } = await supabase.from('profiles').update(partial).eq('id', user.id);
+    if (!userIdRef.current) return { error: 'Not signed in.' };
+    const { error } = await supabase.from('profiles').update(partial).eq('id', userIdRef.current);
     if (error) return { error: error.message };
     setProfile(prev => { const updated = prev ? { ...prev, ...partial } : prev; profileCache.current = updated; return updated; });
     return { error: null };
-  }, [user]);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, resetPassword, updatePassword, updateEmail, deleteAccount, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, resetPassword, updatePassword, deleteAccount, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
