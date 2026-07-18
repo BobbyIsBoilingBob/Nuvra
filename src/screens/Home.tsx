@@ -86,7 +86,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Fix #3: AI Generator accessible from Home. */}
       <section>
         <Card className="p-5 flex items-center gap-4" onClick={() => navigate('aiGenerator')}>
           <div className="h-12 w-12 rounded-xl bg-brand-500/20 flex items-center justify-center flex-shrink-0">

@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data/gameData';
+import type { Adventure, Quest } from '../types';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -9,7 +10,7 @@ export default function AdventurePreview() {
   const navigate = useStore((s) => s.navigate);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
   const customAdventures = useStore((s) => s.customAdventures);
-  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
   const adv = allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0];
 
   return (
@@ -26,7 +27,7 @@ export default function AdventurePreview() {
         <Card className="p-5">
           <h3 className="font-display font-bold text-white">Quests to complete</h3>
           <ul className="mt-3 space-y-2">
-            {adv.quests.map((q) => (
+            {adv.quests.map((q: Quest) => (
               <li key={q.id} className="flex items-start gap-2 text-sm">
                 <CheckCircle2 size={16} className="text-ink-500 mt-0.5" />
                 <div><p className="text-white font-medium">{q.title}</p><p className="text-ink-400 text-xs">{q.description}</p></div>

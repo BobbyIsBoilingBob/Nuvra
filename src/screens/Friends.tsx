@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import Header from '../components/Header';
@@ -5,7 +6,6 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import { Users, UserPlus, Search } from 'lucide-react';
 import { useFriends } from '../hooks/useFriends';
-import { useState } from 'react';
 import type { FriendRequest } from '../types';
 
 export default function Friends() {
@@ -18,8 +18,7 @@ export default function Friends() {
 
   if (isGuest) {
     return (
-      <div className="pb-24">
-        <Header title="Friends" />
+      <div className="pb-24"><Header title="Friends" />
         <div className="px-4 py-10 max-w-md mx-auto text-center">
           <Users size={48} className="text-ink-500 mx-auto" />
           <h2 className="font-display text-xl font-bold text-white mt-4">Sign in to connect with friends</h2>
@@ -33,8 +32,7 @@ export default function Friends() {
   const doSearch = async () => { const r = await searchPlayers(query); setSearchResults(r); };
 
   return (
-    <div className="pb-24">
-      <Header title="Friends" />
+    <div className="pb-24"><Header title="Friends" />
       <div className="px-4 py-4 max-w-lg mx-auto">
         <div className="flex gap-2 mb-4">
           {(['friends', 'requests', 'search', 'notifications'] as const).map((t) => (

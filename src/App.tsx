@@ -31,7 +31,7 @@ const Inventory = lazy(() => import('./screens/Inventory'));
 const Rewards = lazy(() => import('./screens/Rewards'));
 const Seasonal = lazy(() => import('./screens/Seasonal'));
 
-const SCREENS: Record<Screen, ComponentType> = {
+const SCREENS: Record<Screen, ComponentType<any>> = {
   home: Home, auth: Auth, onboarding: Onboarding,
   adventures: Adventures, adventureDetail: AdventureDetail,
   adventureMap: AdventureMap, adventurePreview: AdventurePreview,
@@ -42,6 +42,7 @@ const SCREENS: Record<Screen, ComponentType> = {
   customise: Customise, inventory: Inventory, rewards: Rewards, seasonal: Seasonal,
 };
 
+// Screens accessible without authentication (guest mode).
 const GUEST_ALLOWED: Screen[] = [
   'home', 'adventures', 'adventureDetail', 'adventureMap',
   'community', 'aiGenerator', 'adventurePreview', 'creator', 'quests', 'questDetail',
@@ -49,20 +50,41 @@ const GUEST_ALLOWED: Screen[] = [
 
 const NAV_SCREENS: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
 
-function Router() {
+// ── Startup gate (Bug #1) ─────────────────────────────────────────────
+// Renders BEFORE the main app. While auth status is 'checking', shows a
+// loading spinner. If unauthenticated, shows the Auth screen immediately.
+// If guest or authenticated, enters the app. This prevents the Home flash.
+function StartupGate() {
+  const { status } = useAuth();
   const screen = useStore((s) => s.screen);
   const navigate = useStore((s) => s.navigate);
-  const { isGuest, loading } = useAuth();
+  const resetTo = useStore((s) => s.resetTo);
+  const { isGuest } = useAuth();
 
-  if (loading && !isGuest) return <Spinner label="Loading Zeviqo…" />;
+  // Bug #1: If not authenticated and not guest, force the Auth screen.
+  if (status === 'unauthenticated') {
+    // Only navigate if not already on auth to avoid loops.
+    if (screen !== 'auth') navigate('auth');
+    return (
+      <Suspense fallback={<Spinner label="Loading…" />}>
+        <Auth />
+      </Suspense>
+    );
+  }
 
+  // Still checking session — show spinner, do NOT render Home.
+  if (status === 'checking') {
+    return <Spinner label="Loading Zeviqo…" />;
+  }
+
+  // Authenticated or guest — render the main app.
   let active = screen;
   if (isGuest && !GUEST_ALLOWED.includes(screen)) {
     active = 'home';
-    if (screen !== 'home') navigate('home');
+    if (screen !== 'home') resetTo('home');
   }
 
-  const Component = SCREENS[active] as ComponentType;
+  const Component = SCREENS[active];
   const showNav = NAV_SCREENS.includes(active);
 
   return (
@@ -80,7 +102,7 @@ function Router() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router />
+      <StartupGate />
     </AuthProvider>
   );
 }

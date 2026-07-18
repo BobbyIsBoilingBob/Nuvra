@@ -10,15 +10,13 @@ export default function Challenges() {
   const { isGuest } = useAuth();
   if (isGuest) {
     return (
-      <div className="pb-24">
-        <Header title="Challenges" />
+      <div className="pb-24"><Header title="Challenges" />
         <div className="px-4 py-10 text-center"><p className="text-ink-300">Sign in to join challenges.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
       </div>
     );
   }
   return (
-    <div className="pb-24">
-      <Header title="Challenges" />
+    <div className="pb-24"><Header title="Challenges" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
         {CHALLENGES.map((c) => (
           <Card key={c.id} className="p-4">

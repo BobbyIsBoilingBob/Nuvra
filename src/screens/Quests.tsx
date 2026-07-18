@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data/gameData';
+import type { Adventure } from '../types';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import { Target, ChevronRight, MapPin, Ruler, Eye } from 'lucide-react';
@@ -12,13 +13,11 @@ export default function Quests() {
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
   const customAdventures = useStore((s) => s.customAdventures);
 
-  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
   const quests: Quest[] = allAdventures.flatMap((a) =>
-    a.quests.map((q) => ({ ...q, adventureId: a.id, adventureTitle: a.title })),
+    a.quests.map((q: Quest) => ({ ...q, adventureId: a.id, adventureTitle: a.title })),
   );
 
-  // Fix #2: quests are now selectable — clicking navigates to quest detail
-  // and sets the active adventure so QuestDetail can show the right data.
   const openQuest = (q: Quest) => {
     if (q.adventureId) setActiveAdventure(q.adventureId);
     navigate('questDetail');
@@ -32,11 +31,7 @@ export default function Quests() {
         {quests.map((q) => {
           const Icon = TYPE_ICON[q.type] ?? Target;
           return (
-            <Card
-              key={q.id + (q.adventureId ?? '')}
-              className="p-4 flex items-start gap-3"
-              onClick={() => openQuest(q)}
-            >
+            <Card key={q.id + (q.adventureId ?? '')} className="p-4 flex items-start gap-3" onClick={() => openQuest(q)}>
               <div className="h-10 w-10 rounded-xl bg-brand-500/15 flex items-center justify-center flex-shrink-0">
                 <Icon size={20} className="text-brand-300" />
               </div>

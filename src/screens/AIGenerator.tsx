@@ -5,7 +5,6 @@ import { generateAIAdventure } from '../data/gameData';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import Spinner from '../components/Spinner';
 import { Sparkles, Wand as Wand2, Check, Navigation } from 'lucide-react';
 import type { Adventure } from '../types';
 
@@ -40,8 +39,6 @@ export default function AIGenerator() {
     );
   }
 
-  // Fix #3: working AI generator — creates a real adventure, saves it,
-  // shows the result, and lets the user start it immediately.
   const generate = () => {
     setError(null);
     setGenerating(true);
@@ -84,17 +81,14 @@ export default function AIGenerator() {
           />
           <div className="flex flex-wrap gap-2 mt-2">
             {PROMPT_IDEAS.map((idea) => (
-              <button
-                key={idea}
-                onClick={() => setPrompt(idea)}
-                className="px-2 py-1 rounded-lg text-xs bg-ink-700 text-ink-300 hover:bg-ink-600 transition-colors"
-              >
+              <button key={idea} onClick={() => setPrompt(idea)}
+                className="px-2 py-1 rounded-lg text-xs bg-ink-700 text-ink-300 hover:bg-ink-600 transition-colors">
                 {idea}
               </button>
             ))}
           </div>
           <Button className="w-full mt-3" onClick={generate} disabled={generating}>
-            {generating ? <Spinner /> : <><Wand2 size={18} /> Generate Adventure</>}
+            {generating ? 'Generating…' : (<><Wand2 size={18} /> Generate Adventure</>)}
           </Button>
           {error && <p className="text-error-400 text-sm mt-2">{error}</p>}
         </Card>

@@ -8,8 +8,7 @@ export default function Community() {
   const navigate = useStore((s) => s.navigate);
   const { isGuest } = useAuth();
   return (
-    <div className="pb-24">
-      <Header title="Community" />
+    <div className="pb-24"><Header title="Community" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
         {isGuest && <p className="text-ink-400 text-sm bg-ink-800/50 rounded-xl p-3 border border-ink-700/50">You're browsing as a guest. Sign in to post and interact.</p>}
         <div className="grid grid-cols-3 gap-3">

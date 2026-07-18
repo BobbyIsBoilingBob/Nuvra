@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { ADVENTURES } from '../data/gameData';
+import type { Adventure, Quest } from '../types';
 import MapView from '../components/MapView';
 import Header from '../components/Header';
 import Button from '../components/Button';
@@ -41,7 +42,7 @@ export default function AdventureMap() {
   const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest, profile } = useAuth();
 
-  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
   const adventure = useMemo(
     () => allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0],
     [activeAdventureId, customAdventures],
@@ -100,8 +101,8 @@ export default function AdventureMap() {
     if (!allQuestsComplete() || !distanceMet || !routeMet) return;
     addXp(adventure.rewards.xp);
     addCoins(adventure.rewards.coins);
-    adventure.rewards.items?.forEach((id) => addItem({ id, name: id, type: 'cosmetic', quantity: 1 }));
-    adventure.rewards.achievements?.forEach((id) => unlockAchievement(id));
+    adventure.rewards.items?.forEach((id: string) => addItem({ id, name: id, type: 'cosmetic', quantity: 1 }));
+    adventure.rewards.achievements?.forEach((id: string) => unlockAchievement(id));
     addHistory({ id: `${adventure.id}-${Date.now()}`, adventureId: adventure.id, adventureTitle: adventure.title, completedAt: new Date().toISOString(), distance: geo.distance, duration: adventure.durationMin, xp: adventure.rewards.xp, coins: adventure.rewards.coins });
     if (activeAdventureId) markAdventureClaimed(activeAdventureId);
     geo.stop(); setDone(true); setShowFinishScreen(true);

@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data/gameData';
+import type { Adventure, Quest } from '../types';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -10,7 +11,7 @@ export default function AdventureDetail() {
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
   const activeAdventureId = useStore((s) => s.activeAdventureId);
   const customAdventures = useStore((s) => s.customAdventures);
-  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
   const adv = allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0];
 
   const start = () => { setActiveAdventure(adv.id); navigate('adventurePreview'); };
@@ -32,7 +33,7 @@ export default function AdventureDetail() {
         <Card className="p-4">
           <h3 className="font-display font-bold text-white flex items-center gap-2"><Target size={18} className="text-brand-400" /> Quests</h3>
           <ul className="mt-3 space-y-2">
-            {adv.quests.map((q) => (
+            {adv.quests.map((q: Quest) => (
               <li key={q.id} className="flex items-start gap-2 text-ink-200 text-sm">
                 <span className="h-5 w-5 rounded-full bg-ink-700 flex items-center justify-center text-[10px] font-bold text-ink-300 mt-0.5">Q</span>
                 <div><p className="font-medium text-white">{q.title}</p><p className="text-ink-400 text-xs">{q.description}</p></div>

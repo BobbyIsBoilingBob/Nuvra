@@ -1,97 +1,151 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { useStore } from '../store';
 import type { Profile } from '../types';
 
 const GUEST_KEY = 'zeviqo-guest';
 
+type AuthStatus = 'checking' | 'guest' | 'authenticated' | 'unauthenticated';
+
 interface AuthContextValue {
+  status: AuthStatus;
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  loading: boolean;
   isGuest: boolean;
   continueAsGuest: () => void;
   exitGuest: () => void;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isGuest, setIsGuest] = useState<boolean>(() => {
-    try { return localStorage.getItem(GUEST_KEY) === '1'; } catch { return false; }
-  });
+  const [status, setStatus] = useState<AuthStatus>('checking');
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState<boolean>(() => {
-    try { return localStorage.getItem(GUEST_KEY) !== '1'; } catch { return true; }
-  });
 
+  const cachedProfile = useStore((s) => s.cachedProfile);
+  const setCachedProfile = useStore((s) => s.setCachedProfile);
+
+  // ── Startup gate (Bug #1 + #4) ──────────────────────────────────────
+  // Synchronous check: if guest flag is set, we know immediately without
+  // any network request. This prevents the Home flash for guests.
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-    return () => { mounted = false; sub.subscription.unsubscribe(); };
-  }, []);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (!user) { setProfile(null); return; }
-    let active = true;
     (async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (!active) return;
-      if (data) {
-        setProfile({
-          id: data.id,
-          username: data.username ?? 'Adventurer',
-          level: data.level ?? 1,
-          xp: data.xp ?? 0,
-          coins: data.coins ?? 0,
-          avatar: data.avatar ?? undefined,
-          createdAt: data.created_at,
-        });
-      } else {
-        setProfile({ id: user.id, username: 'Adventurer', level: 1, xp: 0, coins: 0 });
+      // Check guest flag synchronously from localStorage.
+      let isGuestFlag = false;
+      try { isGuestFlag = localStorage.getItem(GUEST_KEY) === '1'; } catch { /* ignore */ }
+
+      if (isGuestFlag) {
+        if (mounted) setStatus('guest');
+        return;
+      }
+
+      // Not a guest — restore session. getSession() reads from local
+      // storage first (fast), then refreshes if needed.
+      const { data, error } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (error || !data.session) {
+        if (mounted) { setSession(null); setUser(null); setStatus('unauthenticated'); }
+        return;
+      }
+
+      if (mounted) {
+        setSession(data.session);
+        setUser(data.session.user);
+        setStatus('authenticated');
       }
     })();
-    return () => { active = false; };
-  }, [user]);
 
-  const continueAsGuest = () => {
+    return () => { mounted = false; cancelled = true; };
+  }, []);
+
+  // ── Session change listener (Bug #3) ───────────────────────────────
+  // Single subscription — no duplicate listeners.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s) {
+        setStatus('authenticated');
+        try { localStorage.removeItem(GUEST_KEY); } catch { /* ignore */ }
+      } else if (status !== 'guest') {
+        setStatus('unauthenticated');
+        setProfile(null);
+        setCachedProfile(null);
+      }
+    });
+    return () => { sub.subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Profile loading (Bug #2) ────────────────────────────────────────
+  // Loads only when authenticated. Uses cache to render instantly, then
+  // fetches fresh data in the background.
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    // Render cached profile immediately if available.
+    if (cachedProfile) setProfile(cachedProfile);
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (data) {
+      const p: Profile = {
+        id: data.id,
+        username: data.username ?? 'Adventurer',
+        level: data.level ?? 1,
+        xp: data.xp ?? 0,
+        coins: data.coins ?? 0,
+        avatar: data.avatar_emoji ?? undefined,
+        createdAt: data.created_at,
+      };
+      setProfile(p);
+      setCachedProfile(p);
+    }
+  }, [user, cachedProfile, setCachedProfile]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && user) {
+      refreshProfile();
+    } else if (status !== 'authenticated') {
+      setProfile(null);
+    }
+  }, [status, user, refreshProfile]);
+
+  // ── Guest mode ──────────────────────────────────────────────────────
+  const continueAsGuest = useCallback(() => {
     try { localStorage.setItem(GUEST_KEY, '1'); } catch { /* ignore */ }
-    setIsGuest(true);
-    setLoading(false);
-  };
+    setStatus('guest');
+  }, []);
 
-  const exitGuest = () => {
+  const exitGuest = useCallback(() => {
     try { localStorage.removeItem(GUEST_KEY); } catch { /* ignore */ }
-    setIsGuest(false);
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  // ── Auth actions (Bug #3) ───────────────────────────────────────────
+  const signIn = useCallback(async (email: string, password: string) => {
     exitGuest();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
-  };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    setSession(data.session);
+    setUser(data.session?.user ?? null);
+    setStatus('authenticated');
+    return { error: null };
+  }, [exitGuest]);
 
-  const signUp = async (email: string, password: string, username: string) => {
+  const signUp = useCallback(async (email: string, password: string, username: string) => {
     exitGuest();
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return { error: error.message };
@@ -100,21 +154,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: data.user.id, username, level: 1, xp: 0, coins: 0,
       });
     }
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+      setStatus('authenticated');
+    }
     return { error: null };
-  };
+  }, [exitGuest]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     exitGuest();
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
     setProfile(null);
-  };
-
-  useEffect(() => {
-    if (session && isGuest) exitGuest();
-  }, [session, isGuest]);
+    setCachedProfile(null);
+    setStatus('unauthenticated');
+  }, [exitGuest, setCachedProfile]);
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, isGuest, continueAsGuest, exitGuest, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{
+      status, session, user, profile,
+      isGuest: status === 'guest',
+      continueAsGuest, exitGuest, signIn, signUp, signOut, refreshProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   );

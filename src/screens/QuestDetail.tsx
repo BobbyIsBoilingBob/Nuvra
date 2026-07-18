@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { ADVENTURES } from '../data/gameData';
+import type { Adventure } from '../types';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -15,7 +16,7 @@ export default function QuestDetail() {
   const activeAdventureId = useStore((s) => s.activeAdventureId);
   const customAdventures = useStore((s) => s.customAdventures);
 
-  const allAdventures = [...customAdventures, ...ADVENTURES];
+  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
   const adv = allAdventures.find((a) => a.id === activeAdventureId) ?? allAdventures[0];
   const quest: Quest = adv.quests[0] ?? { id: 'q', type: 'checkpoint', title: 'Quest', description: '' };
 
@@ -66,7 +67,7 @@ export default function QuestDetail() {
         <Card className="p-5">
           <h3 className="font-display font-bold text-white mb-3">All quests in this adventure</h3>
           <ul className="space-y-2">
-            {adv.quests.map((q, i) => {
+            {adv.quests.map((q: Quest, i: number) => {
               const QIcon = TYPE_ICON[q.type] ?? Target;
               return (
                 <li key={q.id} className="flex items-center gap-2 text-sm">

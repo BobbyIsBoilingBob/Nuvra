@@ -28,7 +28,6 @@ export default function Rewards() {
           <h3 className="font-display font-bold text-white mb-3 flex items-center gap-2">
             <Trophy size={18} className="text-accent-400" /> Leaderboard
           </h3>
-          {/* Fix #1: real users from Supabase profiles table, no fake data. */}
           {loading && <Spinner label="Loading leaderboard…" />}
           {error && <p className="text-error-400 text-sm">{error}</p>}
           {!loading && !error && entries.length === 0 && (

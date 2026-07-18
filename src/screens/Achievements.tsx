@@ -13,15 +13,13 @@ export default function Achievements() {
   const { isGuest } = useAuth();
   if (isGuest) {
     return (
-      <div className="pb-24">
-        <Header title="Achievements" />
+      <div className="pb-24"><Header title="Achievements" />
         <div className="px-4 py-10 text-center"><p className="text-ink-300">Sign in to view your achievements.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
       </div>
     );
   }
   return (
-    <div className="pb-24">
-      <Header title="Achievements" />
+    <div className="pb-24"><Header title="Achievements" />
       <div className="px-4 py-4 max-w-lg mx-auto grid grid-cols-2 gap-3">
         {ACHIEVEMENTS.map((a) => {
           const Icon = ICONS[a.icon] ?? Award;

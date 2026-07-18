@@ -1,6 +1,4 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Screen, InventoryItem, HistoryEntry, Adventure } from './types';
+import type { Screen, InventoryItem, HistoryEntry, Adventure, Profile } from './types';
 
 const TOP_LEVEL: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
 
@@ -42,7 +40,14 @@ interface AppState {
 
   onboarded: boolean;
   setOnboarded: (v: boolean) => void;
+
+  // Cached profile data — avoids duplicate DB requests on every Profile render.
+  cachedProfile: Profile | null;
+  setCachedProfile: (p: Profile | null) => void;
 }
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export const useStore = create<AppState>()(
   persist(
@@ -117,6 +122,9 @@ export const useStore = create<AppState>()(
 
       onboarded: false,
       setOnboarded: (v) => set({ onboarded: v }),
+
+      cachedProfile: null,
+      setCachedProfile: (p) => set({ cachedProfile: p }),
     }),
     {
       name: 'zeviqo-store',
@@ -127,6 +135,7 @@ export const useStore = create<AppState>()(
         unlockedAchievements: state.unlockedAchievements,
         dailyStreak: state.dailyStreak, onboarded: state.onboarded,
         customAdventures: state.customAdventures,
+        cachedProfile: state.cachedProfile,
       }),
     },
   ),

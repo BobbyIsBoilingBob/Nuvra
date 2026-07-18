@@ -15,15 +15,13 @@ export default function Shop() {
 
   if (isGuest) {
     return (
-      <div className="pb-24">
-        <Header title="Shop" back={false} />
+      <div className="pb-24"><Header title="Shop" back={false} />
         <div className="px-4 py-10 text-center"><p className="text-ink-300">Sign in to buy items.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
       </div>
     );
   }
   return (
-    <div className="pb-24">
-      <Header title="Shop" back={false} right={<span className="flex items-center gap-1 text-accent-400 font-semibold text-sm"><Coins size={16} /> {coins}</span>} />
+    <div className="pb-24"><Header title="Shop" back={false} right={<span className="flex items-center gap-1 text-accent-400 font-semibold text-sm"><Coins size={16} /> {coins}</span>} />
       <div className="px-4 py-4 max-w-lg mx-auto grid grid-cols-2 gap-3">
         {SHOP_ITEMS.map((item) => (
           <Card key={item.id} className="p-4">

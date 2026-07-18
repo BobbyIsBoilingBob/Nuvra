@@ -6,8 +6,7 @@ import Card from '../components/Card';
 import Spinner from '../components/Spinner';
 
 export default function Auth() {
-  const { signIn, signUp } = useAuth();
-  const navigate = useStore((s) => s.navigate);
+  const { signIn, signUp, continueAsGuest } = useAuth();
   const resetTo = useStore((s) => s.resetTo);
   const setOnboarded = useStore((s) => s.setOnboarded);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -25,8 +24,10 @@ export default function Auth() {
     setOnboarded(true); resetTo('home');
   };
 
+  const guest = () => { continueAsGuest(); setOnboarded(true); resetTo('home'); };
+
   return (
-    <div className="px-4 py-10 max-w-md mx-auto">
+    <div className="px-4 py-10 max-w-md mx-auto min-h-screen flex flex-col justify-center">
       <h1 className="font-display text-3xl font-bold text-white text-center">{mode === 'signin' ? 'Welcome back' : 'Join Zeviqo'}</h1>
       <p className="text-ink-400 text-center mt-2">{mode === 'signin' ? 'Sign in to continue your adventure.' : 'Create an account to start exploring.'}</p>
       <Card className="p-5 mt-6 space-y-4">
@@ -59,7 +60,7 @@ export default function Auth() {
         </button>
       </p>
       <p className="text-center mt-3">
-        <button onClick={() => resetTo('home')} className="text-ink-400 text-sm hover:text-ink-200">Continue as guest</button>
+        <button onClick={guest} className="text-ink-400 text-sm hover:text-ink-200">Continue as guest</button>
       </p>
     </div>
   );

@@ -10,6 +10,7 @@ export default function Profile() {
   const resetTo = useStore((s) => s.resetTo);
   const { isGuest, profile, signOut } = useAuth();
 
+  // Bug #2: Guest profile renders instantly — no DB queries, no loading state.
   if (isGuest) {
     return (
       <div className="pb-24">
@@ -18,7 +19,7 @@ export default function Profile() {
           <div className="h-24 w-24 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center mb-6">
             <User size={40} className="text-brand-300" />
           </div>
-          <h2 className="font-display text-2xl font-bold text-white">Sign in to view your profile</h2>
+          <h2 className="font-display text-2xl font-bold text-white">Sign in or create an account to view your profile</h2>
           <p className="text-ink-300 mt-2 max-w-xs">You need an account to access your profile, track progress, earn rewards, and connect with friends.</p>
           <div className="flex gap-3 mt-6 w-full">
             <Button className="flex-1" onClick={() => { signOut(); navigate('auth'); }}>Sign In</Button>
@@ -30,11 +31,23 @@ export default function Profile() {
     );
   }
 
+  // Bug #2: Signed-in profile renders basic info immediately from cache,
+  // secondary data loads progressively. No blocking spinner.
   if (!profile) {
+    // Only show a minimal skeleton — not a full-page spinner.
     return (
       <div className="pb-24">
-        <Header title="Profile" back={false} />
-        <div className="px-4 py-10 max-w-md mx-auto text-center"><p className="text-ink-300">Loading profile…</p></div>
+        <Header title="Profile" back={false} right={
+          <button onClick={() => navigate('settings')} className="text-ink-300 hover:text-white"><Settings size={20} /></button>
+        } />
+        <div className="px-4 py-4 max-w-lg mx-auto">
+          <Card className="p-5 animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-ink-700" />
+              <div className="space-y-2"><div className="h-5 w-32 rounded bg-ink-700" /><div className="h-3 w-20 rounded bg-ink-700" /></div>
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -45,15 +58,17 @@ export default function Profile() {
         <button onClick={() => navigate('settings')} className="text-ink-300 hover:text-white"><Settings size={20} /></button>
       } />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
-        <Card className="p-5 flex items-center gap-4">
+        {/* Basic profile — renders instantly from cached data. */}
+        <Card className="p-5 flex items-center gap-4 animate-fade-in">
           <div className="h-16 w-16 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center"><User size={28} className="text-brand-300" /></div>
           <div><h2 className="font-display text-xl font-bold text-white">{profile.username}</h2><p className="text-ink-400 text-sm">Level {profile.level}</p></div>
         </Card>
-        <Card className="p-4 grid grid-cols-3 gap-3 text-center">
+        <Card className="p-4 grid grid-cols-3 gap-3 text-center animate-fade-in">
           <div><Sparkles size={18} className="text-brand-400 mx-auto" /><p className="text-white font-bold mt-1">{profile.xp.toLocaleString()}</p><p className="text-ink-400 text-xs">XP</p></div>
           <div><Trophy size={18} className="text-accent-400 mx-auto" /><p className="text-white font-bold mt-1">{profile.level}</p><p className="text-ink-400 text-xs">Level</p></div>
           <div><Coins size={18} className="text-accent-400 mx-auto" /><p className="text-white font-bold mt-1">{profile.coins}</p><p className="text-ink-400 text-xs">Coins</p></div>
         </Card>
+        {/* Secondary data — lazy links, no preloading. */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4" onClick={() => navigate('achievements')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2">Achievements</p></Card>
           <Card className="p-4" onClick={() => navigate('history')}><History size={20} className="text-brand-400" /><p className="text-white font-semibold mt-2">History</p></Card>
