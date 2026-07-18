@@ -1,29 +1,9 @@
 export type Screen =
-  | 'home'
-  | 'auth'
-  | 'onboarding'
-  | 'adventures'
-  | 'adventureDetail'
-  | 'adventureMap'
-  | 'adventurePreview'
-  | 'community'
-  | 'aiGenerator'
-  | 'creator'
-  | 'profile'
-  | 'friends'
-  | 'quests'
-  | 'questDetail'
-  | 'achievements'
-  | 'dailyRewards'
-  | 'challenges'
-  | 'party'
-  | 'shop'
-  | 'settings'
-  | 'history'
-  | 'customise'
-  | 'inventory'
-  | 'rewards'
-  | 'seasonal';
+  | 'home' | 'auth' | 'onboarding' | 'adventures' | 'adventureDetail'
+  | 'adventureMap' | 'adventurePreview' | 'community' | 'aiGenerator'
+  | 'creator' | 'profile' | 'friends' | 'quests' | 'questDetail'
+  | 'achievements' | 'dailyRewards' | 'challenges' | 'party' | 'shop'
+  | 'settings' | 'history' | 'customise' | 'inventory' | 'rewards' | 'seasonal';
 
 export type QuestType = 'distance' | 'checkpoint' | 'challenge';
 
@@ -56,12 +36,7 @@ export interface Adventure {
   aiGenerated?: boolean;
 }
 
-export interface Reward {
-  xp: number;
-  coins: number;
-  items?: string[];
-  achievements?: string[];
-}
+export interface Reward { xp: number; coins: number; items?: string[]; achievements?: string[]; }
 
 export interface Profile {
   id: string;
@@ -73,10 +48,7 @@ export interface Profile {
   createdAt?: string;
 }
 
-export interface GeoPoint {
-  lat: number;
-  lng: number;
-}
+export interface GeoPoint { lat: number; lng: number; }
 
 export interface InventoryItem {
   id: string;
@@ -109,62 +81,13 @@ export interface Challenge {
   progress: number;
   target: number;
   reward: Reward;
+  type?: string;
+  status?: string;
 }
 
-export interface PartyMember {
-  id: string;
-  username: string;
-  avatar?: string;
-  ready: boolean;
-}
-
-export interface Friend {
-  id: string;
-  username: string;
-  avatar?: string;
-  status: 'online' | 'offline' | 'in-adventure';
-}
-
-export interface FriendRequest {
-  id: string;
-  fromUserId: string;
-  fromUsername: string;
-  toUserId: string;
-  createdAt: string;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  read: boolean;
-  createdAt: string;
-}
-
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  type: 'cosmetic' | 'boost' | 'consumable';
-  icon?: string;
-}
-
-export interface HistoryEntry {
-  id: string;
-  adventureId: string;
-  adventureTitle: string;
-  completedAt: string;
-  distance: number;
-  duration: number;
-  xp: number;
-  coins: number;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  username: string;
-  xp: number;
-  level: number;
-  avatar?: string;
-}
+export interface Friend { id: string; username: string; avatar?: string; status: 'online' | 'offline' | 'in-adventure'; }
+export interface FriendRequest { id: string; fromUserId: string; fromUsername: string; toUserId: string; createdAt: string; }
+export interface Notification { id: string; title: string; body: string; read: boolean; createdAt: string; }
+export interface ShopItem { id: string; name: string; description: string; price: number; type: 'cosmetic' | 'boost' | 'consumable'; icon?: string; }
+export interface HistoryEntry { id: string; adventureId: string; adventureTitle: string; completedAt: string; distance: number; duration: number; xp: number; coins: number; }
+export interface LeaderboardEntry { id: string; username: string; xp: number; level: number; avatar?: string; }

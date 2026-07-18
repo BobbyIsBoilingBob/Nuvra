@@ -38,7 +38,7 @@ export default function Profile() {
     return (
       <div className="pb-24">
         <Header title="Profile" back={false} right={
-          <button onClick={() => navigate('settings')} className="text-ink-300 hover:text-white"><Settings size={20} /></button>
+          <button onClick={() => navigate('settings')} aria-label="Settings" className="text-ink-300 hover:text-white"><Settings size={20} /></button>
         } />
         <div className="px-4 py-4 max-w-lg mx-auto">
           <Card className="p-5 animate-pulse">
@@ -58,7 +58,7 @@ export default function Profile() {
   return (
     <div className="pb-24">
       <Header title="Profile" back={false} right={
-        <button onClick={() => navigate('settings')} className="text-ink-300 hover:text-white"><Settings size={20} /></button>
+        <button onClick={() => navigate('settings')} aria-label="Settings" className="text-ink-300 hover:text-white"><Settings size={20} /></button>
       } />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
         <Card className="p-5 flex items-center gap-4 animate-fade-in">

@@ -13,16 +13,12 @@ L.Marker.prototype.options.icon = defaultIcon;
 
 const checkpointIcon = L.divIcon({
   html: '<div style="width:20px;height:20px;border-radius:50%;background:#f59e0b;border:3px solid #fbbf24;box-shadow:0 0 8px rgba(245,158,11,0.6);"></div>',
-  className: '',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  className: '', iconSize: [20, 20], iconAnchor: [10, 10],
 });
 
 const playerIcon = L.divIcon({
   html: '<div style="width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #67e8f9;box-shadow:0 0 10px rgba(34,211,238,0.8);"></div>',
-  className: '',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
+  className: '', iconSize: [16, 16], iconAnchor: [8, 8],
 });
 
 interface MapViewProps {
@@ -36,7 +32,6 @@ interface MapViewProps {
 function MapResizer() {
   const map = useMap();
   useEffect(() => {
-    // Invalidate size after mount and on resize — fixes blank map tiles.
     const t = setTimeout(() => map.invalidateSize(), 100);
     const onResize = () => map.invalidateSize();
     window.addEventListener('resize', onResize);

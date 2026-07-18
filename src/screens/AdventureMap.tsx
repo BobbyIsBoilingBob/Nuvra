@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import { useGeolocation } from '../hooks/useGeolocation';
+import { useChallenges } from '../hooks/useChallenges';
 import { ADVENTURES } from '../data/gameData';
 import type { Adventure, Quest } from '../types';
 import MapView from '../components/MapView';
@@ -41,6 +42,7 @@ export default function AdventureMap() {
   const hasClaimedAdventure = useStore((s) => s.hasClaimedAdventure);
   const customAdventures = useStore((s) => s.customAdventures);
   const { isGuest, profile } = useAuth();
+  const { recordAdventureCompletion } = useChallenges();
 
   const allAdventures: Adventure[] = useMemo(
     () => [...customAdventures, ...ADVENTURES],
@@ -96,7 +98,7 @@ export default function AdventureMap() {
   const alreadyClaimed = activeAdventureId ? hasClaimedAdventure(activeAdventureId) : false;
   const completedCount = adventure.quests.filter((q) => questProgress[q.id]?.completed).length;
 
-  const finish = () => {
+  const finish = async () => {
     if (alreadyClaimed || isGuest || !profile || !requirementsMet) return;
     if (!allQuestsComplete() || !distanceMet || !routeMet) return;
     addXp(adventure.rewards.xp);
@@ -114,6 +116,7 @@ export default function AdventureMap() {
       coins: adventure.rewards.coins,
     });
     if (activeAdventureId) markAdventureClaimed(activeAdventureId);
+    await recordAdventureCompletion(geo.distance);
     geo.stop();
     setDone(true);
     setShowFinishScreen(true);
@@ -127,7 +130,7 @@ export default function AdventureMap() {
   return (
     <div className="flex flex-col h-screen">
       <Header title={adventure.title} back={false} right={
-        <button onClick={cancel} className="text-ink-300 hover:text-error-400 transition-colors"><X size={20} /></button>
+        <button onClick={cancel} aria-label="Cancel adventure" className="text-ink-300 hover:text-error-400 transition-colors"><X size={20} /></button>
       } />
       <div className="flex-1 relative">
         <MapView

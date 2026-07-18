@@ -73,9 +73,7 @@ export function useGeolocation(): GeoState & GeoActions {
           const now = Date.now();
           const dtSec = Math.max((now - lastTimeRef.current) / 1000, 1);
           const speedKmh = (dMeters / 1000) / (dtSec / 3600);
-          // Reject GPS drift: too small a movement or impossible speed.
           if (dMeters < DRIFT_THRESHOLD_M || speedKmh > SPEED_CAP_KMH) return prev;
-          // Reject updates that come too fast (GPS jitter).
           if (now - lastTimeRef.current < MIN_UPDATE_INTERVAL_MS) return prev;
           setDistance((dist) => dist + dMeters);
           lastPointRef.current = pt;

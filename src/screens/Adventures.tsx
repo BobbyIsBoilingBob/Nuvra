@@ -23,7 +23,7 @@ export default function Adventures() {
   return (
     <div className="pb-24">
       <Header title="Adventures" back={false} right={
-        <button onClick={() => navigate('aiGenerator')} className="text-brand-300 hover:text-brand-200 transition-colors">
+        <button onClick={() => navigate('aiGenerator')} aria-label="AI Generator" className="text-brand-300 hover:text-brand-200 transition-colors">
           <Sparkles size={20} />
         </button>
       } />

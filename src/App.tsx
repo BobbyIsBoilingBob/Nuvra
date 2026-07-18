@@ -57,16 +57,9 @@ function StartupGate() {
 
   if (status === 'unauthenticated') {
     if (screen !== 'auth') navigate('auth');
-    return (
-      <Suspense fallback={<Spinner label="Loading…" />}>
-        <Auth />
-      </Suspense>
-    );
+    return <Suspense fallback={<Spinner label="Loading…" />}><Auth /></Suspense>;
   }
-
-  if (status === 'checking') {
-    return <Spinner label="Loading Zeviqo…" />;
-  }
+  if (status === 'checking') return <Spinner label="Loading Zeviqo…" />;
 
   let active = screen;
   if (isGuest && !GUEST_ALLOWED.includes(screen)) {
@@ -80,9 +73,7 @@ function StartupGate() {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1">
-        <Suspense fallback={<Spinner label="Loading…" />}>
-          <Component />
-        </Suspense>
+        <Suspense fallback={<Spinner label="Loading…" />}><Component /></Suspense>
       </main>
       {showNav && <BottomNav />}
     </div>
@@ -90,9 +81,5 @@ function StartupGate() {
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <StartupGate />
-    </AuthProvider>
-  );
+  return <AuthProvider><StartupGate /></AuthProvider>;
 }

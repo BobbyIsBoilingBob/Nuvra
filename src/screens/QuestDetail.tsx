@@ -27,8 +27,7 @@ export default function QuestDetail() {
   };
 
   return (
-    <div className="pb-24">
-      <Header title="Quest Details" />
+    <div className="pb-24"><Header title="Quest Details" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
         <Card className="p-5">
           <div className="flex items-start gap-3">
@@ -37,32 +36,19 @@ export default function QuestDetail() {
             </div>
             <div>
               <h2 className="font-display text-xl font-bold text-white">{quest.title}</h2>
-              <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium bg-ink-700 text-ink-300">
-                {TYPE_LABEL[quest.type]}
-              </span>
+              <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium bg-ink-700 text-ink-300">{TYPE_LABEL[quest.type]}</span>
             </div>
           </div>
           <p className="text-ink-300 mt-3">{quest.description}</p>
-          {quest.target && (
-            <p className="text-ink-400 text-sm mt-2">Target: {(quest.target / 1000).toFixed(1)} km</p>
-          )}
-          {quest.lat != null && quest.lng != null && (
-            <p className="text-ink-400 text-sm mt-1">Location: {quest.lat.toFixed(4)}, {quest.lng.toFixed(4)}</p>
-          )}
+          {quest.target && <p className="text-ink-400 text-sm mt-2">Target: {(quest.target / 1000).toFixed(1)} km</p>}
+          {quest.lat != null && quest.lng != null && <p className="text-ink-400 text-sm mt-1">Location: {quest.lat.toFixed(4)}, {quest.lng.toFixed(4)}</p>}
         </Card>
-
         <Card className="p-5">
           <h3 className="font-display font-bold text-white">Part of adventure</h3>
           <p className="text-ink-300 mt-1">{adv.title}</p>
           <p className="text-ink-400 text-sm mt-1">{adv.description}</p>
-          <div className="flex gap-4 mt-3 text-ink-300 text-sm">
-            <span>{adv.durationMin} min</span>
-            <span>{adv.distanceKm} km</span>
-            <span>{adv.rewards.xp} XP</span>
-            <span>{adv.rewards.coins} coins</span>
-          </div>
+          <div className="flex gap-4 mt-3 text-ink-300 text-sm"><span>{adv.durationMin} min</span><span>{adv.distanceKm} km</span><span>{adv.rewards.xp} XP</span><span>{adv.rewards.coins} coins</span></div>
         </Card>
-
         <Card className="p-5">
           <h3 className="font-display font-bold text-white mb-3">All quests in this adventure</h3>
           <ul className="space-y-2">
@@ -78,10 +64,7 @@ export default function QuestDetail() {
             })}
           </ul>
         </Card>
-
-        <Button className="w-full" size="lg" onClick={startAdventure}>
-          <Navigation size={18} /> Start This Adventure
-        </Button>
+        <Button className="w-full" size="lg" onClick={startAdventure}><Navigation size={18} /> Start This Adventure</Button>
       </div>
     </div>
   );

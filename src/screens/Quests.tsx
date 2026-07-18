@@ -23,8 +23,7 @@ export default function Quests() {
   };
 
   return (
-    <div className="pb-24">
-      <Header title="Quests" />
+    <div className="pb-24"><Header title="Quests" />
       <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
         {quests.length === 0 && <p className="text-ink-400 text-sm text-center py-8">No quests available.</p>}
         {quests.map((q) => {

@@ -1,8 +1,8 @@
-import { Compass, Trophy, User, Sparkles, MapPin } from 'lucide-react';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import { Compass, Trophy, User, Sparkles, MapPin } from 'lucide-react';
 
 export default function Home() {
   const navigate = useStore((s) => s.navigate);

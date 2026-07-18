@@ -58,6 +58,7 @@ export default function Auth() {
         <div>
           <label className="text-ink-300 text-sm font-medium">Password</label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
             className="w-full mt-1 px-3 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-white focus:border-brand-500 outline-none" />
         </div>
         {error && <p className="text-error-400 text-sm">{error}</p>}

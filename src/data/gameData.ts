@@ -5,11 +5,8 @@ export const ADVENTURES: Adventure[] = [
     id: 'adv-riverside',
     title: 'Riverside Ramble',
     description: 'A gentle stroll along the river, taking in the sights and sounds of the waterfront.',
-    difficulty: 'easy',
-    durationMin: 30,
-    distanceKm: 2.5,
-    startLat: 51.5074,
-    startLng: -0.1278,
+    difficulty: 'easy', durationMin: 30, distanceKm: 2.5,
+    startLat: 51.5074, startLng: -0.1278,
     imageUrl: 'https://images.pexels.com/photos/103871/pexels-photo-103871.jpeg?auto=compress&cs=tinysrgb&w=800',
     tags: ['nature', 'waterfront', 'beginner'],
     quests: [
@@ -23,11 +20,8 @@ export const ADVENTURES: Adventure[] = [
     id: 'adv-urban',
     title: 'Urban Explorer',
     description: 'Discover hidden street art and historic landmarks across the city centre.',
-    difficulty: 'medium',
-    durationMin: 60,
-    distanceKm: 5,
-    startLat: 51.5074,
-    startLng: -0.1278,
+    difficulty: 'medium', durationMin: 60, distanceKm: 5,
+    startLat: 51.5074, startLng: -0.1278,
     imageUrl: 'https://images.pexels.com/photos/1486577/pexels-photo-1486577.jpeg?auto=compress&cs=tinysrgb&w=800',
     tags: ['city', 'art', 'landmarks'],
     quests: [
@@ -41,11 +35,8 @@ export const ADVENTURES: Adventure[] = [
     id: 'adv-forest',
     title: 'Forest Trail Trek',
     description: 'A challenging trek through ancient woodland with rewarding summit views.',
-    difficulty: 'hard',
-    durationMin: 120,
-    distanceKm: 10,
-    startLat: 51.5074,
-    startLng: -0.1278,
+    difficulty: 'hard', durationMin: 120, distanceKm: 10,
+    startLat: 51.5074, startLng: -0.1278,
     imageUrl: 'https://images.pexels.com/photos/12715946/pexels-photo-12715946.jpeg?auto=compress&cs=tinysrgb&w=800',
     tags: ['nature', 'hiking', 'summit'],
     quests: [
@@ -86,9 +77,9 @@ export const DAILY_REWARDS: DailyReward[] = [
 ];
 
 export const CHALLENGES: Challenge[] = [
-  { id: 'ch1', title: 'Weekend Warrior', description: 'Complete 3 adventures this weekend.', progress: 0, target: 3, reward: { xp: 200, coins: 100 } },
-  { id: 'ch2', title: 'Distance Demon', description: 'Walk 20 km this week.', progress: 0, target: 20000, reward: { xp: 300, coins: 150 } },
-  { id: 'ch3', title: 'Social Butterfly', description: 'Complete an adventure with 3 friends.', progress: 0, target: 3, reward: { xp: 250, coins: 120 } },
+  { id: 'ch1', title: 'Weekend Warrior', description: 'Complete 3 adventures this weekend.', progress: 0, target: 3, reward: { xp: 200, coins: 100 }, type: 'adventure_count', status: 'active' },
+  { id: 'ch2', title: 'Distance Demon', description: 'Walk 20 km this week.', progress: 0, target: 20000, reward: { xp: 300, coins: 150 }, type: 'distance', status: 'active' },
+  { id: 'ch3', title: 'Social Butterfly', description: 'Complete an adventure with 3 friends.', progress: 0, target: 3, reward: { xp: 250, coins: 120 }, type: 'social', status: 'active' },
 ];
 
 const ADJECTIVES = ['Hidden', 'Secret', 'Mystic', 'Golden', 'Forgotten', 'Winding', 'Ancient', 'Crystal'];
@@ -106,56 +97,26 @@ export function generateAIAdventure(prompt: string): Adventure {
   const durationMin = Math.round(distanceKm * 12);
   const baseLat = 51.5 + (Math.random() - 0.5) * 0.05;
   const baseLng = -0.12 + (Math.random() - 0.5) * 0.05;
-
   const numCheckpoints = 2 + Math.floor(Math.random() * 3);
   const quests: Quest[] = [];
   for (let i = 0; i < numCheckpoints; i++) {
     quests.push({
-      id: `q-cp-${i}`,
-      type: 'checkpoint',
-      title: `Checkpoint ${i + 1}`,
+      id: `q-cp-${i}`, type: 'checkpoint', title: `Checkpoint ${i + 1}`,
       description: `Reach checkpoint ${i + 1} on your route.`,
-      lat: round(baseLat + (Math.random() - 0.5) * 0.01),
-      lng: round(baseLng + (Math.random() - 0.5) * 0.01),
-      adventureId: id,
-      adventureTitle: title,
+      lat: round(baseLat + (Math.random() - 0.5) * 0.01), lng: round(baseLng + (Math.random() - 0.5) * 0.01),
+      adventureId: id, adventureTitle: title,
     });
   }
-  quests.push({
-    id: 'q-dist',
-    type: 'distance',
-    title: `Walk ${distanceKm} km`,
-    description: `Cover at least ${distanceKm} km on foot.`,
-    target: Math.round(distanceKm * 1000),
-    adventureId: id,
-    adventureTitle: title,
-  });
-  quests.push({
-    id: 'q-challenge',
-    type: 'challenge',
-    title: 'Photo challenge',
-    description: 'Snap a photo of something interesting you discover.',
-    adventureId: id,
-    adventureTitle: title,
-  });
-
+  quests.push({ id: 'q-dist', type: 'distance', title: `Walk ${distanceKm} km`, description: `Cover at least ${distanceKm} km on foot.`, target: Math.round(distanceKm * 1000), adventureId: id, adventureTitle: title });
+  quests.push({ id: 'q-challenge', type: 'challenge', title: 'Photo challenge', description: 'Snap a photo of something interesting you discover.', adventureId: id, adventureTitle: title });
   const xp = Math.round(distanceKm * 60);
   const coins = Math.round(distanceKm * 30);
-
   return {
-    id,
-    title,
+    id, title,
     description: prompt.trim() || `An AI-generated walking adventure with ${numCheckpoints} checkpoints.`,
-    difficulty,
-    durationMin,
-    distanceKm,
-    startLat: round(baseLat),
-    startLng: round(baseLng),
-    quests,
-    rewards: { xp, coins, items: [`ai-badge-${difficulty}`] },
+    difficulty, durationMin, distanceKm, startLat: round(baseLat), startLng: round(baseLng),
+    quests, rewards: { xp, coins, items: [`ai-badge-${difficulty}`] },
     imageUrl: 'https://images.pexels.com/photos/3752878/pexels-photo-3752878.jpeg?auto=compress&cs=tinysrgb&w=800',
-    tags: [pick(TAGS), 'ai-generated'],
-    creator: 'Zeviqo AI',
-    aiGenerated: true,
+    tags: [pick(TAGS), 'ai-generated'], creator: 'Zeviqo AI', aiGenerated: true,
   };
 }

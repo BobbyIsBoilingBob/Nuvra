@@ -15,7 +15,10 @@ interface AppState {
   setActiveAdventure: (id: string | null) => void;
 
   customAdventures: Adventure[];
+  setCustomAdventures: (a: Adventure[]) => void;
   addCustomAdventure: (adv: Adventure) => void;
+  updateCustomAdventure: (adv: Adventure) => void;
+  removeCustomAdventure: (id: string) => void;
 
   level: number;
   xp: number;
@@ -70,7 +73,10 @@ export const useStore = create<AppState>()(
       setActiveAdventure: (id) => set({ activeAdventureId: id }),
 
       customAdventures: [],
+      setCustomAdventures: (a) => set({ customAdventures: a }),
       addCustomAdventure: (adv) => set((s) => ({ customAdventures: [adv, ...s.customAdventures] })),
+      updateCustomAdventure: (adv) => set((s) => ({ customAdventures: s.customAdventures.map((a) => a.id === adv.id ? adv : a) })),
+      removeCustomAdventure: (id) => set((s) => ({ customAdventures: s.customAdventures.filter((a) => a.id !== id) })),
 
       level: 1,
       xp: 0,
@@ -91,9 +97,7 @@ export const useStore = create<AppState>()(
       inventory: [],
       addItem: (item) => set((s) => {
         const existing = s.inventory.find((i) => i.id === item.id);
-        if (existing) {
-          return { inventory: s.inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i) };
-        }
+        if (existing) return { inventory: s.inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i) };
         return { inventory: [...s.inventory, item] };
       }),
 
@@ -102,17 +106,13 @@ export const useStore = create<AppState>()(
 
       claimedAdventureIds: [],
       markAdventureClaimed: (adventureId) => set((s) => ({
-        claimedAdventureIds: s.claimedAdventureIds.includes(adventureId)
-          ? s.claimedAdventureIds
-          : [...s.claimedAdventureIds, adventureId],
+        claimedAdventureIds: s.claimedAdventureIds.includes(adventureId) ? s.claimedAdventureIds : [...s.claimedAdventureIds, adventureId],
       })),
       hasClaimedAdventure: (adventureId) => get().claimedAdventureIds.includes(adventureId),
 
       unlockedAchievements: [],
       unlockAchievement: (id) => set((s) => ({
-        unlockedAchievements: s.unlockedAchievements.includes(id)
-          ? s.unlockedAchievements
-          : [...s.unlockedAchievements, id],
+        unlockedAchievements: s.unlockedAchievements.includes(id) ? s.unlockedAchievements : [...s.unlockedAchievements, id],
       })),
 
       dailyStreak: 0,
