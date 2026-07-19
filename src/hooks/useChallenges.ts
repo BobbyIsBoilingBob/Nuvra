@@ -16,7 +16,9 @@ export function useChallenges() {
     if (error) { setError(error.message); setLoading(false); return; }
     const map: Record<string, number> = {};
     (data as Row[]).forEach(r => { map[r.challenge_id] = r.progress; });
-    setProgress(map); setError(null); setLoading(false);
+    setProgress(map);
+    setError(null);
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);

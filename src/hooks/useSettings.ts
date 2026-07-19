@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { UserSettings } from '../types';
 
-const DEFAULT: UserSettings = { notifications: true, mapPreference: 'standard', privacy: 'friends' };
+const DEFAULT: UserSettings = {
+  notifications: true, mapPreference: 'standard', privacy: 'friends',
+};
 
 export function useSettings() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT);
@@ -12,7 +14,8 @@ export function useSettings() {
     setLoading(true);
     const { data } = await supabase.from('profiles').select('settings').maybeSingle();
     const s = (data as any)?.settings;
-    setSettings({ ...DEFAULT, ...(s ?? {}) }); setLoading(false);
+    setSettings({ ...DEFAULT, ...(s ?? {}) });
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);

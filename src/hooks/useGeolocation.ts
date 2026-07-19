@@ -9,7 +9,10 @@ export function useGeolocation(enabled: boolean) {
   const lastRef = useRef<Geo | null>(null);
 
   const handle = useCallback((pos: GeolocationPosition) => {
-    const geo: Geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, heading: pos.coords.heading, speed: pos.coords.speed };
+    const geo: Geo = {
+      lat: pos.coords.latitude, lng: pos.coords.longitude,
+      accuracy: pos.coords.accuracy, heading: pos.coords.heading, speed: pos.coords.speed,
+    };
     if (lastRef.current) {
       const dt = geo.lat - lastRef.current.lat;
       const dn = geo.lng - lastRef.current.lng;

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { useAdventures } from '../hooks/useAdventures';
 import { ADVENTURES, suggestNearbyAdventures, nearbyToAdventure } from '../data/gameData';
-import { getCurrentPosition } from '../lib/geo';
 import { Card } from '../components/Card';
 import { Header } from '../components/Header';
 import { Spinner } from '../components/Spinner';
@@ -15,6 +14,8 @@ const DIFF_COLORS: Record<string, string> = {
   hard: 'bg-error-100 text-error-700',
   extreme: 'bg-ink-900 text-white',
 };
+
+const DEFAULT_LOCATION: GeoPoint = { lat: 51.5074, lng: -0.1278 };
 
 function travelLabel(min: number): string {
   if (min < 60) return `${min} min away`;
@@ -33,28 +34,26 @@ export default function Adventures() {
   const { adventures: saved, loading } = useAdventures();
   const [nearby, setNearby] = useState<NearbyAdventure[]>([]);
   const [locating, setLocating] = useState(false);
-  const [locError, setLocError] = useState<string | null>(null);
 
-  const userLocation = useMemo<GeoPoint>(() => lastKnownLocation ?? { lat: 0, lng: 0 }, [lastKnownLocation]);
+  const userLocation = useMemo<GeoPoint>(() => lastKnownLocation ?? DEFAULT_LOCATION, [lastKnownLocation]);
 
   useEffect(() => {
-    if (lastKnownLocation) {
-      setNearby(suggestNearbyAdventures(lastKnownLocation, 10));
-      return;
+    if (!lastKnownLocation && navigator.geolocation) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setLastKnownLocation(loc);
+          setNearby(suggestNearbyAdventures(loc, 8));
+          setLocating(false);
+        },
+        () => { setNearby(suggestNearbyAdventures(DEFAULT_LOCATION, 8)); setLocating(false); },
+        { timeout: 8000 },
+      );
+    } else {
+      setNearby(suggestNearbyAdventures(userLocation, 8));
     }
-    setLocating(true);
-    getCurrentPosition()
-      .then((loc) => {
-        setLastKnownLocation(loc);
-        setNearby(suggestNearbyAdventures(loc, 10));
-        setLocating(false);
-      })
-      .catch((err) => {
-        setLocError(err.message ?? 'Unable to get location');
-        setNearby(suggestNearbyAdventures({ lat: 0, lng: 0 }, 10));
-        setLocating(false);
-      });
-  }, [lastKnownLocation, setLastKnownLocation]);
+  }, [lastKnownLocation, userLocation, setLastKnownLocation]);
 
   function open(a: Adventure) {
     setActiveAdventure(a.id);
@@ -68,13 +67,18 @@ export default function Adventures() {
     navigate('adventureDetail');
   }
 
+  const nearbyAdventures = nearby.map(nearbyToAdventure);
+
   return (
     <div>
-      <Header title="Adventures" subtitle={`${nearby.length} suggested near you`} />
+      <Header title="Adventures" subtitle={`${nearbyAdventures.length} suggested near you`} />
       <div className="px-4 py-4 space-y-3">
         <Card onClick={() => navigate('aiGenerator')} className="flex items-center gap-3 bg-gradient-to-r from-brand-500 to-accent-500 text-white border-0">
           <Sparkles size={24} />
-          <div className="flex-1"><p className="font-semibold">AI Adventure Generator</p><p className="text-xs text-white/80">Create a custom walking adventure</p></div>
+          <div className="flex-1">
+            <p className="font-semibold">AI Adventure Generator</p>
+            <p className="text-xs text-white/80">Create a custom walking adventure</p>
+          </div>
         </Card>
         <Card onClick={() => navigate('creator')} className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center"><Plus size={20} /></div>
@@ -84,12 +88,6 @@ export default function Adventures() {
         {locating && (
           <Card className="flex items-center gap-2 text-sm text-ink-500">
             <Navigation size={16} className="animate-pulse text-brand-500" /> Finding adventures near you...
-          </Card>
-        )}
-        {locError && !locating && !lastKnownLocation && (
-          <Card className="bg-warning-50 border-warning-100">
-            <p className="text-sm text-warning-800">Couldn't get your location: {locError}</p>
-            <p className="text-xs text-warning-700 mt-1">Enter a location in the AI Generator, or enable location permissions.</p>
           </Card>
         )}
 
@@ -125,7 +123,11 @@ export default function Adventures() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DIFF_COLORS[a.difficulty]}`}>{a.difficulty}</span>
                   </div>
                   <p className="text-sm text-ink-500 mt-1 line-clamp-2">{a.description}</p>
-                  <div className="flex gap-4 text-xs text-ink-400 mt-2"><span>📍 {a.distanceKm} km</span><span>⏱️ {a.durationMin} min</span><span>🎯 {a.quests.length} quests</span></div>
+                  <div className="flex gap-4 text-xs text-ink-400 mt-2">
+                    <span>📍 {a.distanceKm} km</span>
+                    <span>⏱️ {a.durationMin} min</span>
+                    <span>🎯 {a.quests.length} quests</span>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -146,7 +148,11 @@ export default function Adventures() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DIFF_COLORS[a.difficulty]}`}>{a.difficulty}</span>
                   </div>
                   <p className="text-sm text-ink-500 mt-1 line-clamp-2">{a.description}</p>
-                  <div className="flex gap-4 text-xs text-ink-400 mt-2"><span>📍 {a.distanceKm} km</span><span>⏱️ {a.durationMin} min</span><span>🎯 {a.quests.length} quests</span></div>
+                  <div className="flex gap-4 text-xs text-ink-400 mt-2">
+                    <span>📍 {a.distanceKm} km</span>
+                    <span>⏱️ {a.durationMin} min</span>
+                    <span>🎯 {a.quests.length} quests</span>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -163,7 +169,11 @@ export default function Adventures() {
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DIFF_COLORS[a.difficulty]}`}>{a.difficulty}</span>
               </div>
               <p className="text-sm text-ink-500 mt-1 line-clamp-2">{a.description}</p>
-              <div className="flex gap-4 text-xs text-ink-400 mt-2"><span>📍 {a.distanceKm} km</span><span>⏱️ {a.durationMin} min</span><span>🎯 {a.quests.length} quests</span></div>
+              <div className="flex gap-4 text-xs text-ink-400 mt-2">
+                <span>📍 {a.distanceKm} km</span>
+                <span>⏱️ {a.durationMin} min</span>
+                <span>🎯 {a.quests.length} quests</span>
+              </div>
             </div>
           </Card>
         ))}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import { useDailyRewards } from '../hooks/useDailyRewards';
 import { DAILY_REWARDS } from '../data/gameData';
@@ -5,37 +6,59 @@ import { Header } from '../components/Header';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Spinner } from '../components/Spinner';
-import { Gift, Check } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Flame } from 'lucide-react';
 
 export default function DailyRewards() {
   const goBack = useStore((s) => s.goBack);
   const addXp = useStore((s) => s.addXp);
   const addCoins = useStore((s) => s.addCoins);
-  const { streak, canClaim, claim, loading, error } = useDailyRewards();
-  const [claiming, setClaiming] = useState(false);
-  const dayIdx = Math.max(0, (streak - 1) % DAILY_REWARDS.length);
-  const todayReward = canClaim ? DAILY_REWARDS[dayIdx] : null;
-  const rewardLabel = todayReward ? `${todayReward.reward.coins ?? 0} coins${todayReward.reward.xp ? ` + ${todayReward.reward.xp} XP` : ''}${todayReward.reward.item ? ` + ${todayReward.reward.item}` : ''}` : 'Come back tomorrow!';
+  const { streak, canClaim, loading, claim } = useDailyRewards();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [justClaimed, setJustClaimed] = useState(false);
 
-  async function handleClaim() {
-    setClaiming(true);
+  async function doClaim() {
+    setBusy(true); setError(null);
     try {
-      const r = await claim();
-      if (r?.reward.coins) addCoins(r.reward.coins);
-      if (r?.reward.xp) addXp(r.reward.xp);
-    } catch { /* ignore */ } finally { setClaiming(false); }
+      const reward = await claim();
+      if (reward.reward.coins) addCoins(reward.reward.coins);
+      if (reward.reward.xp) addXp(reward.reward.xp);
+      setJustClaimed(true);
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
 
-  if (loading) return (<div><Header title="Daily Rewards" onBack={goBack} /><div className="flex justify-center py-12"><Spinner /></div></div>);
+  if (loading) return <div><Header title="Daily Rewards" onBack={goBack} /><div className="p-8 flex justify-center"><Spinner /></div></div>;
+
   return (
     <div>
       <Header title="Daily Rewards" onBack={goBack} subtitle={`🔥 ${streak} day streak`} />
       <div className="px-4 py-4 space-y-4">
+        <Card className="flex items-center gap-3 bg-gradient-to-r from-accent-500 to-brand-500 text-white border-0">
+          <Flame size={28} />
+          <div><p className="font-semibold">Current Streak: {streak} days</p><p className="text-sm text-white/80">Come back daily to keep your streak!</p></div>
+        </Card>
+
+        <div className="grid grid-cols-4 gap-2">
+          {DAILY_REWARDS.map((d) => {
+            const claimed = d.day < streak || (d.day === streak && !canClaim) || justClaimed;
+            const isToday = d.day === streak + (canClaim ? 1 : 0) || (d.day === streak && canClaim);
+            return (
+              <Card key={d.day} className={`text-center ${claimed ? 'bg-success-50 border-success-100' : isToday ? 'ring-2 ring-brand-500' : ''}`}>
+                <p className="text-xs text-ink-400">Day {d.day}</p>
+                <p className="text-2xl my-1">{d.reward.item ? '🎁' : '🪙'}</p>
+                <p className="text-xs font-medium">{d.reward.coins}🪙</p>
+                {d.reward.xp && <p className="text-xs text-brand-600">+{d.reward.xp}xp</p>}
+                {claimed && <Check size={14} className="mx-auto text-success-600 mt-1" />}
+              </Card>
+            );
+          })}
+        </div>
+
         {error && <p className="text-sm text-error-600">{error}</p>}
-        <Card className="text-center py-8"><Gift size={48} className="mx-auto text-accent-500 mb-3" /><h2 className="text-xl font-bold">Day {streak + (canClaim ? 1 : 0)} Reward</h2><p className="text-ink-500 mt-1">{rewardLabel}</p>{todayReward && (<div className="flex items-center justify-center gap-3 mt-3 text-lg font-bold"><span className="text-accent-600">🪙 {todayReward.reward.coins ?? 0}</span>{todayReward.reward.xp && <span className="text-brand-600">⭐ {todayReward.reward.xp} XP</span>}</div>)}</Card>
-        <Card><h3 className="font-semibold mb-3">7-Day Progress</h3><div className="grid grid-cols-7 gap-1">{Array.from({ length: 7 }).map((_, i) => { const day = i + 1; const claimed = day <= streak; const isToday = day === streak + 1 && canClaim; return (<div key={day} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs ${claimed ? 'bg-success-100 text-success-700' : isToday ? 'bg-brand-100 text-brand-700 ring-2 ring-brand-300' : 'bg-ink-50 text-ink-400'}`}><span className="font-bold">D{day}</span>{claimed && <Check size={12} />}</div>); })}</div></Card>
-        {canClaim ? <Button fullWidth onClick={handleClaim} disabled={claiming}>{claiming ? <Spinner size={18} className="mx-auto" /> : <><Gift size={18} className="inline mr-2" />Claim Today's Reward</>}</Button> : <p className="text-center text-sm text-ink-400">Come back tomorrow for your next reward!</p>}
+
+        <Button fullWidth onClick={doClaim} disabled={!canClaim || busy || justClaimed}>
+          {busy ? <Spinner size={18} className="mx-auto" /> : justClaimed ? 'Claimed!' : canClaim ? "Claim Today's Reward" : 'Already Claimed Today'}
+        </Button>
       </div>
     </div>
   );

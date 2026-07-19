@@ -1,26 +1,60 @@
+import { useState } from 'react';
 import { useStore } from '../store';
-import { useQuests } from '../hooks/useQuests';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Spinner } from '../components/Spinner';
-import { CircleCheck as CheckCircle2, Circle, Clock, Trophy } from 'lucide-react';
+import { Target, Trophy, Check } from 'lucide-react';
+
+const QUEST = { id: 'q-daily-walk', title: 'Daily Walk', description: 'Walk at least 1 km today.', reward: { xp: 50, coins: 20 }, target: 1000, progress: 600 };
 
 export default function QuestDetail() {
   const goBack = useStore((s) => s.goBack);
-  const questId = useStore((s) => s.activeQuestId);
-  const { quests, loading, completeQuest, error } = useQuests();
-  const quest = quests.find((q) => q.id === questId);
-  if (loading) return (<div><Header title="Quest" onBack={goBack} /><div className="flex justify-center py-12"><Spinner /></div></div>);
-  if (!quest) return (<div><Header title="Quest" onBack={goBack} /><div className="px-4 py-8 text-center text-error-600">{error ?? 'Quest not found'}<Button className="mt-2" onClick={goBack}>Go Back</Button></div></div>);
+  const addXp = useStore((s) => s.addXp);
+  const addCoins = useStore((s) => s.addCoins);
+  const [claimed, setClaimed] = useState(false);
+  const pct = Math.min(100, Math.round((QUEST.progress / QUEST.target) * 100));
+
+  function claim() {
+    addXp(QUEST.reward.xp);
+    addCoins(QUEST.reward.coins);
+    setClaimed(true);
+  }
+
   return (
     <div>
-      <Header title={quest.title} onBack={goBack} />
+      <Header title={QUEST.title} onBack={goBack} />
       <div className="px-4 py-4 space-y-4">
-        <Card><div className="flex items-start gap-3">{quest.completed ? <CheckCircle2 size={24} className="text-success-500 mt-0.5" /> : <Circle size={24} className="text-brand-500 mt-0.5" />}<div><h2 className="text-lg font-bold">{quest.title}</h2><p className="text-ink-600 mt-1">{quest.description}</p></div></div></Card>
-        <Card><h3 className="font-semibold mb-2">Rewards</h3><div className="flex items-center gap-3"><div className="flex items-center gap-1 text-accent-600 font-semibold">🪙 {quest.rewardCoins ?? 50}</div><div className="flex items-center gap-1 text-brand-600 font-semibold">⭐ {quest.rewardXp ?? 100} XP</div>{quest.rewardItem && <div className="text-ink-700">🎁 {quest.rewardItem}</div>}</div></Card>
-        <Card><h3 className="font-semibold mb-2">Progress</h3><div className="flex items-center gap-2 text-sm text-ink-500"><Clock size={16} />{quest.completed ? 'Completed' : quest.expiresAt ? `Expires ${new Date(quest.expiresAt).toLocaleString()}` : 'No deadline'}</div></Card>
-        {!quest.completed && <Button fullWidth onClick={() => completeQuest(quest.id).catch(() => {})}><Trophy size={18} className="inline mr-2" />Complete Quest</Button>}
+        <Card>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center"><Target size={20} /></div>
+            <div><p className="font-semibold">{QUEST.title}</p><p className="text-xs text-ink-500">Daily quest</p></div>
+          </div>
+          <p className="text-ink-700">{QUEST.description}</p>
+        </Card>
+
+        <Card>
+          <div className="flex justify-between text-sm mb-2">
+            <span className="font-medium">Progress</span>
+            <span className="text-ink-500">{QUEST.progress} / {QUEST.target} m</span>
+          </div>
+          <div className="h-3 rounded-full bg-ink-100 overflow-hidden">
+            <div className="h-full bg-brand-500 transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="text-xs text-ink-400 mt-1">{pct}% complete</p>
+        </Card>
+
+        <Card className="bg-accent-50 border-accent-100">
+          <div className="flex items-center gap-2 mb-1"><Trophy size={18} className="text-accent-600" /><p className="font-semibold">Reward</p></div>
+          <p className="text-sm text-ink-600">+{QUEST.reward.xp} XP · +{QUEST.reward.coins} coins</p>
+        </Card>
+
+        {claimed ? (
+          <Button fullWidth variant="success" disabled><Check size={18} className="inline mr-2" />Reward Claimed</Button>
+        ) : (
+          <Button fullWidth onClick={claim} disabled={pct < 100}>
+            {pct >= 100 ? 'Claim Reward' : 'Keep walking to complete'}
+          </Button>
+        )}
       </div>
     </div>
   );

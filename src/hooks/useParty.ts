@@ -27,8 +27,11 @@ export function useParty() {
       const { data: profs } = await supabase.from('profiles').select('id, username, avatar_emoji, avatar_color').in('id', uids);
       const pmap = new Map((profs ?? []).map((x: any) => [x.id, x]));
       setMembers(memRows.map(m => ({ id: m.id, user_id: m.user_id, role: m.role, ...pmap.get(m.user_id) } as Member)));
-    } else { setMembers([]); }
-    setError(null); setLoading(false);
+    } else {
+      setMembers([]);
+    }
+    setError(null);
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
