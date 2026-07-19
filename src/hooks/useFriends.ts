@@ -27,8 +27,7 @@ export function useFriends() {
     const pmap = new Map(profiles.map(p => [p.id, p]));
     setFriends(friendIds.map(id => ({ id, ...pmap.get(id), status: 'accepted' } as Friend)).filter(f => pmap.get(f.id)));
     setRequests((rq as any[])?.map(r => ({ id: r.id, sender_id: r.sender_id, ...pmap.get(r.sender_id) } as Request)).filter(r => pmap.get(r.sender_id)) ?? []);
-    setError(null);
-    setLoading(false);
+    setError(null); setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -58,7 +57,7 @@ export function useFriends() {
     ]);
     if (e2) throw e2;
     await load();
-  }, [load])
+  }, [load]);
 
   const decline = useCallback(async (requestId: string) => {
     const { error } = await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', requestId);
