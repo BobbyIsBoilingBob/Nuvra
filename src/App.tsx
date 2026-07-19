@@ -49,13 +49,16 @@ function StartupGate() {
   if (status === 'checking') {
     return <div className="flex items-center justify-center h-screen"><Spinner size={40} /></div>;
   }
+
   if (status === 'unauthenticated' && screen !== 'auth') {
     resetTo('auth');
     return <div className="flex items-center justify-center h-screen"><Spinner size={40} /></div>;
   }
+
   if (status === 'guest' && !GUEST_ALLOWED.includes(screen)) {
     return <div className="flex items-center justify-center h-screen"><Spinner size={40} /></div>;
   }
+
   return null;
 }
 

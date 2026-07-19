@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Screen, InventoryItem, HistoryEntry, Adventure, Profile, GeoPoint } from './types';
+import type { Screen, InventoryItem, HistoryEntry, Adventure, Profile } from './types';
 
 const TOP_LEVEL: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
 
@@ -18,9 +18,6 @@ interface AppState {
 
   activeAdventureId: string | null;
   setActiveAdventure: (id: string | null) => void;
-
-  activeQuestId: string | null;
-  setActiveQuestId: (id: string | null) => void;
 
   customAdventures: Adventure[];
   setCustomAdventures: (a: Adventure[]) => void;
@@ -56,9 +53,6 @@ interface AppState {
 
   cachedProfile: Profile | null;
   setCachedProfile: (p: Profile | null) => void;
-
-  lastKnownLocation: GeoPoint | null;
-  setLastKnownLocation: (l: GeoPoint | null) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -98,9 +92,6 @@ export const useStore = create<AppState>()(
 
       activeAdventureId: null,
       setActiveAdventure: (id) => set({ activeAdventureId: id }),
-
-      activeQuestId: null,
-      setActiveQuestId: (id) => set({ activeQuestId: id }),
 
       customAdventures: [],
       setCustomAdventures: (a) => set({ customAdventures: a }),
@@ -153,9 +144,6 @@ export const useStore = create<AppState>()(
 
       cachedProfile: null,
       setCachedProfile: (p) => set({ cachedProfile: p }),
-
-      lastKnownLocation: null,
-      setLastKnownLocation: (l) => set({ lastKnownLocation: l }),
     }),
     {
       name: 'zeviqo-store',
@@ -167,7 +155,6 @@ export const useStore = create<AppState>()(
         dailyStreak: state.dailyStreak, onboarded: state.onboarded,
         customAdventures: state.customAdventures,
         cachedProfile: state.cachedProfile,
-        lastKnownLocation: state.lastKnownLocation,
       }),
     },
   ),

@@ -12,9 +12,12 @@ export function useLeaderboard() {
     setLoading(true);
     const { data, error } = await supabase.from('profiles').select('id, username, avatar_emoji, avatar_color, xp, level, distance_walked, completed_adventures').order('xp', { ascending: false }).limit(50);
     if (error) { setError(error.message); setLoading(false); return; }
-    setEntries((data as Entry[]) ?? []); setError(null); setLoading(false);
+    setEntries((data as Entry[]) ?? []);
+    setError(null);
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
   return { entries, loading, error, reload: load };
 }

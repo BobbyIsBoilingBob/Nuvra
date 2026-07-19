@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { useAdventures } from '../hooks/useAdventures';
-import { ADVENTURES, routePointsForAdventure, checkpointsForAdventure, challengesForAdventure } from '../data/gameData';
+import { ADVENTURES } from '../data/gameData';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useChallenges } from '../hooks/useChallenges';
 import { useSeasonal } from '../hooks/useSeasonal';
@@ -45,16 +45,20 @@ export default function AdventureMap() {
     return <div><Header title="Adventure" onBack={goBack} /><div className="p-6 text-center text-ink-500">Adventure not found.</div></div>;
   }
 
-  const checkpoints = checkpointsForAdventure(adv);
-  const challenges = challengesForAdventure(adv);
-  const route = routePointsForAdventure(adv);
+  const checkpoints: GeoPoint[] = adv.quests.filter((q) => q.lat != null).map((q) => ({ lat: q.lat!, lng: q.lng! }));
 
   async function finish() {
     if (!adv) return;
-    setDone(true); setTracking(false);
-    addXp(adv.rewards.xp); addCoins(adv.rewards.coins); markAdventureClaimed(adv.id);
+    setDone(true);
+    addXp(adv.rewards.xp);
+    addCoins(adv.rewards.coins);
+    markAdventureClaimed(adv.id);
     if (adv.rewards.achievements) adv.rewards.achievements.forEach((id) => unlockAchievement(id));
-    addHistory({ id: `${adv.id}-${Date.now()}`, adventureId: adv.id, adventureTitle: adv.title, completedAt: new Date().toISOString(), distance: Math.round(distance), duration: Math.round(distance / 80), xp: adv.rewards.xp, coins: adv.rewards.coins });
+    addHistory({
+      id: `${adv.id}-${Date.now()}`, adventureId: adv.id, adventureTitle: adv.title,
+      completedAt: new Date().toISOString(), distance: Math.round(distance),
+      duration: Math.round(distance / 80), xp: adv.rewards.xp, coins: adv.rewards.coins,
+    });
     try { await recordAdventureCompletion(adv.id, Math.round(distance)); } catch { /* ignore */ }
     try { await recordProgress(Math.round(distance)); } catch { /* ignore */ }
   }
@@ -63,7 +67,7 @@ export default function AdventureMap() {
     <div className="flex flex-col h-screen">
       <Header title={adv.title} onBack={goBack} subtitle={done ? 'Completed!' : `${(distance / 1000).toFixed(2)} km`} />
       <div className="flex-1 min-h-0">
-        <MapView player={position} checkpoints={checkpoints} challenges={challenges} route={route} fitBounds showStartFinish />
+        <MapView player={position} checkpoints={checkpoints} center={checkpoints[0] ?? { lat: adv.startLat, lng: adv.startLng }} />
       </div>
       <div className="p-4 bg-white border-t border-ink-100">
         {error && <p className="text-sm text-error-600 mb-2">GPS: {error}</p>}
