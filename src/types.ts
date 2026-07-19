@@ -9,14 +9,20 @@ export type Screen =
 export type QuestType = 'distance' | 'checkpoint' | 'challenge';
 
 export type ChallengeKind =
-  | 'observation' | 'trivia' | 'photography' | 'puzzle' | 'memory'
-  | 'direction' | 'fitness' | 'nature' | 'landmark' | 'exploration'
-  | 'collection' | 'timed' | 'team';
+  | 'observation' | 'photography' | 'fitness' | 'puzzle' | 'memory'
+  | 'navigation' | 'compass' | 'landmark' | 'nature' | 'collection'
+  | 'trivia' | 'timed' | 'team' | 'exploration' | 'balance' | 'reaction'
+  | 'motion' | 'rotation' | 'altitude' | 'location' | 'direction';
+
+export type SensorType =
+  | 'none' | 'accelerometer' | 'gyroscope' | 'compass' | 'gps' | 'camera' | 'altitude';
 
 export interface ChallengeSpec {
   kind: ChallengeKind;
   title: string;
   description: string;
+  sensor?: SensorType;
+  target?: string;
 }
 
 export interface Quest {
@@ -81,6 +87,7 @@ export interface Achievement {
   unlocked: boolean;
   progress?: number;
   target?: number;
+  unlockedAt?: string;
 }
 
 export interface DailyReward {
@@ -140,6 +147,7 @@ export interface GeneratorOptions {
   difficulty?: Adventure['difficulty'];
   challengeTypes?: ChallengeKind[];
   durationMin?: number;
+  center?: GeoPoint;
 }
 
 export interface NearbyAdventure {

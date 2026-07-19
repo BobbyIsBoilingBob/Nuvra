@@ -16,8 +16,7 @@ export function useDailyRewards() {
     if (error) { setError(error.message); setLoading(false); return; }
     const r = data as Row | null;
     if (r) { setStreak(r.current_streak); setLastClaim(r.last_claim_date); }
-    setError(null);
-    setLoading(false);
+    setError(null); setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -30,7 +29,6 @@ export function useDailyRewards() {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const newStreak = lastClaim === yesterday ? streak + 1 : 1;
     const reward = DAILY_REWARDS[(newStreak - 1) % DAILY_REWARDS.length];
-
     const { data: existing } = await supabase.from('daily_rewards').select('user_id, total_claimed').maybeSingle();
     if (existing) {
       const ex = existing as Row;
@@ -39,25 +37,10 @@ export function useDailyRewards() {
       }).eq('user_id', ex.user_id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from('daily_rewards').insert({
-        last_claim_date: today, current_streak: newStreak, total_claimed: 1,
-      });
+      const { error } = await supabase.from('daily_rewards').insert({ last_claim_date: today, current_streak: newStreak, total_claimed: 1 });
       if (error) throw error;
     }
-
-    if (reward.reward.coins || reward.reward.xp) {
-      const { data: p } = await supabase.from('profiles').select('id, coins, xp').maybeSingle();
-      const prof = p as any;
-      if (prof) {
-        const patch: any = {};
-        if (reward.reward.coins) patch.coins = (prof.coins ?? 0) + reward.reward.coins;
-        if (reward.reward.xp) patch.xp = (prof.xp ?? 0) + (reward.reward.xp ?? 0);
-        await supabase.from('profiles').update(patch).eq('id', prof.id);
-      }
-    }
-
-    setStreak(newStreak);
-    setLastClaim(today);
+    setStreak(newStreak); setLastClaim(today);
     return reward;
   }, [canClaim, lastClaim, streak, today]);
 

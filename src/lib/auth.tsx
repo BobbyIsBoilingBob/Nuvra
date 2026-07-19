@@ -19,6 +19,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (patch: Partial<Profile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -133,10 +134,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('unauthenticated');
   }, [exitGuest, setCachedProfile]);
 
+  const updateProfile = useCallback(async (patch: Partial<Profile>) => {
+    if (!user) return;
+    const updates: Record<string, unknown> = {};
+    if (patch.avatar) updates.avatar_emoji = patch.avatar;
+    if (patch.avatarColor) updates.avatar_color = patch.avatarColor;
+    if (patch.username) updates.username = patch.username;
+    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+    if (error) return;
+    setProfile((p) => (p ? { ...p, ...patch } : p));
+    setCachedProfile(profile ? { ...profile, ...patch } : null);
+  }, [user, setCachedProfile]);
+
   return (
     <AuthContext.Provider value={{
       status, session, user, profile, isGuest: status === 'guest',
-      continueAsGuest, exitGuest, signIn, signUp, signOut, refreshProfile,
+      continueAsGuest, exitGuest, signIn, signUp, signOut, refreshProfile, updateProfile,
     }}>
       {children}
     </AuthContext.Provider>
