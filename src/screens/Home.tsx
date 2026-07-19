@@ -14,7 +14,7 @@ const TILES: Tile[] = [
   { screen: 'adventures', label: 'Adventures', icon: Compass, desc: 'Browse walking quests' },
   { screen: 'aiGenerator', label: 'AI Adventure', icon: Sparkles, desc: 'Generate a custom route' },
   { screen: 'creator', label: 'Adventure Creator', icon: Map, desc: 'Build your own adventure' },
-  { screen: 'leaderboard' as any, label: 'Leaderboard', icon: Trophy, desc: 'Top walkers' },
+  { screen: 'leaderboard', label: 'Leaderboard', icon: Trophy, desc: 'Top walkers' },
   { screen: 'challenges', label: 'Challenges', icon: Target, desc: 'Weekly goals' },
   { screen: 'seasonal', label: 'Seasonal', icon: Calendar, desc: 'Festival events' },
   { screen: 'party', label: 'Party', icon: Users, desc: 'Walk with friends' },
@@ -67,7 +67,7 @@ export default function Home() {
 
       <div className="grid grid-cols-2 gap-3">
         {TILES.map(({ screen, label, icon: Icon, desc }) => (
-          <Card key={label} onClick={() => navigate(screen as Screen)} className="flex flex-col gap-2">
+          <Card key={label} onClick={() => navigate(screen)} className="flex flex-col gap-2">
             <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center">
               <Icon size={20} />
             </div>

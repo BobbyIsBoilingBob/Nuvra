@@ -28,18 +28,18 @@ export function useChallenges() {
     status: (progress[c.id] ?? 0) >= c.target ? 'completed' : 'active',
   }));
 
-  const recordAdventureCompletion = useCallback(async (adventureId: string, distanceM: number) => {
-    const updates: { id: string; delta: number }[] = [];
-    CHALLENGES.forEach(c => {
-      if (c.type === 'adventure_count') updates.push({ id: c.id, delta: 1 });
-      if (c.type === 'distance') updates.push({ id: c.id, delta: distanceM });
-    });
-    for (const u of updates) {
-      const cur = progress[u.id] ?? 0;
-      const newProg = Math.min(cur + u.delta, CHALLENGES.find(c => c.id === u.id)?.target ?? newProg_safe(u.id, cur + u.delta));
+  const recordAdventureCompletion = useCallback(async (_adventureId: string, distanceM: number) => {
+    for (const c of CHALLENGES) {
+      let delta = 0;
+      if (c.type === 'adventure_count') delta = 1;
+      else if (c.type === 'distance') delta = distanceM;
+      if (delta === 0) continue;
+      const cur = progress[c.id] ?? 0;
+      const newProg = Math.min(cur + delta, c.target);
       const { error } = await supabase.from('challenges').upsert({
-        challenge_id: u.id, progress: newProg, status: newProg >= (CHALLENGES.find(c => c.id === u.id)?.target ?? 0) ? 'completed' : 'active',
-        completed_at: newProg >= (CHALLENGES.find(c => c.id === u.id)?.target ?? 0) ? new Date().toISOString() : null,
+        challenge_id: c.id, progress: newProg,
+        status: newProg >= c.target ? 'completed' : 'active',
+        completed_at: newProg >= c.target ? new Date().toISOString() : null,
       }, { onConflict: 'challenge_id' });
       if (error) console.error('challenge upsert error', error.message);
     }
@@ -48,5 +48,3 @@ export function useChallenges() {
 
   return { challenges, loading, error, recordAdventureCompletion, reload: load };
 }
-
-function newProg_safe(_id: string, v: number): number { return v; }

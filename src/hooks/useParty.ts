@@ -12,7 +12,9 @@ export function useParty() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: myMemberships } = await supabase.from('party_members').select('party_id').eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '');
+    const { data: { user } } = await supabase.auth.getUser();
+    const me = user?.id ?? '';
+    const { data: myMemberships } = await supabase.from('party_members').select('party_id').eq('user_id', me);
     const partyIds = (myMemberships as any[])?.map(m => m.party_id) ?? [];
     if (!partyIds.length) { setParty(null); setMembers([]); setLoading(false); return; }
     const { data: parties } = await supabase.from('parties').select('*').in('id', partyIds);

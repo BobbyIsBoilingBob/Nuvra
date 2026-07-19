@@ -16,9 +16,10 @@ const DIFF_COLORS: Record<string, string> = {
 export default function Adventures() {
   const navigate = useStore((s) => s.navigate);
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
+  const customAdventures = useStore((s) => s.customAdventures);
   const { adventures: saved, loading } = useAdventures();
 
-  const all = [...saved, ...ADVENTURES];
+  const all = [...customAdventures, ...saved, ...ADVENTURES];
 
   function open(a: Adventure) {
     setActiveAdventure(a.id);

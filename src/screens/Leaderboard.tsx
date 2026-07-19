@@ -13,7 +13,7 @@ export default function Leaderboard() {
     <div>
       <Header title="Leaderboard" onBack={goBack} subtitle="Top walkers this season" />
       <div className="px-4 py-4 space-y-3">
-        {loading && <Spinner />}
+        {loading && <div className="flex justify-center"><Spinner /></div>}
         {!loading && entries.length === 0 && <p className="text-center text-ink-500 py-8">No walkers yet. Be the first!</p>}
         {entries.map((e, i) => (
           <Card key={e.id} className={`flex items-center gap-3 ${i < 3 ? 'bg-accent-50 border-accent-100' : ''}`}>

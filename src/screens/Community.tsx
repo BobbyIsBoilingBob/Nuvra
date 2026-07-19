@@ -10,7 +10,7 @@ import { Trophy, Users } from 'lucide-react';
 export default function Community() {
   const goBack = useStore((s) => s.goBack);
   const navigate = useStore((s) => s.navigate);
-  const { friends, loading } = useFriends();
+  const { friends } = useFriends();
   const { entries, loading: lbLoading } = useLeaderboard();
 
   return (
@@ -31,7 +31,7 @@ export default function Community() {
         </Card>
 
         <h2 className="font-semibold pt-2">Top Walkers</h2>
-        {lbLoading ? <Spinner /> : entries.slice(0, 5).map((e, i) => (
+        {lbLoading ? <div className="flex justify-center"><Spinner /></div> : entries.slice(0, 5).map((e, i) => (
           <Card key={e.id} className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${i < 3 ? 'bg-accent-100 text-accent-700' : 'bg-ink-100 text-ink-500'}`}>{i + 1}</div>
             <div className="flex-1"><p className="font-medium">{e.username}</p><p className="text-xs text-ink-500">Lv {e.level} · {Math.round(e.distance_walked)}m</p></div>

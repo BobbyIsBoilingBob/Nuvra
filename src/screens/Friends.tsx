@@ -31,7 +31,7 @@ export default function Friends() {
           <Button onClick={doSearch} disabled={searching}><Search size={18} /></Button>
         </div>
 
-        {searching && <Spinner />}
+        {searching && <div className="flex justify-center"><Spinner /></div>}
         {results.length > 0 && (
           <div>
             <h2 className="font-semibold mb-2">Search Results</h2>
@@ -65,7 +65,7 @@ export default function Friends() {
 
         <div>
           <h2 className="font-semibold mb-2">Your Friends ({friends.length})</h2>
-          {loading ? <Spinner /> : friends.length === 0 ? (
+          {loading ? <div className="flex justify-center"><Spinner /></div> : friends.length === 0 ? (
             <p className="text-sm text-ink-500 text-center py-4">No friends yet. Search above to add some!</p>
           ) : (
             <div className="space-y-2">

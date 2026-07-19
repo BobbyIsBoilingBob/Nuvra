@@ -8,21 +8,22 @@ import { useSeasonal } from '../hooks/useSeasonal';
 import { Button } from '../components/Button';
 import { Header } from '../components/Header';
 import { MapView } from '../components/MapView';
-import { Spinner } from '../components/Spinner';
 import type { GeoPoint } from '../types';
 
 export default function AdventureMap() {
   const goBack = useStore((s) => s.goBack);
   const navigate = useStore((s) => s.navigate);
   const activeId = useStore((s) => s.activeAdventureId);
+  const customAdventures = useStore((s) => s.customAdventures);
   const addXp = useStore((s) => s.addXp);
   const addCoins = useStore((s) => s.addCoins);
   const addHistory = useStore((s) => s.addHistory);
   const markAdventureClaimed = useStore((s) => s.markAdventureClaimed);
+  const unlockAchievement = useStore((s) => s.unlockAchievement);
   const { adventures: saved } = useAdventures();
   const { recordAdventureCompletion } = useChallenges();
   const { recordProgress } = useSeasonal();
-  const all = [...saved, ...ADVENTURES];
+  const all = [...customAdventures, ...saved, ...ADVENTURES];
   const adv = all.find((a) => a.id === activeId);
 
   const [tracking, setTracking] = useState(false);
@@ -32,7 +33,8 @@ export default function AdventureMap() {
   const [lastPos, setLastPos] = useState<GeoPoint | null>(null);
 
   useEffect(() => {
-    if (!position || !lastPos) { if (position) setLastPos(position); return; }
+    if (!position) return;
+    if (!lastPos) { setLastPos(position); return; }
     const dlat = position.lat - lastPos.lat;
     const dlng = position.lng - lastPos.lng;
     const m = Math.sqrt(dlat * dlat + dlng * dlng) * 111000;
@@ -51,6 +53,7 @@ export default function AdventureMap() {
     addXp(adv.rewards.xp);
     addCoins(adv.rewards.coins);
     markAdventureClaimed(adv.id);
+    if (adv.rewards.achievements) adv.rewards.achievements.forEach((id) => unlockAchievement(id));
     addHistory({
       id: `${adv.id}-${Date.now()}`, adventureId: adv.id, adventureTitle: adv.title,
       completedAt: new Date().toISOString(), distance: Math.round(distance),

@@ -20,6 +20,7 @@ export default function AiGenerator() {
   const goBack = useStore((s) => s.goBack);
   const navigate = useStore((s) => s.navigate);
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
+  const addCustomAdventure = useStore((s) => s.addCustomAdventure);
   const { isGuest } = useAuth();
   const navigateToAuth = useStore((s) => s.navigateToAuth);
   const { save } = useAdventures();
@@ -31,7 +32,8 @@ export default function AiGenerator() {
     setBusy(true); setError(null);
     try {
       const adv = generateAIAdventure(prompt);
-      if (!isGuest) { await save(adv); }
+      addCustomAdventure(adv);
+      if (!isGuest) { try { await save(adv); } catch { /* ignore */ } }
       setActiveAdventure(adv.id);
       navigate('adventureDetail');
     } catch (e: any) {

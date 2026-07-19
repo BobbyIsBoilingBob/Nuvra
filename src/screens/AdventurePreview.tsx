@@ -10,8 +10,9 @@ export default function AdventurePreview() {
   const goBack = useStore((s) => s.goBack);
   const navigate = useStore((s) => s.navigate);
   const activeId = useStore((s) => s.activeAdventureId);
+  const customAdventures = useStore((s) => s.customAdventures);
   const { adventures: saved } = useAdventures();
-  const all = [...saved, ...ADVENTURES];
+  const all = [...customAdventures, ...saved, ...ADVENTURES];
   const adv = all.find((a) => a.id === activeId);
 
   if (!adv) {

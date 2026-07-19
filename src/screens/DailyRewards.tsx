@@ -49,7 +49,7 @@ export default function DailyRewards() {
         {error && <p className="text-sm text-error-600">{error}</p>}
 
         <Button fullWidth onClick={doClaim} disabled={!canClaim || busy}>
-          {busy ? <Spinner size={18} className="mx-auto" /> : canClaim ? 'Claim Today\'s Reward' : 'Already Claimed Today'}
+          {busy ? <Spinner size={18} className="mx-auto" /> : canClaim ? "Claim Today's Reward" : 'Already Claimed Today'}
         </Button>
       </div>
     </div>

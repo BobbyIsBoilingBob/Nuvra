@@ -58,7 +58,7 @@ export function useFriends() {
     ]);
     if (e2) throw e2;
     await load();
-  }, [load]);
+  }, [load])
 
   const decline = useCallback(async (requestId: string) => {
     const { error } = await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', requestId);

@@ -35,7 +35,7 @@ export default function Party() {
     <div>
       <Header title="Party" onBack={goBack} />
       <div className="px-4 py-4 space-y-4">
-        {loading && <Spinner />}
+        {loading && <div className="flex justify-center"><Spinner /></div>}
         {error && <p className="text-sm text-error-600">{error}</p>}
 
         {!party ? (

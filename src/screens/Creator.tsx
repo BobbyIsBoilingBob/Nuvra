@@ -66,7 +66,7 @@ export default function Creator() {
         imageUrl: 'https://images.pexels.com/photos/3752878/pexels-photo-3752878.jpeg?auto=compress&cs=tinysrgb&w=800',
       };
       addCustomAdventure(adv);
-      if (!isGuest) { await save(adv); }
+      if (!isGuest) { try { await save(adv); } catch { /* ignore */ } }
       setActiveAdventure(id);
       navigate('adventureDetail');
     } catch (e: any) {
