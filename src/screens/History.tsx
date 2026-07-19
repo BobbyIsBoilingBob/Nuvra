@@ -1,32 +1,37 @@
-import Header from '../components/Header';
-import Card from '../components/Card';
-import Button from '../components/Button';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import { History as HistoryIcon } from 'lucide-react';
+import { Header } from '../components/Header';
+import { Card } from '../components/Card';
 
 export default function History() {
-  const navigate = useStore((s) => s.navigate);
-  const { isGuest } = useAuth();
+  const goBack = useStore((s) => s.goBack);
   const history = useStore((s) => s.history);
-  if (isGuest) {
-    return (
-      <div className="pb-24"><Header title="History" />
-        <div className="px-4 py-10 text-center"><HistoryIcon size={48} className="text-ink-500 mx-auto" /><p className="text-ink-300 mt-4">Sign in to view your adventure history.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
-      </div>
-    );
-  }
+
   return (
-    <div className="pb-24"><Header title="History" />
-      <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
-        {history.length === 0 && <p className="text-ink-400 text-sm text-center py-8">No completed adventures yet.</p>}
-        {history.map((h) => (
-          <Card key={h.id} className="p-4">
-            <p className="text-white font-semibold">{h.adventureTitle}</p>
-            <p className="text-ink-400 text-xs">{new Date(h.completedAt).toLocaleDateString()}</p>
-            <div className="flex gap-4 mt-2 text-sm text-ink-300"><span>{(h.distance / 1000).toFixed(2)} km</span><span>{h.duration} min</span><span>{h.xp} XP</span><span>{h.coins} coins</span></div>
-          </Card>
-        ))}
+    <div>
+      <Header title="Adventure History" onBack={goBack} subtitle={`${history.length} completed`} />
+      <div className="px-4 py-4 space-y-3">
+        {history.length === 0 ? (
+          <p className="text-center text-ink-500 py-8">No adventures completed yet. Go explore!</p>
+        ) : (
+          history.map((h) => (
+            <Card key={h.id}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-semibold">{h.adventureTitle}</p>
+                  <p className="text-xs text-ink-500">{new Date(h.completedAt).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right text-sm">
+                  <p className="text-brand-600 font-medium">+{h.xp} XP</p>
+                  <p className="text-accent-600">+{h.coins}🪙</p>
+                </div>
+              </div>
+              <div className="flex gap-4 text-xs text-ink-400 mt-2">
+                <span>📍 {(h.distance / 1000).toFixed(2)} km</span>
+                <span>⏱️ {h.duration} min</span>
+              </div>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

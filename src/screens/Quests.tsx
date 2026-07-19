@@ -1,47 +1,34 @@
 import { useStore } from '../store';
-import { ADVENTURES } from '../data/gameData';
-import type { Adventure, Quest } from '../types';
-import Header from '../components/Header';
-import Card from '../components/Card';
-import { Target, ChevronRight, MapPin, Ruler, Eye } from 'lucide-react';
+import { Header } from '../components/Header';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { Target, Trophy } from 'lucide-react';
 
-const TYPE_ICON = { distance: Ruler, checkpoint: MapPin, challenge: Eye };
+const STATIC_QUESTS = [
+  { id: 'q-daily-walk', title: 'Daily Walk', description: 'Walk at least 1 km today.', reward: { xp: 50, coins: 20 }, target: 1000 },
+  { id: 'q-weekly-3', title: 'Weekly Explorer', description: 'Complete 3 adventures this week.', reward: { xp: 200, coins: 100 }, target: 3 },
+  { id: 'q-monthly-10', title: 'Monthly Marathon', description: 'Walk 50 km this month.', reward: { xp: 500, coins: 300 }, target: 50000 },
+];
 
 export default function Quests() {
+  const goBack = useStore((s) => s.goBack);
   const navigate = useStore((s) => s.navigate);
-  const setActiveAdventure = useStore((s) => s.setActiveAdventure);
-  const customAdventures = useStore((s) => s.customAdventures);
-
-  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
-  const quests: Quest[] = allAdventures.flatMap((a) =>
-    a.quests.map((q: Quest) => ({ ...q, adventureId: a.id, adventureTitle: a.title })),
-  );
-
-  const openQuest = (q: Quest) => {
-    if (q.adventureId) setActiveAdventure(q.adventureId);
-    navigate('questDetail');
-  };
 
   return (
-    <div className="pb-24"><Header title="Quests" />
-      <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
-        {quests.length === 0 && <p className="text-ink-400 text-sm text-center py-8">No quests available.</p>}
-        {quests.map((q) => {
-          const Icon = TYPE_ICON[q.type] ?? Target;
-          return (
-            <Card key={q.id + (q.adventureId ?? '')} className="p-4 flex items-start gap-3" onClick={() => openQuest(q)}>
-              <div className="h-10 w-10 rounded-xl bg-brand-500/15 flex items-center justify-center flex-shrink-0">
-                <Icon size={20} className="text-brand-300" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium">{q.title}</p>
-                <p className="text-ink-400 text-sm line-clamp-2">{q.description}</p>
-                <p className="text-ink-500 text-xs mt-1">From: {q.adventureTitle}</p>
-              </div>
-              <ChevronRight size={18} className="text-ink-500 flex-shrink-0 mt-1" />
-            </Card>
-          );
-        })}
+    <div>
+      <Header title="Quests" onBack={goBack} />
+      <div className="px-4 py-4 space-y-3">
+        {STATIC_QUESTS.map((q) => (
+          <Card key={q.id} onClick={() => navigate('questDetail')} className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center"><Target size={20} /></div>
+            <div className="flex-1">
+              <p className="font-semibold">{q.title}</p>
+              <p className="text-sm text-ink-500">{q.description}</p>
+              <p className="text-xs text-accent-600 mt-1"><Trophy size={12} className="inline" /> +{q.reward.xp} XP · +{q.reward.coins} coins</p>
+            </div>
+          </Card>
+        ))}
+        <Button variant="secondary" fullWidth onClick={() => navigate('challenges')}>View Challenges</Button>
       </div>
     </div>
   );

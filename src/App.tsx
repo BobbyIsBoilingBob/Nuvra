@@ -1,85 +1,80 @@
-import { lazy, Suspense, type ComponentType } from 'react';
-import { AuthProvider, useAuth } from './lib/auth';
+import { Suspense, lazy, useMemo, type ComponentType } from 'react';
+import { useAuth } from './lib/auth';
 import { useStore } from './store';
-import Spinner from './components/Spinner';
-import BottomNav from './components/BottomNav';
+import { Spinner } from './components/Spinner';
+import { BottomNav } from './components/BottomNav';
 import type { Screen } from './types';
 
-const Home = lazy(() => import('./screens/Home'));
-const Auth = lazy(() => import('./screens/Auth'));
-const Onboarding = lazy(() => import('./screens/Onboarding'));
-const Adventures = lazy(() => import('./screens/Adventures'));
-const AdventureDetail = lazy(() => import('./screens/AdventureDetail'));
-const AdventureMap = lazy(() => import('./screens/AdventureMap'));
-const AdventurePreview = lazy(() => import('./screens/AdventurePreview'));
-const Community = lazy(() => import('./screens/Community'));
-const AIGenerator = lazy(() => import('./screens/AIGenerator'));
-const Creator = lazy(() => import('./screens/Creator'));
-const Profile = lazy(() => import('./screens/Profile'));
-const Friends = lazy(() => import('./screens/Friends'));
-const Quests = lazy(() => import('./screens/Quests'));
-const QuestDetail = lazy(() => import('./screens/QuestDetail'));
-const Achievements = lazy(() => import('./screens/Achievements'));
-const DailyRewards = lazy(() => import('./screens/DailyRewards'));
-const Challenges = lazy(() => import('./screens/Challenges'));
-const Party = lazy(() => import('./screens/Party'));
-const Shop = lazy(() => import('./screens/Shop'));
-const Settings = lazy(() => import('./screens/Settings'));
-const History = lazy(() => import('./screens/History'));
-const Customise = lazy(() => import('./screens/Customise'));
-const Inventory = lazy(() => import('./screens/Inventory'));
-const Rewards = lazy(() => import('./screens/Rewards'));
-const Seasonal = lazy(() => import('./screens/Seasonal'));
+type ScreenLoader = () => Promise<{ default: ComponentType<any> }>;
 
-const SCREENS: Record<Screen, ComponentType<any>> = {
-  home: Home, auth: Auth, onboarding: Onboarding,
-  adventures: Adventures, adventureDetail: AdventureDetail,
-  adventureMap: AdventureMap, adventurePreview: AdventurePreview,
-  community: Community, aiGenerator: AIGenerator, creator: Creator,
-  profile: Profile, friends: Friends, quests: Quests, questDetail: QuestDetail,
-  achievements: Achievements, dailyRewards: DailyRewards, challenges: Challenges,
-  party: Party, shop: Shop, settings: Settings, history: History,
-  customise: Customise, inventory: Inventory, rewards: Rewards, seasonal: Seasonal,
+const screens: Record<Screen, ScreenLoader> = {
+  home: () => import('./screens/Home'),
+  auth: () => import('./screens/Auth'),
+  onboarding: () => import('./screens/Onboarding'),
+  adventures: () => import('./screens/Adventures'),
+  adventureDetail: () => import('./screens/AdventureDetail'),
+  adventureMap: () => import('./screens/AdventureMap'),
+  adventurePreview: () => import('./screens/AdventurePreview'),
+  community: () => import('./screens/Community'),
+  aiGenerator: () => import('./screens/AiGenerator'),
+  creator: () => import('./screens/Creator'),
+  profile: () => import('./screens/Profile'),
+  friends: () => import('./screens/Friends'),
+  quests: () => import('./screens/Quests'),
+  questDetail: () => import('./screens/QuestDetail'),
+  achievements: () => import('./screens/Achievements'),
+  dailyRewards: () => import('./screens/DailyRewards'),
+  challenges: () => import('./screens/Challenges'),
+  party: () => import('./screens/Party'),
+  shop: () => import('./screens/Shop'),
+  settings: () => import('./screens/Settings'),
+  history: () => import('./screens/History'),
+  customise: () => import('./screens/Customise'),
+  inventory: () => import('./screens/Inventory'),
+  rewards: () => import('./screens/Rewards'),
+  seasonal: () => import('./screens/Seasonal'),
+  leaderboard: () => import('./screens/Leaderboard'),
 };
 
 const GUEST_ALLOWED: Screen[] = [
-  'home', 'adventures', 'adventureDetail', 'adventureMap',
-  'community', 'aiGenerator', 'adventurePreview', 'creator', 'quests', 'questDetail',
+  'home', 'auth', 'onboarding', 'adventures', 'adventureDetail',
+  'adventureMap', 'adventurePreview', 'community', 'aiGenerator',
 ];
 
-const NAV_SCREENS: Screen[] = ['home', 'adventures', 'rewards', 'shop', 'profile'];
-
 function StartupGate() {
-  const { status, isGuest } = useAuth();
+  const { status } = useAuth();
   const screen = useStore((s) => s.screen);
-  const navigate = useStore((s) => s.navigate);
   const resetTo = useStore((s) => s.resetTo);
 
-  if (status === 'unauthenticated') {
-    if (screen !== 'auth') navigate('auth');
-    return <Suspense fallback={<Spinner label="Loading…" />}><Auth /></Suspense>;
-  }
-  if (status === 'checking') return <Spinner label="Loading Zeviqo…" />;
-
-  let active = screen;
-  if (isGuest && !GUEST_ALLOWED.includes(screen)) {
-    active = 'home';
-    if (screen !== 'home') resetTo('home');
+  if (status === 'checking') {
+    return <div className="flex items-center justify-center h-screen"><Spinner size={40} /></div>;
   }
 
-  const Component = SCREENS[active];
-  const showNav = NAV_SCREENS.includes(active);
+  if (status === 'unauthenticated' && screen !== 'auth') {
+    resetTo('auth');
+    return <div className="flex items-center justify-center h-screen"><Spinner size={40} /></div>;
+  }
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1">
-        <Suspense fallback={<Spinner label="Loading…" />}><Component /></Suspense>
-      </main>
-      {showNav && <BottomNav />}
-    </div>
-  );
+  if (status === 'guest' && !GUEST_ALLOWED.includes(screen)) {
+    return <div className="flex items-center justify-center h-screen"><Spinner size={40} /></div>;
+  }
+
+  return null;
 }
 
 export default function App() {
-  return <AuthProvider><StartupGate /></AuthProvider>;
+  const screen = useStore((s) => s.screen);
+  const LazyScreen = useMemo(() => lazy(screens[screen]!), [screen]);
+
+  return (
+    <div className="min-h-screen bg-ink-50 text-ink-900 font-sans">
+      <StartupGate />
+      <main className="pb-16 min-h-screen">
+        <Suspense fallback={<div className="flex items-center justify-center h-64"><Spinner size={32} /></div>}>
+          <LazyScreen />
+        </Suspense>
+      </main>
+      <BottomNav />
+    </div>
+  );
 }

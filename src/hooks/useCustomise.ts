@@ -1,52 +1,28 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
-
-interface AvatarState {
-  emoji: string;
-  color: string;
-}
+import { AVATAR_EMOJIS, AVATAR_COLORS } from '../data/gameData';
 
 export function useCustomise() {
-  const { user, refreshProfile } = useAuth();
-  const [avatar, setAvatar] = useState<AvatarState>({ emoji: '🧭', color: '#1c7af5' });
+  const [emoji, setEmoji] = useState(AVATAR_EMOJIS[0]);
+  const [color, setColor] = useState(AVATAR_COLORS[0]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
     setLoading(true);
-    setError(null);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('avatar_emoji, avatar_color')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (error) { setError(error.message); setLoading(false); return; }
-    setAvatar({
-      emoji: data?.avatar_emoji ?? '🧭',
-      color: data?.avatar_color ?? '#1c7af5',
-    });
+    const { data } = await supabase.from('profiles').select('avatar_emoji, avatar_color').maybeSingle();
+    const p = data as any;
+    if (p) { setEmoji(p.avatar_emoji ?? AVATAR_EMOJIS[0]); setColor(p.avatar_color ?? AVATAR_COLORS[0]); }
     setLoading(false);
-  }, [user]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const save = useCallback(async (newAvatar: AvatarState): Promise<{ error: string | null }> => {
-    if (!user) return { error: 'Not signed in' };
-    setSaving(true);
-    setError(null);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ avatar_emoji: newAvatar.emoji, avatar_color: newAvatar.color })
-      .eq('id', user.id);
-    setSaving(false);
-    if (error) { setError(error.message); return { error: error.message }; }
-    setAvatar(newAvatar);
-    await refreshProfile();
-    return { error: null };
-  }, [user, refreshProfile]);
+  const save = useCallback(async (e: string, c: string) => {
+    setEmoji(e); setColor(c);
+    const { data: p } = await supabase.from('profiles').select('id').maybeSingle();
+    const { error } = await supabase.from('profiles').update({ avatar_emoji: e, avatar_color: c }).eq('id', (p as any)?.id);
+    if (error) throw error;
+  }, []);
 
-  return { avatar, loading, saving, error, save, reload: load };
+  return { emoji, color, loading, save, reload: load, emojis: AVATAR_EMOJIS, colors: AVATAR_COLORS };
 }

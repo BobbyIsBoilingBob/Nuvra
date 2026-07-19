@@ -1,152 +1,94 @@
-import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import { Compass, Trophy, User, Sparkles, MapPin, Users, Target, History as HistoryIcon, Package, Award } from 'lucide-react';
+import { useStore } from '../store';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import {
+  Compass, Trophy, Target, Calendar, Users, Award, History,
+  Package, User as UserIcon, Users as Community, Sparkles, LogIn, UserPlus, Map,
+} from 'lucide-react';
+import type { Screen } from '../types';
+
+interface Tile { screen: Screen; label: string; icon: typeof Compass; desc: string; }
+
+const TILES: Tile[] = [
+  { screen: 'adventures', label: 'Adventures', icon: Compass, desc: 'Browse walking quests' },
+  { screen: 'aiGenerator', label: 'AI Adventure', icon: Sparkles, desc: 'Generate a custom route' },
+  { screen: 'creator', label: 'Adventure Creator', icon: Map, desc: 'Build your own adventure' },
+  { screen: 'leaderboard' as any, label: 'Leaderboard', icon: Trophy, desc: 'Top walkers' },
+  { screen: 'challenges', label: 'Challenges', icon: Target, desc: 'Weekly goals' },
+  { screen: 'seasonal', label: 'Seasonal', icon: Calendar, desc: 'Festival events' },
+  { screen: 'party', label: 'Party', icon: Users, desc: 'Walk with friends' },
+  { screen: 'achievements', label: 'Awards', icon: Award, desc: 'Your achievements' },
+  { screen: 'history', label: 'History', icon: History, desc: 'Past adventures' },
+  { screen: 'inventory', label: 'Items', icon: Package, desc: 'Your inventory' },
+  { screen: 'customise', label: 'Avatar', icon: UserIcon, desc: 'Customise avatar' },
+  { screen: 'profile', label: 'Profile', icon: UserIcon, desc: 'Your profile' },
+  { screen: 'community', label: 'Community', icon: Community, desc: 'Friends & community' },
+];
 
 export default function Home() {
-  const navigate = useStore((s) => s.navigate);
   const { isGuest, profile } = useAuth();
-  const level = profile?.level ?? 1;
-  const xp = profile?.xp ?? 0;
-  const coins = profile?.coins ?? 0;
+  const navigate = useStore((s) => s.navigate);
+  const navigateToAuth = useStore((s) => s.navigateToAuth);
+  const coins = useStore((s) => s.coins);
+  const level = useStore((s) => s.level);
 
   return (
-    <div className="px-4 py-6 space-y-6 max-w-lg mx-auto pb-24">
-      <header className="flex items-center justify-between">
+    <div className="px-4 py-6">
+      <header className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-ink-400 text-sm">Welcome back</p>
-          <h1 className="font-display text-2xl font-bold text-white">
-            {isGuest ? 'Explorer' : profile?.username ?? 'Adventurer'}
-          </h1>
+          <h1 className="text-2xl font-bold text-ink-900">Zeviqo</h1>
+          <p className="text-sm text-ink-500">Walking adventures, everywhere.</p>
         </div>
-        <button onClick={() => navigate('profile')}
-          className="h-11 w-11 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center hover:bg-brand-500/30 transition-colors">
-          <User size={20} className="text-brand-300" />
-        </button>
+        {isGuest ? (
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => navigateToAuth('home')}>Sign In</Button>
+            <Button size="sm" onClick={() => navigateToAuth('home')}>Create Account</Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 text-sm">
+            <span className="px-2 py-1 rounded-lg bg-brand-100 text-brand-700 font-semibold">Lv {profile?.level ?? level}</span>
+            <span className="px-2 py-1 rounded-lg bg-accent-100 text-accent-700 font-semibold">🪙 {profile?.coins ?? coins}</span>
+          </div>
+        )}
       </header>
 
-      {isGuest ? (
-        <Card className="p-5 animate-fade-in">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-              <Sparkles size={20} className="text-brand-300" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-display font-bold text-white">You're exploring as a guest</h2>
-              <p className="text-ink-300 text-sm mt-1">
-                Browse adventures and the community freely. Sign in to save your progress, earn rewards, and join friends.
-              </p>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={() => navigate('auth')}>Sign In</Button>
-                <Button size="sm" variant="secondary" onClick={() => navigate('auth')}>Create Account</Button>
-              </div>
-            </div>
+      {isGuest && (
+        <Card className="mb-6 bg-brand-50 border-brand-100">
+          <p className="text-sm text-brand-800">
+            You're exploring as a guest. Sign in to save progress, earn rewards, and join parties.
+          </p>
+          <div className="flex gap-2 mt-3">
+            <Button size="sm" onClick={() => navigateToAuth('home')}>Sign In</Button>
+            <Button size="sm" variant="secondary" onClick={() => navigateToAuth('home')}>Create Account</Button>
           </div>
-        </Card>
-      ) : (
-        <Card className="p-5 grid grid-cols-3 gap-4 animate-fade-in">
-          <div><p className="text-ink-400 text-xs">Level</p><p className="font-display text-2xl font-bold text-brand-300">{level}</p></div>
-          <div><p className="text-ink-400 text-xs">XP</p><p className="font-display text-2xl font-bold text-white">{xp.toLocaleString()}</p></div>
-          <div><p className="text-ink-400 text-xs">Coins</p><p className="font-display text-2xl font-bold text-accent-400">{coins}</p></div>
         </Card>
       )}
 
-      <section>
-        <h2 className="font-display font-bold text-white mb-3">Start your next adventure</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4" onClick={() => navigate('adventures')}>
-            <Compass size={28} className="text-brand-400" />
-            <p className="font-semibold text-white mt-2">Adventures</p>
-            <p className="text-ink-400 text-xs mt-0.5">Explore nearby routes</p>
+      <div className="grid grid-cols-2 gap-3">
+        {TILES.map(({ screen, label, icon: Icon, desc }) => (
+          <Card key={label} onClick={() => navigate(screen as Screen)} className="flex flex-col gap-2">
+            <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center">
+              <Icon size={20} />
+            </div>
+            <div>
+              <p className="font-semibold text-ink-900">{label}</p>
+              <p className="text-xs text-ink-500">{desc}</p>
+            </div>
           </Card>
-          <Card className="p-4" onClick={() => navigate('rewards')}>
-            <Trophy size={28} className="text-accent-400" />
-            <p className="font-semibold text-white mt-2">Leaderboard</p>
-            <p className="text-ink-400 text-xs mt-0.5">Climb the ranks</p>
-          </Card>
+        ))}
+      </div>
+
+      {isGuest && (
+        <div className="mt-6 flex gap-2">
+          <Button variant="ghost" fullWidth onClick={() => navigateToAuth('home')}>
+            <LogIn size={16} className="inline mr-1" /> Sign In
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => navigateToAuth('home')}>
+            <UserPlus size={16} className="inline mr-1" /> Create Account
+          </Button>
         </div>
-      </section>
-
-      <section>
-        <h2 className="font-display font-bold text-white mb-3">Quick actions</h2>
-        <div className="grid grid-cols-4 gap-3">
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('quests')}>
-            <MapPin size={20} className="text-brand-300" />
-            <span className="text-xs text-ink-200">Quests</span>
-          </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('challenges')}>
-            <Target size={20} className="text-accent-400" />
-            <span className="text-xs text-ink-200">Challenges</span>
-          </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('seasonal')}>
-            <Sparkles size={20} className="text-brand-300" />
-            <span className="text-xs text-ink-200">Seasonal</span>
-          </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('party')}>
-            <Users size={20} className="text-brand-300" />
-            <span className="text-xs text-ink-200">Party</span>
-          </Card>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="font-display font-bold text-white mb-3">Your progress</h2>
-        <div className="grid grid-cols-4 gap-3">
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('achievements')}>
-            <Award size={20} className="text-accent-400" />
-            <span className="text-xs text-ink-200">Awards</span>
-          </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('history')}>
-            <HistoryIcon size={20} className="text-brand-300" />
-            <span className="text-xs text-ink-200">History</span>
-          </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('inventory')}>
-            <Package size={20} className="text-brand-300" />
-            <span className="text-xs text-ink-200">Items</span>
-          </Card>
-          <Card className="p-3 flex flex-col items-center gap-1" onClick={() => navigate('customise')}>
-            <User size={20} className="text-brand-300" />
-            <span className="text-xs text-ink-200">Avatar</span>
-          </Card>
-        </div>
-      </section>
-
-      <section>
-        <Card className="p-5 flex items-center gap-4" onClick={() => navigate('aiGenerator')}>
-          <div className="h-12 w-12 rounded-xl bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-            <Sparkles size={24} className="text-brand-300" />
-          </div>
-          <div className="flex-1">
-            <p className="font-display font-bold text-white">AI Adventure Generator</p>
-            <p className="text-ink-400 text-sm">Create a custom walking adventure with AI.</p>
-          </div>
-        </Card>
-      </section>
-
-      <section>
-        <Card className="p-5 flex items-center gap-4" onClick={() => navigate('creator')}>
-          <div className="h-12 w-12 rounded-xl bg-accent-500/20 flex items-center justify-center flex-shrink-0">
-            <Compass size={24} className="text-accent-400" />
-          </div>
-          <div className="flex-1">
-            <p className="font-display font-bold text-white">Adventure Creator</p>
-            <p className="text-ink-400 text-sm">Design and save your own walking routes.</p>
-          </div>
-        </Card>
-      </section>
-
-      <section>
-        <Card className="p-5 flex items-center gap-4" onClick={() => navigate('community')}>
-          <div className="h-12 w-12 rounded-xl bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-            <Users size={24} className="text-brand-300" />
-          </div>
-          <div className="flex-1">
-            <p className="font-display font-bold text-white">Community</p>
-            <p className="text-ink-400 text-sm">Connect with friends and other walkers.</p>
-          </div>
-        </Card>
-      </section>
+      )}
     </div>
   );
 }

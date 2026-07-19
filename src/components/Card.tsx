@@ -1,10 +1,20 @@
 import { type ReactNode } from 'react';
 
-export default function Card({ children, className = '', onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
+interface Props {
+  children: ReactNode;
+  onClick?: () => void;
+  className?: string;
+  padded?: boolean;
+}
+
+export function Card({ children, onClick, className = '', padded = true }: Props) {
+  const Tag = onClick ? 'button' : 'div' as any;
   return (
-    <div onClick={onClick}
-      className={`rounded-2xl bg-ink-800/60 border border-ink-700/50 backdrop-blur-sm ${onClick ? 'cursor-pointer hover:border-ink-600 transition-colors' : ''} ${className}`}>
+    <Tag
+      onClick={onClick}
+      className={`bg-white rounded-2xl shadow-sm border border-ink-100 text-left w-full ${padded ? 'p-4' : ''} ${onClick ? 'hover:shadow-md transition-shadow active:scale-[0.99] cursor-pointer' : ''} ${className}`}
+    >
       {children}
-    </div>
+    </Tag>
   );
 }

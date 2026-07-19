@@ -3,7 +3,8 @@ export type Screen =
   | 'adventureMap' | 'adventurePreview' | 'community' | 'aiGenerator'
   | 'creator' | 'profile' | 'friends' | 'quests' | 'questDetail'
   | 'achievements' | 'dailyRewards' | 'challenges' | 'party' | 'shop'
-  | 'settings' | 'history' | 'customise' | 'inventory' | 'rewards' | 'seasonal';
+  | 'settings' | 'history' | 'customise' | 'inventory' | 'rewards' | 'seasonal'
+  | 'leaderboard';
 
 export type QuestType = 'distance' | 'checkpoint' | 'challenge';
 

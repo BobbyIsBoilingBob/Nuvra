@@ -1,91 +1,56 @@
-import Header from '../components/Header';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Spinner from '../components/Spinner';
+import { useState } from 'react';
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
 import { useDailyRewards } from '../hooks/useDailyRewards';
 import { DAILY_REWARDS } from '../data/gameData';
-import { Gift, Check, Flame } from 'lucide-react';
-import { useState } from 'react';
+import { Header } from '../components/Header';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { Spinner } from '../components/Spinner';
+import { Check, Flame } from 'lucide-react';
 
 export default function DailyRewards() {
-  const navigate = useStore((s) => s.navigate);
-  const { isGuest } = useAuth();
-  const { lastClaimDate, currentStreak, totalClaimed, loading, canClaim, claiming, claim, error } = useDailyRewards();
-  const [claimError, setClaimError] = useState<string | null>(null);
-  const [justClaimed, setJustClaimed] = useState<number | null>(null);
+  const goBack = useStore((s) => s.goBack);
+  const { streak, canClaim, loading, claim } = useDailyRewards();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (isGuest) {
-    return (
-      <div className="pb-24"><Header title="Daily Rewards" />
-        <div className="px-4 py-10 text-center"><Gift size={48} className="text-ink-500 mx-auto" /><p className="text-ink-300 mt-4">Sign in to claim daily rewards.</p><Button className="mt-4" onClick={() => navigate('auth')}>Sign In</Button></div>
-      </div>
-    );
+  async function doClaim() {
+    setBusy(true); setError(null);
+    try { await claim(); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const claimableDay = ((currentStreak % 7) + 1);
-
-  const handleClaim = async (day: number) => {
-    if (day !== claimableDay || !canClaim) return;
-    setClaimError(null);
-    const reward = DAILY_REWARDS.find((d) => d.day === day)?.reward ?? {};
-    const res = await claim(reward);
-    if (res.error) { setClaimError(res.error); return; }
-    setJustClaimed(day);
-    setTimeout(() => setJustClaimed(null), 2000);
-  };
+  if (loading) return <div><Header title="Daily Rewards" onBack={goBack} /><div className="p-8 flex justify-center"><Spinner /></div></div>;
 
   return (
-    <div className="pb-24"><Header title="Daily Rewards" />
-      <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
-        <Card className="p-4 flex items-center gap-3">
-          <Flame size={24} className="text-accent-400" />
-          <div className="flex-1">
-            <p className="text-white font-semibold">Current Streak: {currentStreak} days</p>
-            <p className="text-ink-400 text-xs">Total claimed: {totalClaimed}</p>
-          </div>
-          {lastClaimDate && <p className="text-ink-400 text-xs">Last: {lastClaimDate}</p>}
+    <div>
+      <Header title="Daily Rewards" onBack={goBack} subtitle={`🔥 ${streak} day streak`} />
+      <div className="px-4 py-4 space-y-4">
+        <Card className="flex items-center gap-3 bg-gradient-to-r from-accent-500 to-brand-500 text-white border-0">
+          <Flame size={28} />
+          <div><p className="font-semibold">Current Streak: {streak} days</p><p className="text-sm text-white/80">Come back daily to keep your streak!</p></div>
         </Card>
 
-        {loading && <Spinner label="Loading rewards…" />}
-        {error && <p className="text-error-400 text-sm">{error}</p>}
-        {claimError && <p className="text-error-400 text-sm">{claimError}</p>}
-
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {DAILY_REWARDS.map((d) => {
-            const isClaimed = lastClaimDate && (
-              (d.day <= (currentStreak % 7 || 7) && d.day !== claimableDay) ||
-              (d.day === claimableDay && !canClaim)
-            );
-            const isClaimableNow = d.day === claimableDay && canClaim;
+            const claimed = d.day < streak || (d.day === streak && !canClaim);
+            const isToday = d.day === streak + (canClaim ? 1 : 0) || (d.day === streak && canClaim);
             return (
-              <Card key={d.day} className={`p-3 text-center ${isClaimableNow ? 'border-brand-500/50 animate-pulse-glow' : ''} ${isClaimed ? 'opacity-50' : ''}`}>
-                <p className="text-ink-400 text-xs">Day {d.day}</p>
-                <Gift size={24} className={`mx-auto my-2 ${isClaimed ? 'text-ink-500' : 'text-accent-400'}`} />
-                <p className="text-white text-xs font-medium">
-                  {d.reward.coins ? `${d.reward.coins}c` : ''} {d.reward.xp ? `${d.reward.xp}xp` : ''}
-                </p>
-                {justClaimed === d.day ? (
-                  <div className="mt-1 text-success-400 flex items-center justify-center"><Check size={14} /></div>
-                ) : isClaimableNow ? (
-                  <Button size="sm" className="mt-1 w-full text-xs py-1" onClick={() => handleClaim(d.day)} disabled={claiming}>
-                    {claiming ? '…' : 'Claim'}
-                  </Button>
-                ) : (
-                  <div className="mt-1 h-6 flex items-center justify-center">
-                    {isClaimed && <Check size={14} className="text-ink-500" />}
-                  </div>
-                )}
+              <Card key={d.day} className={`text-center ${claimed ? 'bg-success-50 border-success-100' : isToday ? 'ring-2 ring-brand-500' : ''}`}>
+                <p className="text-xs text-ink-400">Day {d.day}</p>
+                <p className="text-2xl my-1">{d.reward.item ? '🎁' : '🪙'}</p>
+                <p className="text-xs font-medium">{d.reward.coins}🪙</p>
+                {d.reward.xp && <p className="text-xs text-brand-600">+{d.reward.xp}xp</p>}
+                {claimed && <Check size={14} className="mx-auto text-success-600 mt-1" />}
               </Card>
             );
           })}
         </div>
 
-        {!canClaim && (
-          <p className="text-center text-ink-400 text-sm">Come back tomorrow to claim your next reward!</p>
-        )}
+        {error && <p className="text-sm text-error-600">{error}</p>}
+
+        <Button fullWidth onClick={doClaim} disabled={!canClaim || busy}>
+          {busy ? <Spinner size={18} className="mx-auto" /> : canClaim ? 'Claim Today\'s Reward' : 'Already Claimed Today'}
+        </Button>
       </div>
     </div>
   );

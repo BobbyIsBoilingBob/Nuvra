@@ -11,6 +11,11 @@ interface AppState {
   goBack: () => boolean;
   resetTo: (s: Screen) => void;
 
+  pendingScreen: Screen | null;
+  setPendingScreen: (s: Screen | null) => void;
+  navigateToAuth: (returnTo?: Screen) => void;
+  returnAfterAuth: () => void;
+
   activeAdventureId: string | null;
   setActiveAdventure: (id: string | null) => void;
 
@@ -68,6 +73,22 @@ export const useStore = create<AppState>()(
         return true;
       },
       resetTo: (s) => set({ screen: s, stack: [s] }),
+
+      pendingScreen: null,
+      setPendingScreen: (s) => set({ pendingScreen: s }),
+      navigateToAuth: (returnTo?: Screen) => set((state) => {
+        const pending = returnTo ?? state.screen;
+        if (state.stack[state.stack.length - 1] === 'auth') return { pendingScreen: pending };
+        return { screen: 'auth', stack: [...state.stack, 'auth'], pendingScreen: pending };
+      }),
+      returnAfterAuth: () => {
+        const { pendingScreen } = get();
+        if (pendingScreen) {
+          set({ screen: pendingScreen, stack: [pendingScreen], pendingScreen: null });
+        } else {
+          set({ screen: 'home', stack: ['home'], pendingScreen: null });
+        }
+      },
 
       activeAdventureId: null,
       setActiveAdventure: (id) => set({ activeAdventureId: id }),

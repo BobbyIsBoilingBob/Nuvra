@@ -1,48 +1,51 @@
-import Header from '../components/Header';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Spinner from '../components/Spinner';
 import { useStore } from '../store';
 import { useAuth } from '../lib/auth';
-import { useLeaderboard } from '../hooks/useLeaderboard';
-import { Trophy } from 'lucide-react';
+import { Header } from '../components/Header';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { Gift, Trophy, Calendar, Target } from 'lucide-react';
 
 export default function Rewards() {
+  const goBack = useStore((s) => s.goBack);
   const navigate = useStore((s) => s.navigate);
-  const { isGuest, user } = useAuth();
-  const { entries, loading, error } = useLeaderboard();
+  const { isGuest } = useAuth();
+  const navigateToAuth = useStore((s) => s.navigateToAuth);
+  const coins = useStore((s) => s.coins);
+  const xp = useStore((s) => s.xp);
+  const level = useStore((s) => s.level);
+
+  const items = [
+    { screen: 'dailyRewards', label: 'Daily Rewards', desc: 'Claim your daily streak reward', icon: Gift },
+    { screen: 'challenges', label: 'Challenges', desc: 'Weekly and monthly goals', icon: Target },
+    { screen: 'achievements', label: 'Achievements', desc: 'Unlock badges and trophies', icon: Trophy },
+    { screen: 'seasonal', label: 'Seasonal Event', desc: 'Summer Walking Festival', icon: Calendar },
+  ];
 
   return (
-    <div className="pb-24"><Header title="Rewards & Leaderboard" back={false} />
-      <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
-        {isGuest && (
-          <Card className="p-4 text-center"><Trophy size={36} className="text-accent-400 mx-auto" /><p className="text-ink-300 mt-2 text-sm">Sign in to earn and track rewards.</p><Button size="sm" className="mt-3" onClick={() => navigate('auth')}>Sign In</Button></Card>
-        )}
-        <Card className="p-4">
-          <h3 className="font-display font-bold text-white mb-3 flex items-center gap-2"><Trophy size={18} className="text-accent-400" /> Leaderboard</h3>
-          {loading && <Spinner label="Loading leaderboard…" />}
-          {error && <p className="text-error-400 text-sm">{error}</p>}
-          {!loading && !error && entries.length === 0 && <p className="text-ink-400 text-sm">No players yet. Be the first!</p>}
-          {!loading && !error && entries.length > 0 && (
-            <div className="space-y-2">
-              {entries.map((p, i) => {
-                const isMe = user?.id === p.id;
-                return (
-                  <div key={p.id} className={`flex items-center gap-3 px-2 py-1.5 rounded-lg ${isMe ? 'bg-brand-500/10 border border-brand-500/30' : ''}`}>
-                    <span className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-accent-500/20 text-accent-400' : i < 3 ? 'bg-brand-500/20 text-brand-300' : 'bg-ink-700 text-ink-300'}`}>{i + 1}</span>
-                    <div className="h-8 w-8 rounded-full bg-ink-700 flex items-center justify-center flex-shrink-0 text-lg">{p.avatar ?? '🧭'}</div>
-                    <span className={`font-medium flex-1 truncate ${isMe ? 'text-brand-300' : 'text-white'}`}>{p.username}{isMe ? ' (you)' : ''}</span>
-                    <span className="text-ink-300 text-sm">Lv {p.level}</span>
-                    <span className="text-brand-300 text-sm font-semibold">{p.xp.toLocaleString()} XP</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+    <div>
+      <Header title="Rewards" onBack={goBack} />
+      <div className="px-4 py-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4" onClick={() => navigate('dailyRewards')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2 text-sm">Daily Rewards</p></Card>
-          <Card className="p-4" onClick={() => navigate('achievements')}><Trophy size={20} className="text-accent-400" /><p className="text-white font-semibold mt-2 text-sm">Achievements</p></Card>
+          <Card className="text-center"><p className="text-xs text-ink-500">Level</p><p className="text-2xl font-bold text-brand-600">{level}</p></Card>
+          <Card className="text-center"><p className="text-xs text-ink-500">XP</p><p className="text-2xl font-bold text-brand-600">{xp}</p></Card>
+          <Card className="text-center"><p className="text-xs text-ink-500">Coins</p><p className="text-2xl font-bold text-accent-600">🪙 {coins}</p></Card>
+          <Card className="text-center"><p className="text-xs text-ink-500">Shop</p><Button size="sm" className="mt-1" onClick={() => navigate('shop')}>Visit</Button></Card>
+        </div>
+
+        {isGuest && (
+          <Card className="bg-brand-50 border-brand-100">
+            <p className="text-sm text-brand-800">Sign in to save your rewards and progress.</p>
+            <Button size="sm" className="mt-2" onClick={() => navigateToAuth('rewards')}>Sign In</Button>
+          </Card>
+        )}
+
+        <div className="space-y-2">
+          {items.map(({ screen, label, desc, icon: Icon }) => (
+            <Card key={label} onClick={() => navigate(screen as any)} className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center"><Icon size={20} /></div>
+              <div><p className="font-semibold">{label}</p><p className="text-xs text-ink-500">{desc}</p></div>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

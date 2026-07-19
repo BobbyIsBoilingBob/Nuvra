@@ -1,84 +1,40 @@
-import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import { useEffect } from 'react';
 import L from 'leaflet';
 import type { GeoPoint } from '../types';
 
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-});
-L.Marker.prototype.options.icon = defaultIcon;
+const playerIcon = L.divIcon({ html: '🧭', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
+const checkpointIcon = L.divIcon({ html: '📍', className: '', iconSize: [28, 28], iconAnchor: [14, 28] });
 
-const checkpointIcon = L.divIcon({
-  html: '<div style="width:20px;height:20px;border-radius:50%;background:#f59e0b;border:3px solid #fbbf24;box-shadow:0 0 8px rgba(245,158,11,0.6);"></div>',
-  className: '', iconSize: [20, 20], iconAnchor: [10, 10],
-});
+function Recenter({ point }: { point?: GeoPoint | null }) {
+  const map = useMap();
+  useEffect(() => { if (point) map.setView([point.lat, point.lng], map.getZoom() || 15); }, [point, map]);
+  return null;
+}
 
-const playerIcon = L.divIcon({
-  html: '<div style="width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #67e8f9;box-shadow:0 0 10px rgba(34,211,238,0.8);"></div>',
-  className: '', iconSize: [16, 16], iconAnchor: [8, 8],
-});
-
-interface MapViewProps {
-  center: GeoPoint;
-  route: GeoPoint[];
-  fitRoute?: boolean;
+interface Props {
+  player?: GeoPoint | null;
   checkpoints?: GeoPoint[];
-  followPlayer?: boolean;
+  route?: GeoPoint[];
   satellite?: boolean;
+  center?: GeoPoint;
+  zoom?: number;
 }
 
-function MapResizer() {
-  const map = useMap();
-  useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 100);
-    const onResize = () => map.invalidateSize();
-    window.addEventListener('resize', onResize);
-    return () => { clearTimeout(t); window.removeEventListener('resize', onResize); };
-  }, [map]);
-  return null;
-}
-
-function RouteFitter({ route }: { route: GeoPoint[] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (route.length >= 2) {
-      const bounds = L.latLngBounds(route.map((p) => [p.lat, p.lng]));
-      map.fitBounds(bounds, { padding: [40, 40] });
-    } else if (route.length === 1) {
-      map.setView([route[0].lat, route[0].lng], 16);
-    }
-  }, [route, map]);
-  return null;
-}
-
-function PlayerFollower({ position }: { position: GeoPoint | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (position) map.panTo([position.lat, position.lng], { animate: true });
-  }, [position, map]);
-  return null;
-}
-
-export default function MapView({ center, route, fitRoute = false, checkpoints = [], followPlayer = false, satellite = false }: MapViewProps) {
-  const latLngs = route.map((p) => [p.lat, p.lng]) as [number, number][];
+export function MapView({ player, checkpoints = [], route = [], satellite = false, center, zoom = 15 }: Props) {
+  const c = center ?? player ?? { lat: 51.5074, lng: -0.1278 };
   return (
-    <MapContainer center={[center.lat, center.lng]} zoom={15}
-      className="h-full w-full" style={{ minHeight: 300, zIndex: 0 }}>
+    <MapContainer center={[c.lat, c.lng]} zoom={zoom} className="w-full h-full min-h-[300px] rounded-2xl overflow-hidden" scrollWheelZoom>
       <TileLayer
+        attribution='&copy; OpenStreetMap contributors'
         url={satellite
           ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
           : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
-        attribution={satellite ? '&copy; Esri' : '&copy; OpenStreetMap contributors'}
       />
-      <MapResizer />
-      {fitRoute && <RouteFitter route={route} />}
-      {followPlayer && <PlayerFollower position={route.length > 0 ? route[route.length - 1] : null} />}
-      <Marker position={[center.lat, center.lng]} icon={playerIcon} />
+      <Recenter point={player} />
+      {route.length > 1 && <Polyline positions={route.map(p => [p.lat, p.lng])} pathOptions={{ color: '#1c7af5', weight: 4, opacity: 0.7 }} />}
       {checkpoints.map((cp, i) => <Marker key={i} position={[cp.lat, cp.lng]} icon={checkpointIcon} />)}
-      {latLngs.length >= 2 && <Polyline positions={latLngs} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.85 }} />}
+      {player && <Marker position={[player.lat, player.lng]} icon={playerIcon} />}
     </MapContainer>
   );
 }

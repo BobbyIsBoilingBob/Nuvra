@@ -1,28 +1,30 @@
-import { Chrome as Home, Compass, User, Trophy, ShoppingBag } from 'lucide-react';
+import { Chrome as Home, Compass, Gift, ShoppingBag, User } from 'lucide-react';
 import { useStore } from '../store';
 import type { Screen } from '../types';
 
-const NAV_ITEMS: { screen: Screen; label: string; icon: typeof Home }[] = [
+const ITEMS: { screen: Screen; label: string; icon: typeof Home }[] = [
   { screen: 'home', label: 'Home', icon: Home },
   { screen: 'adventures', label: 'Adventures', icon: Compass },
-  { screen: 'rewards', label: 'Rewards', icon: Trophy },
+  { screen: 'rewards', label: 'Rewards', icon: Gift },
   { screen: 'shop', label: 'Shop', icon: ShoppingBag },
   { screen: 'profile', label: 'Profile', icon: User },
 ];
 
-export default function BottomNav() {
+export function BottomNav() {
   const screen = useStore((s) => s.screen);
   const navigate = useStore((s) => s.navigate);
   return (
-    <nav className="sticky bottom-0 z-20 flex items-center justify-around px-2 py-2 bg-ink-900/90 backdrop-blur-md border-t border-ink-800">
-      {NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const active = screen === item.screen;
+    <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-ink-100 flex justify-around py-1.5 z-20">
+      {ITEMS.map(({ screen: s, label, icon: Icon }) => {
+        const active = screen === s;
         return (
-          <button key={item.screen} onClick={() => navigate(item.screen)}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${active ? 'text-brand-400' : 'text-ink-400 hover:text-ink-200'}`}>
-            <Icon size={20} />
-            <span className="text-[10px] font-medium">{item.label}</span>
+          <button
+            key={s}
+            onClick={() => navigate(s)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${active ? 'text-brand-600' : 'text-ink-400 hover:text-ink-700'}`}
+          >
+            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+            <span className="text-[10px] font-medium">{label}</span>
           </button>
         );
       })}

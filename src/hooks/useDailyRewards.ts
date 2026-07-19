@@ -1,84 +1,65 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
-import { useStore } from '../store';
+import { DAILY_REWARDS } from '../data/gameData';
 
-interface DailyRewardState {
-  lastClaimDate: string | null;
-  currentStreak: number;
-  totalClaimed: number;
-}
+type Row = { user_id: string; last_claim_date: string | null; current_streak: number; total_claimed: number };
 
 export function useDailyRewards() {
-  const { user } = useAuth();
-  const addCoins = useStore((s) => s.addCoins);
-  const addXp = useStore((s) => s.addXp);
-  const addItem = useStore((s) => s.addItem);
-  const [state, setState] = useState<DailyRewardState>({ lastClaimDate: null, currentStreak: 0, totalClaimed: 0 });
+  const [streak, setStreak] = useState(0);
+  const [lastClaim, setLastClaim] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [claiming, setClaiming] = useState(false);
-
-  const today = new Date().toISOString().slice(0, 10);
 
   const load = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
     setLoading(true);
-    const { data, error } = await supabase
-      .from('daily_rewards')
-      .select('last_claim_date, current_streak, total_claimed')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data, error } = await supabase.from('daily_rewards').select('*').maybeSingle();
     if (error) { setError(error.message); setLoading(false); return; }
-    if (data) {
-      setState({
-        lastClaimDate: data.last_claim_date,
-        currentStreak: data.current_streak ?? 0,
-        totalClaimed: data.total_claimed ?? 0,
-      });
-    } else {
-      setState({ lastClaimDate: null, currentStreak: 0, totalClaimed: 0 });
-    }
+    const r = data as Row | null;
+    if (r) { setStreak(r.current_streak); setLastClaim(r.last_claim_date); }
+    setError(null);
     setLoading(false);
-  }, [user]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const canClaim = !state.lastClaimDate || state.lastClaimDate !== today;
+  const today = new Date().toISOString().slice(0, 10);
+  const canClaim = lastClaim !== today;
 
-  const claim = useCallback(async (reward: { coins?: number; xp?: number; item?: string }): Promise<{ error: string | null }> => {
-    if (!user) return { error: 'Not signed in' };
-    if (!canClaim) return { error: 'Already claimed today' };
-    setClaiming(true);
-    setError(null);
-
+  const claim = useCallback(async () => {
+    if (!canClaim) throw new Error('Already claimed today');
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const newStreak = state.lastClaimDate === yesterday ? state.currentStreak + 1 : 1;
+    const newStreak = lastClaim === yesterday ? streak + 1 : 1;
+    const reward = DAILY_REWARDS[(newStreak - 1) % DAILY_REWARDS.length];
 
-    const { error: upsertError } = await supabase
-      .from('daily_rewards')
-      .upsert({
-        user_id: user.id,
-        last_claim_date: today,
-        current_streak: newStreak,
-        total_claimed: state.totalClaimed + 1,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-
-    if (upsertError) {
-      setError(upsertError.message);
-      setClaiming(false);
-      return { error: upsertError.message };
+    const { data: existing } = await supabase.from('daily_rewards').select('user_id, total_claimed').maybeSingle();
+    if (existing) {
+      const ex = existing as Row;
+      const { error } = await supabase.from('daily_rewards').update({
+        last_claim_date: today, current_streak: newStreak, total_claimed: (ex.total_claimed ?? 0) + 1, updated_at: new Date().toISOString(),
+      }).eq('user_id', ex.user_id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('daily_rewards').insert({
+        last_claim_date: today, current_streak: newStreak, total_claimed: 1,
+      });
+      if (error) throw error;
     }
 
-    if (reward.coins) addCoins(reward.coins);
-    if (reward.xp) addXp(reward.xp);
-    if (reward.item) addItem({ id: reward.item, name: reward.item, type: 'consumable', quantity: 1 });
+    if (reward.reward.coins || reward.reward.xp) {
+      const { data: p } = await supabase.from('profiles').select('id, coins, xp').maybeSingle();
+      const prof = p as any;
+      if (prof) {
+        const patch: any = {};
+        if (reward.reward.coins) patch.coins = (prof.coins ?? 0) + reward.reward.coins;
+        if (reward.reward.xp) patch.xp = (prof.xp ?? 0) + (reward.reward.xp ?? 0);
+        await supabase.from('profiles').update(patch).eq('id', prof.id);
+      }
+    }
 
-    setState({ lastClaimDate: today, currentStreak: newStreak, totalClaimed: state.totalClaimed + 1 });
-    setClaiming(false);
-    return { error: null };
-  }, [user, canClaim, state, today, addCoins, addXp, addItem]);
+    setStreak(newStreak);
+    setLastClaim(today);
+    return reward;
+  }, [canClaim, lastClaim, streak, today]);
 
-  return { ...state, loading, error, claiming, canClaim, claim, reload: load };
+  return { streak, lastClaim, canClaim, loading, error, claim, reload: load };
 }

@@ -1,32 +1,22 @@
 import { type ReactNode } from 'react';
-import { ChevronLeft } from 'lucide-react';
-import { useStore } from '../store';
+import { ArrowLeft } from 'lucide-react';
 
-interface HeaderProps {
-  title: string;
-  back?: boolean;
-  right?: ReactNode;
+interface Props {
+  title: string; onBack?: () => void; right?: ReactNode; subtitle?: string;
 }
 
-export default function Header({ title, back = true, right }: HeaderProps) {
-  const goBack = useStore((s) => s.goBack);
-  const stack = useStore((s) => s.stack);
-  const navigate = useStore((s) => s.navigate);
-
-  const handleBack = () => {
-    if (stack.length > 1) goBack();
-    else navigate('home');
-  };
-
+export function Header({ title, onBack, right, subtitle }: Props) {
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-ink-900/80 backdrop-blur-md border-b border-ink-800">
-      {back && (
-        <button onClick={handleBack} aria-label="Go back"
-          className="text-ink-300 hover:text-white transition-colors -ml-1 p-1 rounded-lg">
-          <ChevronLeft size={24} />
+    <header className="flex items-center gap-3 px-4 py-3 bg-white border-b border-ink-100 sticky top-0 z-10">
+      {onBack && (
+        <button onClick={onBack} aria-label="Back" className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-700">
+          <ArrowLeft size={20} />
         </button>
       )}
-      <h1 className="font-display text-lg font-bold text-white flex-1 truncate">{title}</h1>
+      <div className="flex-1 min-w-0">
+        <h1 className="text-lg font-bold text-ink-900 truncate">{title}</h1>
+        {subtitle && <p className="text-xs text-ink-500 truncate">{subtitle}</p>}
+      </div>
       {right}
     </header>
   );

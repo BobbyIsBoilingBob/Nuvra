@@ -1,110 +1,65 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
-import type { PartyInfo } from '../types';
+
+type Party = { id: string; name: string; leader_id: string; adventure_id: string | null; status: string };
+type Member = { id: string; user_id: string; role: string; username: string; avatar_emoji: string; avatar_color: string };
 
 export function useParty() {
-  const { user } = useAuth();
-  const [party, setParty] = useState<PartyInfo | null>(null);
+  const [party, setParty] = useState<Party | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
     setLoading(true);
-    setError(null);
-    const { data: memberRow, error: mErr } = await supabase
-      .from('party_members')
-      .select('party_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (mErr) { setError(mErr.message); setLoading(false); return; }
-    if (!memberRow) { setParty(null); setLoading(false); return; }
-
-    const { data: partyRow, error: pErr } = await supabase
-      .from('parties')
-      .select('id, name, leader_id, status')
-      .eq('id', memberRow.party_id)
-      .maybeSingle();
-    if (pErr) { setError(pErr.message); setLoading(false); return; }
-    if (!partyRow) { setParty(null); setLoading(false); return; }
-
-    const { data: members } = await supabase
-      .from('party_members')
-      .select('user_id, role')
-      .eq('party_id', partyRow.id);
-    let memberProfiles: any[] = [];
-    const memberUserIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
-    if (memberUserIds.length > 0) {
-      const { data: pRes } = await supabase.from('profiles').select('id, username').in('id', memberUserIds);
-      memberProfiles = pRes ?? [];
+    const { data: myMemberships } = await supabase.from('party_members').select('party_id').eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '');
+    const partyIds = (myMemberships as any[])?.map(m => m.party_id) ?? [];
+    if (!partyIds.length) { setParty(null); setMembers([]); setLoading(false); return; }
+    const { data: parties } = await supabase.from('parties').select('*').in('id', partyIds);
+    const p = (parties as Party[])?.[0] ?? null;
+    setParty(p);
+    if (p) {
+      const { data: mems } = await supabase.from('party_members').select('id, user_id, role').eq('party_id', p.id);
+      const memRows = (mems as any[]) ?? [];
+      const uids = memRows.map(m => m.user_id);
+      const { data: profs } = await supabase.from('profiles').select('id, username, avatar_emoji, avatar_color').in('id', uids);
+      const pmap = new Map((profs ?? []).map((x: any) => [x.id, x]));
+      setMembers(memRows.map(m => ({ id: m.id, user_id: m.user_id, role: m.role, ...pmap.get(m.user_id) } as Member)));
+    } else {
+      setMembers([]);
     }
-    setParty({
-      id: partyRow.id,
-      name: partyRow.name,
-      leaderId: partyRow.leader_id,
-      status: partyRow.status,
-      members: (members ?? []).map((m: any) => {
-        const prof = memberProfiles.find((p: any) => p.id === m.user_id);
-        return { userId: m.user_id, username: prof?.username ?? 'Unknown', role: m.role };
-      }),
-    });
+    setError(null);
     setLoading(false);
-  }, [user]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const createParty = useCallback(async (name: string, adventureId?: string): Promise<{ error: string | null; partyId?: string }> => {
-    if (!user) return { error: 'Not signed in' };
-    if (!name.trim()) return { error: 'Party name is required' };
-    const { data: partyRow, error: pErr } = await supabase
-      .from('parties')
-      .insert({ name: name.trim(), leader_id: user.id, adventure_id: adventureId ?? null, status: 'active' })
-      .select('id')
-      .single();
-    if (pErr) return { error: pErr.message };
-    const { error: mErr } = await supabase
-      .from('party_members')
-      .insert({ party_id: partyRow.id, user_id: user.id, role: 'leader' });
-    if (mErr) return { error: mErr.message };
+  const create = useCallback(async (name: string, adventureId?: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const { data, error } = await supabase.from('parties').insert({ name, adventure_id: adventureId ?? null, leader_id: user.id, status: 'active' }).select().single();
+    if (error) throw error;
+    const p = data as Party;
+    const { error: e2 } = await supabase.from('party_members').insert({ party_id: p.id, user_id: user.id, role: 'leader' });
+    if (e2) throw e2;
     await load();
-    return { error: null, partyId: partyRow.id };
-  }, [user, load]);
+    return p;
+  }, [load]);
 
-  const inviteFriend = useCallback(async (friendId: string): Promise<{ error: string | null }> => {
-    if (!user || !party) return { error: 'No active party' };
-    const { error } = await supabase.from('party_members').insert({
-      party_id: party.id, user_id: friendId, role: 'member',
-    });
-    if (error) return { error: error.message };
-    await supabase.from('notifications').insert({
-      user_id: friendId, type: 'party_invite', title: 'Party invite',
-      message: `You've been invited to join "${party.name}".`, actor_id: user.id,
-    });
+  const invite = useCallback(async (userId: string) => {
+    if (!party) throw new Error('No party');
+    const { error } = await supabase.from('party_members').insert({ party_id: party.id, user_id: userId, role: 'member' });
+    if (error) throw error;
     await load();
-    return { error: null };
-  }, [user, party, load]);
+  }, [party, load]);
 
-  const leaveParty = useCallback(async (): Promise<{ error: string | null }> => {
-    if (!user || !party) return { error: 'No active party' };
-    const { error } = await supabase.from('party_members')
-      .delete()
-      .eq('party_id', party.id)
-      .eq('user_id', user.id);
-    if (error) return { error: error.message };
-    const { data: remaining } = await supabase.from('party_members')
-      .select('user_id')
-      .eq('party_id', party.id);
-    if (!remaining || remaining.length === 0) {
-      await supabase.from('parties').delete().eq('id', party.id);
-    } else if (party.leaderId === user.id && remaining.length > 0) {
-      const newLeaderId = remaining[0].user_id;
-      await supabase.from('parties').update({ leader_id: newLeaderId }).eq('id', party.id);
-      await supabase.from('party_members').update({ role: 'leader' }).eq('party_id', party.id).eq('user_id', newLeaderId);
-    }
+  const leave = useCallback(async () => {
+    if (!party) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('party_members').delete().eq('party_id', party.id).eq('user_id', user?.id ?? '');
+    if (error) throw error;
     await load();
-    return { error: null };
-  }, [user, party, load]);
+  }, [party, load]);
 
-  return { party, loading, error, load, createParty, inviteFriend, leaveParty };
+  return { party, members, loading, error, create, invite, leave, reload: load };
 }

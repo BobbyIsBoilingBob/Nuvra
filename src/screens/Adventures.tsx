@@ -1,58 +1,62 @@
 import { useStore } from '../store';
-import { useAuth } from '../lib/auth';
-import Header from '../components/Header';
-import Card from '../components/Card';
+import { useAdventures } from '../hooks/useAdventures';
 import { ADVENTURES } from '../data/gameData';
+import { Card } from '../components/Card';
+import { Header } from '../components/Header';
+import { Spinner } from '../components/Spinner';
+import { Sparkles, Plus } from 'lucide-react';
 import type { Adventure } from '../types';
-import { Clock, MapPin, TrendingUp, Sparkles } from 'lucide-react';
 
-const DIFF_COLOR: Record<string, string> = {
-  easy: 'text-success-400 bg-success-500/10',
-  medium: 'text-accent-400 bg-accent-500/10',
-  hard: 'text-error-400 bg-error-500/10',
+const DIFF_COLORS: Record<string, string> = {
+  easy: 'bg-success-100 text-success-700',
+  medium: 'bg-warning-100 text-warning-700',
+  hard: 'bg-error-100 text-error-700',
 };
 
 export default function Adventures() {
   const navigate = useStore((s) => s.navigate);
   const setActiveAdventure = useStore((s) => s.setActiveAdventure);
-  const customAdventures = useStore((s) => s.customAdventures);
-  const { isGuest } = useAuth();
+  const { adventures: saved, loading } = useAdventures();
 
-  const allAdventures: Adventure[] = [...customAdventures, ...ADVENTURES];
+  const all = [...saved, ...ADVENTURES];
+
+  function open(a: Adventure) {
+    setActiveAdventure(a.id);
+    navigate('adventureDetail');
+  }
 
   return (
-    <div className="pb-24">
-      <Header title="Adventures" back={false} right={
-        <button onClick={() => navigate('aiGenerator')} aria-label="AI Generator" className="text-brand-300 hover:text-brand-200 transition-colors">
-          <Sparkles size={20} />
-        </button>
-      } />
-      <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
-        {isGuest && (
-          <p className="text-ink-400 text-sm bg-ink-800/50 rounded-xl p-3 border border-ink-700/50">
-            You're browsing as a guest. Sign in to start and track adventures.
-          </p>
-        )}
-        {allAdventures.length === 0 && (
-          <p className="text-ink-400 text-sm text-center py-8">No adventures available yet.</p>
-        )}
-        {allAdventures.map((adv) => (
-          <Card key={adv.id} className="overflow-hidden" onClick={() => { setActiveAdventure(adv.id); navigate('adventureDetail'); }}>
-            <div className="h-32 bg-ink-700 relative" style={adv.imageUrl ? { backgroundImage: `url(${adv.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-              <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold capitalize ${DIFF_COLOR[adv.difficulty]}`}>{adv.difficulty}</span>
-              {adv.aiGenerated && (
-                <span className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold bg-brand-500/20 text-brand-300 flex items-center gap-1">
-                  <Sparkles size={12} /> AI
-                </span>
-              )}
-            </div>
+    <div>
+      <Header title="Adventures" subtitle={`${all.length} available`} />
+      <div className="px-4 py-4 space-y-3">
+        <Card onClick={() => navigate('aiGenerator')} className="flex items-center gap-3 bg-gradient-to-r from-brand-500 to-accent-500 text-white border-0">
+          <Sparkles size={24} />
+          <div className="flex-1">
+            <p className="font-semibold">AI Adventure Generator</p>
+            <p className="text-xs text-white/80">Create a custom walking adventure</p>
+          </div>
+        </Card>
+        <Card onClick={() => navigate('creator')} className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center"><Plus size={20} /></div>
+          <div><p className="font-semibold">Adventure Creator</p><p className="text-xs text-ink-500">Build your own route</p></div>
+        </Card>
+
+        {loading && <div className="flex justify-center py-8"><Spinner /></div>}
+
+        <h2 className="text-sm font-semibold text-ink-500 pt-2">All Adventures</h2>
+        {all.map((a) => (
+          <Card key={a.id} onClick={() => open(a)} padded={false} className="overflow-hidden">
+            {a.imageUrl && <img src={a.imageUrl} alt={a.title} className="w-full h-32 object-cover" loading="lazy" />}
             <div className="p-4">
-              <h3 className="font-display font-bold text-white">{adv.title}</h3>
-              <p className="text-ink-400 text-sm mt-1 line-clamp-2">{adv.description}</p>
-              <div className="flex items-center gap-4 mt-3 text-ink-300 text-xs">
-                <span className="flex items-center gap-1"><Clock size={14} /> {adv.durationMin} min</span>
-                <span className="flex items-center gap-1"><MapPin size={14} /> {adv.distanceKm} km</span>
-                <span className="flex items-center gap-1"><TrendingUp size={14} /> {adv.rewards.xp} XP</span>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold">{a.title}</h3>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DIFF_COLORS[a.difficulty]}`}>{a.difficulty}</span>
+              </div>
+              <p className="text-sm text-ink-500 mt-1 line-clamp-2">{a.description}</p>
+              <div className="flex gap-4 text-xs text-ink-400 mt-2">
+                <span>📍 {a.distanceKm} km</span>
+                <span>⏱️ {a.durationMin} min</span>
+                <span>🎯 {a.quests.length} quests</span>
               </div>
             </div>
           </Card>
