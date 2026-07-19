@@ -1,12 +1,11 @@
 import { useStore } from '../store';
 import { useAdventures } from '../hooks/useAdventures';
-import { ADVENTURES, nearbyToAdventure, routePointsForAdventure, checkpointsForAdventure, challengesForAdventure } from '../data/gameData';
+import { ADVENTURES, routePointsForAdventure, checkpointsForAdventure, challengesForAdventure, CHALLENGE_LABELS, SENSOR_LABELS } from '../data/gameData';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Header } from '../components/Header';
 import { MapPin, Clock, Target, Trophy, Map as MapIcon, CircleCheck as CheckCircle } from 'lucide-react';
-import { CHALLENGE_LABELS } from '../data/gameData';
-import type { ChallengeKind } from '../types';
+import type { ChallengeKind, SensorType } from '../types';
 
 const DIFF_COLORS: Record<string, string> = {
   easy: 'bg-success-100 text-success-700',
@@ -26,12 +25,7 @@ export default function AdventureDetail() {
   const adv = all.find((a) => a.id === activeId);
 
   if (!adv) {
-    return (
-      <div>
-        <Header title="Adventure" onBack={goBack} />
-        <div className="p-6 text-center text-ink-500">Adventure not found.</div>
-      </div>
-    );
+    return (<div><Header title="Adventure" onBack={goBack} /><div className="p-6 text-center text-ink-500">Adventure not found.</div></div>);
   }
 
   const checkpoints = checkpointsForAdventure(adv);
@@ -53,18 +47,21 @@ export default function AdventureDetail() {
         </div>
 
         <div>
-          <h2 className="font-semibold mb-2">Quests & Challenges</h2>
+          <h2 className="font-semibold mb-2">Quests & Challenges ({adv.quests.length})</h2>
           <div className="space-y-2">
             {adv.quests.map((q, i) => (
               <Card key={q.id} className="flex items-start gap-3">
                 <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold flex-shrink-0">{i + 1}</div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium">{q.title}</p>
                     {q.type === 'challenge' && q.challenge && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent-100 text-accent-700 font-medium">
-                        {CHALLENGE_LABELS[q.challenge.kind as ChallengeKind] ?? q.challenge.kind}
-                      </span>
+                      <>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent-100 text-accent-700 font-medium">{CHALLENGE_LABELS[q.challenge.kind as ChallengeKind] ?? q.challenge.kind}</span>
+                        {q.challenge.sensor && q.challenge.sensor !== 'none' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 font-medium">{SENSOR_LABELS[q.challenge.sensor as SensorType]}</span>
+                        )}
+                      </>
                     )}
                     {q.type === 'checkpoint' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 font-medium">checkpoint</span>}
                     {q.type === 'distance' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success-100 text-success-700 font-medium">distance</span>}

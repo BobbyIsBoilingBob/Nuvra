@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
-import type { GeoPoint, ChallengeKind } from '../types';
+import type { GeoPoint, ChallengeKind, SensorType } from '../types';
 
 const playerIcon = L.divIcon({ html: '🧭', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
 const startIcon = L.divIcon({ html: '🟢', className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
@@ -9,15 +9,17 @@ const finishIcon = L.divIcon({ html: '🏁', className: '', iconSize: [28, 28], 
 const checkpointIcon = L.divIcon({ html: '📍', className: '', iconSize: [28, 28], iconAnchor: [14, 28] });
 
 const CHALLENGE_EMOJI: Record<ChallengeKind, string> = {
-  observation: '🔍', trivia: '❓', photography: '📷', puzzle: '🧩', memory: '🧠',
-  direction: '🧭', fitness: '💪', nature: '🌿', landmark: '🏛️', exploration: '🚶',
-  collection: '🎒', timed: '⏱️', team: '👥',
+  observation: '🔍', photography: '📷', fitness: '💪', puzzle: '🧩', memory: '🧠',
+  navigation: '🗺️', compass: '🧭', landmark: '🏛️', nature: '🌿', collection: '🎒',
+  trivia: '❓', timed: '⏱️', team: '👥', exploration: '🚶', balance: '⚖️',
+  reaction: '⚡', motion: '🏃', rotation: '🔄', altitude: '⛰️', location: '🎯', direction: '🧭',
 };
 
 export interface ChallengeMarker {
   point: GeoPoint;
   kind: ChallengeKind;
   title: string;
+  sensor?: SensorType;
 }
 
 interface Props {
@@ -66,7 +68,7 @@ export function MapView({
   const finish = showStartFinish && checkpoints.length > 1 ? checkpoints[checkpoints.length - 1] : null;
   const middleCheckpoints = showStartFinish ? checkpoints.slice(1, -1) : checkpoints;
 
-  const fallbackCenter = center ?? player ?? checkpoints[0] ?? { lat: 51.5074, lng: -0.1278 };
+  const fallbackCenter = center ?? player ?? checkpoints[0] ?? { lat: 0, lng: 0 };
 
   return (
     <MapContainer

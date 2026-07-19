@@ -26,18 +26,10 @@ export default function AdventurePreview() {
     <div className="flex flex-col h-screen">
       <Header title="Map Preview" onBack={goBack} subtitle={adv.title} />
       <div className="flex-1 min-h-0">
-        <MapView
-          checkpoints={checkpoints}
-          challenges={challenges}
-          route={route}
-          fitBounds
-          showStartFinish
-        />
+        <MapView checkpoints={checkpoints} challenges={challenges} route={route} fitBounds showStartFinish />
       </div>
       <div className="p-4 bg-white border-t border-ink-100">
-        <p className="text-xs text-ink-500 mb-2 text-center">
-          🟢 Start · 🏁 Finish · 📍 Checkpoints · Challenge markers shown along the route
-        </p>
+        <p className="text-xs text-ink-500 mb-2 text-center">🟢 Start · 🏁 Finish · 📍 Checkpoints · Challenge markers shown along the route</p>
         <Button fullWidth onClick={() => navigate('adventureMap')}>Start Adventure</Button>
       </div>
     </div>

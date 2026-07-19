@@ -1,60 +1,33 @@
-import { useState } from 'react';
 import { useStore } from '../store';
-import { useCustomise } from '../hooks/useCustomise';
+import { useAuth } from '../lib/auth';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Spinner } from '../components/Spinner';
-import { Check } from 'lucide-react';
+import { Shuffle, Check } from 'lucide-react';
+import { useState } from 'react';
+
+const AVATARS = ['🧭', '🚶', '🏃', '🚴', '🧗', '🏕️', '🌊', '⛰️'];
+const COLORS = ['#1c7af5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 export default function Customise() {
   const goBack = useStore((s) => s.goBack);
-  const { emoji, color, loading, save, emojis, colors } = useCustomise();
-  const [selEmoji, setSelEmoji] = useState(emoji);
-  const [selColor, setSelColor] = useState(color);
-  const [busy, setBusy] = useState(false);
+  const { profile, updateProfile, isGuest } = useAuth();
+  const navigateToAuth = useStore((s) => s.navigateToAuth);
+  const [avatar, setAvatar] = useState(profile?.avatar ?? '🧭');
+  const [color, setColor] = useState(profile?.avatarColor ?? '#1c7af5');
+  const [saved, setSaved] = useState(false);
 
-  if (loading) return <div><Header title="Customise Avatar" onBack={goBack} /><div className="p-8 flex justify-center"><Spinner /></div></div>;
-
-  async function doSave() {
-    setBusy(true);
-    try { await save(selEmoji, selColor); goBack(); } catch { /* ignore */ } finally { setBusy(false); }
-  }
+  function save() { updateProfile({ avatar, avatarColor: color }); setSaved(true); setTimeout(() => setSaved(false), 1500); }
 
   return (
     <div>
-      <Header title="Customise Avatar" onBack={goBack} />
+      <Header title="Customise" onBack={goBack} subtitle="Personalise your avatar" />
       <div className="px-4 py-4 space-y-4">
-        <Card className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl" style={{ background: selColor }}>{selEmoji}</div>
-          <div><p className="font-semibold">Preview</p><p className="text-sm text-ink-500">This is how others see you.</p></div>
-        </Card>
-
-        <div>
-          <h2 className="font-semibold mb-2">Avatar</h2>
-          <div className="grid grid-cols-6 gap-2">
-            {emojis.map((e) => (
-              <button key={e} onClick={() => setSelEmoji(e)}
-                className={`aspect-square rounded-xl text-2xl flex items-center justify-center transition-all ${selEmoji === e ? 'bg-brand-100 ring-2 ring-brand-500' : 'bg-ink-100'}`}>
-                {e}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h2 className="font-semibold mb-2">Colour</h2>
-          <div className="grid grid-cols-8 gap-2">
-            {colors.map((c) => (
-              <button key={c} onClick={() => setSelColor(c)} style={{ background: c }}
-                className={`aspect-square rounded-full transition-all ${selColor === c ? 'ring-2 ring-offset-2 ring-ink-900' : ''}`} />
-            ))}
-          </div>
-        </div>
-
-        <Button fullWidth onClick={doSave} disabled={busy || (selEmoji === emoji && selColor === color)}>
-          {busy ? <Spinner size={18} className="mx-auto" /> : <><Check size={18} className="inline mr-2" />Save</>}
-        </Button>
+        {isGuest && (<Card className="bg-warning-50 border-warning-100"><p className="text-sm text-warning-800">Sign in to save your customisation.</p><Button size="sm" className="mt-2" onClick={() => navigateToAuth('customise')}>Sign In</Button></Card>)}
+        <Card className="text-center py-6"><div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center text-5xl" style={{ background: color }}>{avatar}</div></Card>
+        <Card><h3 className="font-semibold mb-3">Avatar</h3><div className="grid grid-cols-4 gap-3">{AVATARS.map((a) => (<button key={a} onClick={() => setAvatar(a)} className={`aspect-square rounded-xl text-3xl flex items-center justify-center transition-all ${avatar === a ? 'bg-brand-100 ring-2 ring-brand-500' : 'bg-ink-50'}`}>{a}</button>))}</div></Card>
+        <Card><h3 className="font-semibold mb-3">Background Color</h3><div className="grid grid-cols-4 gap-3">{COLORS.map((c) => (<button key={c} onClick={() => setColor(c)} className={`aspect-square rounded-xl transition-all ${color === c ? 'ring-2 ring-offset-2 ring-brand-500' : ''}`} style={{ background: c }}>{color === c && <Check className="text-white mx-auto" />}</button>))}</div></Card>
+        <Button fullWidth onClick={save}>{saved ? <><Check size={18} className="inline mr-2" />Saved!</> : <><Shuffle size={18} className="inline mr-2" />Save Customisation</>}</Button>
       </div>
     </div>
   );
