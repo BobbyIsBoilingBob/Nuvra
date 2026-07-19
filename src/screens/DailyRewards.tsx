@@ -10,13 +10,21 @@ import { Check, Flame } from 'lucide-react';
 
 export default function DailyRewards() {
   const goBack = useStore((s) => s.goBack);
+  const addXp = useStore((s) => s.addXp);
+  const addCoins = useStore((s) => s.addCoins);
   const { streak, canClaim, loading, claim } = useDailyRewards();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justClaimed, setJustClaimed] = useState(false);
 
   async function doClaim() {
     setBusy(true); setError(null);
-    try { await claim(); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+    try {
+      const reward = await claim();
+      if (reward.reward.coins) addCoins(reward.reward.coins);
+      if (reward.reward.xp) addXp(reward.reward.xp);
+      setJustClaimed(true);
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
 
   if (loading) return <div><Header title="Daily Rewards" onBack={goBack} /><div className="p-8 flex justify-center"><Spinner /></div></div>;
@@ -32,7 +40,7 @@ export default function DailyRewards() {
 
         <div className="grid grid-cols-4 gap-2">
           {DAILY_REWARDS.map((d) => {
-            const claimed = d.day < streak || (d.day === streak && !canClaim);
+            const claimed = d.day < streak || (d.day === streak && !canClaim) || justClaimed;
             const isToday = d.day === streak + (canClaim ? 1 : 0) || (d.day === streak && canClaim);
             return (
               <Card key={d.day} className={`text-center ${claimed ? 'bg-success-50 border-success-100' : isToday ? 'ring-2 ring-brand-500' : ''}`}>
@@ -48,8 +56,8 @@ export default function DailyRewards() {
 
         {error && <p className="text-sm text-error-600">{error}</p>}
 
-        <Button fullWidth onClick={doClaim} disabled={!canClaim || busy}>
-          {busy ? <Spinner size={18} className="mx-auto" /> : canClaim ? "Claim Today's Reward" : 'Already Claimed Today'}
+        <Button fullWidth onClick={doClaim} disabled={!canClaim || busy || justClaimed}>
+          {busy ? <Spinner size={18} className="mx-auto" /> : justClaimed ? 'Claimed!' : canClaim ? "Claim Today's Reward" : 'Already Claimed Today'}
         </Button>
       </div>
     </div>

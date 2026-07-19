@@ -8,6 +8,17 @@ export type Screen =
 
 export type QuestType = 'distance' | 'checkpoint' | 'challenge';
 
+export type ChallengeKind =
+  | 'observation' | 'trivia' | 'photography' | 'puzzle' | 'memory'
+  | 'direction' | 'fitness' | 'nature' | 'landmark' | 'exploration'
+  | 'collection' | 'timed' | 'team';
+
+export interface ChallengeSpec {
+  kind: ChallengeKind;
+  title: string;
+  description: string;
+}
+
 export interface Quest {
   id: string;
   type: QuestType;
@@ -16,6 +27,7 @@ export interface Quest {
   target?: number;
   lat?: number;
   lng?: number;
+  challenge?: ChallengeSpec;
   adventureId?: string;
   adventureTitle?: string;
 }
@@ -24,7 +36,7 @@ export interface Adventure {
   id: string;
   title: string;
   description: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard' | 'extreme';
   durationMin: number;
   distanceKm: number;
   startLat: number;
@@ -35,6 +47,7 @@ export interface Adventure {
   tags: string[];
   creator?: string;
   aiGenerated?: boolean;
+  locationName?: string;
 }
 
 export interface Reward { xp: number; coins: number; items?: string[]; achievements?: string[]; }
@@ -116,4 +129,32 @@ export interface SeasonalProgress {
   targetAdventures: number;
   targetDistance: number;
   rewardClaimed: boolean;
+}
+
+export interface GeneratorOptions {
+  prompt?: string;
+  location?: string;
+  maxDistanceKm?: number;
+  minDistanceKm?: number;
+  approxDistanceKm?: number;
+  difficulty?: Adventure['difficulty'];
+  challengeTypes?: ChallengeKind[];
+  durationMin?: number;
+}
+
+export interface NearbyAdventure {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: Adventure['difficulty'];
+  durationMin: number;
+  distanceKm: number;
+  startLat: number;
+  startLng: number;
+  travelMin: number;
+  imageUrl?: string;
+  tags: string[];
+  quests: Quest[];
+  rewards: Reward;
+  locationName: string;
 }

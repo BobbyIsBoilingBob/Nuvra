@@ -14,6 +14,7 @@ export default function Challenges() {
       <Header title="Challenges" onBack={goBack} />
       <div className="px-4 py-4 space-y-3">
         {loading && <div className="flex justify-center"><Spinner /></div>}
+        {!loading && challenges.length === 0 && <p className="text-center text-ink-500 py-8">No active challenges right now.</p>}
         {challenges.map((c) => {
           const pct = Math.min(100, Math.round((c.progress / c.target) * 100));
           return (

@@ -9,7 +9,7 @@ import { Spinner } from '../components/Spinner';
 import { Plus, Trash2, MapPin } from 'lucide-react';
 import type { Adventure, Quest } from '../types';
 
-const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+const DIFFICULTIES = ['easy', 'medium', 'hard', 'extreme'] as const;
 
 export default function Creator() {
   const goBack = useStore((s) => s.goBack);

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
@@ -8,7 +9,16 @@ const QUEST = { id: 'q-daily-walk', title: 'Daily Walk', description: 'Walk at l
 
 export default function QuestDetail() {
   const goBack = useStore((s) => s.goBack);
+  const addXp = useStore((s) => s.addXp);
+  const addCoins = useStore((s) => s.addCoins);
+  const [claimed, setClaimed] = useState(false);
   const pct = Math.min(100, Math.round((QUEST.progress / QUEST.target) * 100));
+
+  function claim() {
+    addXp(QUEST.reward.xp);
+    addCoins(QUEST.reward.coins);
+    setClaimed(true);
+  }
 
   return (
     <div>
@@ -38,9 +48,13 @@ export default function QuestDetail() {
           <p className="text-sm text-ink-600">+{QUEST.reward.xp} XP · +{QUEST.reward.coins} coins</p>
         </Card>
 
-        <Button fullWidth disabled={pct < 100}>
-          {pct >= 100 ? <><Check size={18} className="inline mr-2" />Claim Reward</> : 'Keep walking to complete'}
-        </Button>
+        {claimed ? (
+          <Button fullWidth variant="success" disabled><Check size={18} className="inline mr-2" />Reward Claimed</Button>
+        ) : (
+          <Button fullWidth onClick={claim} disabled={pct < 100}>
+            {pct >= 100 ? 'Claim Reward' : 'Keep walking to complete'}
+          </Button>
+        )}
       </div>
     </div>
   );

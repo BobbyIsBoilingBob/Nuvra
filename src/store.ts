@@ -53,6 +53,9 @@ interface AppState {
 
   cachedProfile: Profile | null;
   setCachedProfile: (p: Profile | null) => void;
+
+  lastKnownLocation: { lat: number; lng: number } | null;
+  setLastKnownLocation: (l: { lat: number; lng: number } | null) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -144,6 +147,9 @@ export const useStore = create<AppState>()(
 
       cachedProfile: null,
       setCachedProfile: (p) => set({ cachedProfile: p }),
+
+      lastKnownLocation: null,
+      setLastKnownLocation: (l) => set({ lastKnownLocation: l }),
     }),
     {
       name: 'zeviqo-store',
@@ -155,6 +161,7 @@ export const useStore = create<AppState>()(
         dailyStreak: state.dailyStreak, onboarded: state.onboarded,
         customAdventures: state.customAdventures,
         cachedProfile: state.cachedProfile,
+        lastKnownLocation: state.lastKnownLocation,
       }),
     },
   ),

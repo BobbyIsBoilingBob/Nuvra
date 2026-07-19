@@ -9,6 +9,8 @@ import { Calendar, Trophy } from 'lucide-react';
 
 export default function Seasonal() {
   const goBack = useStore((s) => s.goBack);
+  const addXp = useStore((s) => s.addXp);
+  const addCoins = useStore((s) => s.addCoins);
   const { progress, loading, claimReward } = useSeasonal();
   const [busy, setBusy] = useState(false);
 
@@ -20,7 +22,11 @@ export default function Seasonal() {
 
   async function doClaim() {
     setBusy(true);
-    try { await claimReward(); } catch { /* ignore */ } finally { setBusy(false); }
+    try {
+      await claimReward();
+      addXp(1000);
+      addCoins(500);
+    } catch { /* ignore */ } finally { setBusy(false); }
   }
 
   return (
