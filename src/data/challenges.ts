@@ -1,124 +1,158 @@
 import type { ChallengeCategory, Difficulty, SensorType } from '@/types/adventure'
 
 export interface ChallengeTemplate {
-  id: string; category: ChallengeCategory; title: string; description: string; difficulty: Difficulty; sensorType: SensorType; sensorConfig?: Record<string, unknown>; data: Record<string, unknown>; rewardXp: number; rewardCoins: number
+  id: string
+  title: string
+  description: string
+  category: ChallengeCategory
+  difficulty: Difficulty
+  sensorType: SensorType
+  sensorConfig?: Record<string, unknown>
+  data?: Record<string, unknown>
+  xp: number
+  coins: number
 }
 
-const REWARD_SCALE: Record<Difficulty, { xp: number; coins: number }> = {
-  easy: { xp: 15, coins: 10 }, medium: { xp: 30, coins: 20 }, hard: { xp: 60, coins: 40 }, extreme: { xp: 120, coins: 80 },
-}
-function reward(difficulty: Difficulty, mult = 1): { rewardXp: number; rewardCoins: number } {
-  const s = REWARD_SCALE[difficulty]; return { rewardXp: Math.round(s.xp * mult), rewardCoins: Math.round(s.coins * mult) }
-}
-
-const EASY: ChallengeTemplate[] = [
-  { id: 'obs-spot-color', category: 'observation', difficulty: 'easy', sensorType: 'none', title: 'Colour Hunter', description: 'Find and name three objects that are coloured red, blue, and green. Look around your current spot.', data: { target: 3, colors: ['red', 'blue', 'green'] }, ...reward('easy') },
-  { id: 'obs-count-people', category: 'observation', difficulty: 'easy', sensorType: 'none', title: 'People Counter', description: 'Count how many people you can see right now. Report the number to continue.', data: { target: 1 }, ...reward('easy') },
-  { id: 'obs-find-sign', category: 'observation', difficulty: 'easy', sensorType: 'none', title: 'Sign Spotter', description: 'Find a street sign or information board nearby and read the first word aloud.', data: { target: 1 }, ...reward('easy') },
-  { id: 'obs-animal', category: 'observation', difficulty: 'easy', sensorType: 'none', title: 'Wildlife Watch', description: 'Spot a bird, insect, or small animal. Note what kind it is.', data: { target: 1 }, ...reward('easy') },
-  { id: 'obs-cloud-shape', category: 'observation', difficulty: 'easy', sensorType: 'none', title: 'Cloud Shapes', description: 'Look up and describe the shape of a cloud you can see right now.', data: { target: 1 }, ...reward('easy') },
-  { id: 'nav-walk-50', category: 'navigation', difficulty: 'easy', sensorType: 'geolocation', title: 'Short Stroll', description: 'Walk 50 metres in any direction. Your GPS will track your progress.', data: { targetMeters: 50 }, ...reward('easy') },
-  { id: 'nav-walk-100', category: 'navigation', difficulty: 'easy', sensorType: 'geolocation', title: 'Hundred Steps', description: 'Walk at least 100 metres from this checkpoint to continue.', data: { targetMeters: 100 }, ...reward('easy') },
-  { id: 'nav-find-intersection', category: 'navigation', difficulty: 'easy', sensorType: 'none', title: 'Crossroads', description: 'Walk to the nearest intersection or path junction and note the street names.', data: { target: 1 }, ...reward('easy') },
-  { id: 'trivia-nature-e1', category: 'trivia', difficulty: 'easy', sensorType: 'none', title: 'Nature Trivia', description: 'What is the tallest tree species in the world?', data: { question: 'What is the tallest tree species?', options: ['Oak', 'Coast Redwood', 'Eucalyptus', 'Pine'], answer: 1 }, ...reward('easy') },
-  { id: 'trivia-geo-e1', category: 'trivia', difficulty: 'easy', sensorType: 'none', title: 'Geography Trivia', description: 'How many continents are there on Earth?', data: { question: 'How many continents are there?', options: ['5', '6', '7', '8'], answer: 2 }, ...reward('easy') },
-  { id: 'trivia-space-e1', category: 'trivia', difficulty: 'easy', sensorType: 'none', title: 'Space Trivia', description: 'Which planet is closest to the Sun?', data: { question: 'Which planet is closest to the Sun?', options: ['Venus', 'Earth', 'Mercury', 'Mars'], answer: 2 }, ...reward('easy') },
-  { id: 'trivia-animal-e1', category: 'trivia', difficulty: 'easy', sensorType: 'none', title: 'Animal Trivia', description: 'How many legs does a spider have?', data: { question: 'How many legs does a spider have?', options: ['6', '8', '10', '4'], answer: 1 }, ...reward('easy') },
-  { id: 'walk-loop', category: 'fitness', difficulty: 'easy', sensorType: 'geolocation', title: 'Mini Loop', description: 'Complete a small loop by walking around a nearby feature and returning to this point.', data: { targetMeters: 80, loop: true }, ...reward('easy') },
-  { id: 'lm-identify', category: 'landmarks', difficulty: 'easy', sensorType: 'none', title: 'Landmark ID', description: 'Find the nearest building or monument and identify its architectural style or age.', data: { target: 1 }, ...reward('easy') },
-  { id: 'nature-tree-id', category: 'nature', difficulty: 'easy', sensorType: 'none', title: 'Tree ID', description: 'Identify the species of the nearest tree using its leaves, bark, or shape.', data: { target: 1 }, ...reward('easy') },
-  { id: 'collect-leaves', category: 'collection', difficulty: 'easy', sensorType: 'none', title: 'Leaf Collector', description: 'Collect (or photograph) three different fallen leaves. Note their shapes.', data: { target: 3 }, ...reward('easy') },
-  { id: 'explore-new-path', category: 'exploration', difficulty: 'easy', sensorType: 'geolocation', title: 'New Path', description: 'Take a path or street you have never walked before for at least 100 metres.', data: { targetMeters: 100 }, ...reward('easy') },
-]
-
-const MEDIUM: ChallengeTemplate[] = [
-  { id: 'photo-nature', category: 'photography', difficulty: 'medium', sensorType: 'camera', title: 'Nature Shot', description: 'Take a photo of a natural element — a flower, leaf, tree bark, or rock formation — that catches your eye.', data: { subject: 'nature' }, ...reward('medium') },
-  { id: 'photo-pattern', category: 'photography', difficulty: 'medium', sensorType: 'camera', title: 'Pattern Finder', description: 'Photograph a repeating pattern you find in the environment: bricks, tiles, ripples, or shadows.', data: { subject: 'pattern' }, ...reward('medium') },
-  { id: 'photo-perspective', category: 'photography', difficulty: 'medium', sensorType: 'camera', title: 'Forced Perspective', description: 'Take a creative photo using forced perspective — make something small look large, or vice versa.', data: { subject: 'perspective' }, ...reward('medium') },
-  { id: 'photo-texture', category: 'photography', difficulty: 'medium', sensorType: 'camera', title: 'Texture Hunt', description: 'Capture a close-up photo of an interesting texture: rough stone, smooth water, or furry bark.', data: { subject: 'texture' }, ...reward('medium') },
-  { id: 'mem-observe-30', category: 'memory', difficulty: 'medium', sensorType: 'none', title: '30-Second Memory', description: 'Study your surroundings for 30 seconds. Then close your eyes and list five things you remember.', data: { studySeconds: 30, recallCount: 5 }, ...reward('medium') },
-  { id: 'mem-sequence', category: 'memory', difficulty: 'medium', sensorType: 'none', title: 'Sequence Recall', description: 'Memorise this sequence: tree, bench, sign, path, bird. Walk 50 metres, then recite it in order.', data: { sequence: ['tree', 'bench', 'sign', 'path', 'bird'] }, ...reward('medium') },
-  { id: 'mem-colors', category: 'memory', difficulty: 'medium', sensorType: 'none', title: 'Colour Memory', description: 'Look around for 15 seconds. Then list every blue and yellow object you saw.', data: { studySeconds: 15, colors: ['blue', 'yellow'] }, ...reward('medium') },
-  { id: 'compass-face-north', category: 'compass', difficulty: 'medium', sensorType: 'compass', title: 'True North', description: 'Use your compass to face exactly north (0°). Hold steady for 3 seconds.', data: { targetHeading: 0, holdSeconds: 3 }, ...reward('medium') },
-  { id: 'compass-face-east', category: 'compass', difficulty: 'medium', sensorType: 'compass', title: 'Face East', description: 'Turn to face east (90°). Hold the heading steady for 3 seconds.', data: { targetHeading: 90, holdSeconds: 3 }, ...reward('medium') },
-  { id: 'compass-turn-180', category: 'compass', difficulty: 'medium', sensorType: 'compass', title: 'About Face', description: 'Note your current heading, then turn exactly 180° in either direction.', data: { turnDegrees: 180 }, ...reward('medium') },
-  { id: 'compass-walk-north-50', category: 'compass', difficulty: 'medium', sensorType: 'compass', title: 'Walk North', description: 'Walk 50 metres heading as close to north as possible. Your compass tracks your heading.', data: { targetHeading: 0, targetMeters: 50 }, ...reward('medium') },
-  { id: 'fit-step-count', category: 'fitness', difficulty: 'medium', sensorType: 'accelerometer', title: 'Step Counter', description: 'Walk 200 steps. Your phone accelerometer will count them.', data: { targetSteps: 200 }, ...reward('medium') },
-  { id: 'fit-pace-walk', category: 'fitness', difficulty: 'medium', sensorType: 'geolocation', title: 'Pace Walk', description: 'Walk 300 metres at a steady pace without stopping.', data: { targetMeters: 300, noStop: true }, ...reward('medium') },
-  { id: 'fit-climb', category: 'fitness', difficulty: 'medium', sensorType: 'geolocation', title: 'Elevation Gain', description: 'Walk to a point that is at least 5 metres higher in elevation than this checkpoint.', data: { elevationGain: 5 }, ...reward('medium') },
-  { id: 'nav-walk-200', category: 'navigation', difficulty: 'medium', sensorType: 'geolocation', title: 'Direction March', description: 'Walk 200 metres from this checkpoint to the next waypoint.', data: { targetMeters: 200 }, ...reward('medium') },
-  { id: 'nav-three-landmarks', category: 'navigation', difficulty: 'medium', sensorType: 'none', title: 'Three Landmarks', description: 'Identify three distinct landmarks visible from here and note their directions.', data: { target: 3 }, ...reward('medium') },
-  { id: 'lm-historic', category: 'landmarks', difficulty: 'medium', sensorType: 'none', title: 'History Hunter', description: 'Find a historic plaque or marker. Read and summarise its text in one sentence.', data: { target: 1 }, ...reward('medium') },
-  { id: 'nature-birdcall', category: 'nature', difficulty: 'medium', sensorType: 'none', title: 'Bird Call', description: 'Listen for 2 minutes and identify two different bird calls by description.', data: { listenSeconds: 120, target: 2 }, ...reward('medium') },
-  { id: 'collect-stones', category: 'collection', difficulty: 'medium', sensorType: 'none', title: 'Stone Sampler', description: 'Find and photograph three stones of different colours or textures.', data: { target: 3 }, ...reward('medium') },
-  { id: 'team-sync-walk', category: 'team', difficulty: 'medium', sensorType: 'geolocation', title: 'Sync Walk', description: 'Walk 100 metres while staying within 5 metres of your adventure partner.', data: { targetMeters: 100, maxSeparation: 5 }, ...reward('medium') },
-  { id: 'reaction-quick-snap', category: 'reaction', difficulty: 'medium', sensorType: 'camera', title: 'Quick Snap', description: 'Within 10 seconds, spot and photograph a moving element (bird, cloud, person, car).', data: { timeLimit: 10 }, ...reward('medium') },
-  { id: 'timed-photo-5', category: 'timed', difficulty: 'medium', sensorType: 'camera', title: 'Five in Five', description: 'Take five different photos in five minutes. Each must be a different subject.', data: { timeLimit: 300, target: 5 }, ...reward('medium') },
-]
-
-const HARD: ChallengeTemplate[] = [
-  { id: 'puzzle-riddle-1', category: 'puzzle', difficulty: 'hard', sensorType: 'none', title: 'Path Riddle', description: 'I have no voice but I tell you the way. I have no feet but I travel all day. What am I? Walk to the answer.', data: { riddle: 'I have no voice but I tell you the way. I have no feet but I travel all day.', answer: 'sign' }, ...reward('hard') },
-  { id: 'puzzle-cipher', category: 'puzzle', difficulty: 'hard', sensorType: 'none', title: 'Letter Shift', description: 'Decode this: each letter is shifted by 2. "UQOG" — what word is it? (Answer: SONG)', data: { cipher: 'UQOG', shift: 2, answer: 'SONG' }, ...reward('hard') },
-  { id: 'puzzle-logic', category: 'puzzle', difficulty: 'hard', sensorType: 'none', title: 'Logic Gate', description: 'A man walks 3 km north, 4 km east, then 3 km south. How far is he from where he started? (Answer: 4 km)', data: { question: 'A man walks 3km north, 4km east, 3km south. Distance from start?', options: ['3 km', '4 km', '5 km', '10 km'], answer: 1 }, ...reward('hard') },
-  { id: 'puzzle-word-scramble', category: 'puzzle', difficulty: 'hard', sensorType: 'none', title: 'Word Scramble', description: 'Unscramble these letters to find an outdoor word: T R E A W F L L E — (Answer: WATERFALL)', data: { scramble: 'TREAWFLLLE', answer: 'WATERFALL' }, ...reward('hard') },
-  { id: 'nav-walk-500', category: 'navigation', difficulty: 'hard', sensorType: 'geolocation', title: 'Long Haul', description: 'Navigate 500 metres to the next checkpoint. Stay on safe paths.', data: { targetMeters: 500 }, ...reward('hard') },
-  { id: 'nav-triangulate', category: 'navigation', difficulty: 'hard', sensorType: 'compass', title: 'Triangulate', description: 'Use your compass to take bearings on two visible landmarks. Note the intersection.', data: { target: 2 }, ...reward('hard') },
-  { id: 'timed-quick-obs', category: 'timed', difficulty: 'hard', sensorType: 'none', title: 'Speed Observe', description: 'You have 60 seconds to find and photograph three different types of leaf. Go!', data: { timeLimit: 60, target: 3, subject: 'leaf' }, ...reward('hard') },
-  { id: 'timed-sprint', category: 'timed', difficulty: 'hard', sensorType: 'geolocation', title: 'Speed Sprint', description: 'Reach the next checkpoint within 5 minutes. The clock starts now.', data: { timeLimit: 300 }, ...reward('hard') },
-  { id: 'decision-route', category: 'exploration', difficulty: 'hard', sensorType: 'none', title: 'Crossroads Choice', description: 'You face two paths. The left is shorter but hilly; the right is longer but flat. Choose and commit.', data: { choices: ['left-hilly-short', 'right-flat-long'] }, ...reward('hard') },
-  { id: 'obs-detailed-scan', category: 'observation', difficulty: 'hard', sensorType: 'none', title: 'Detail Scan', description: 'Find and describe five different plant species within 20 metres of this point.', data: { target: 5 }, ...reward('hard') },
-  { id: 'obs-shadow', category: 'observation', difficulty: 'hard', sensorType: 'none', title: 'Shadow Reader', description: 'Determine the approximate time of day using only the direction and length of shadows.', data: { target: 1 }, ...reward('hard') },
-  { id: 'photo-story', category: 'photography', difficulty: 'hard', sensorType: 'camera', title: 'Photo Story', description: 'Take a series of 3 photos that tell a story about this place: wide context, medium detail, close-up.', data: { subject: 'story', count: 3 }, ...reward('hard') },
-  { id: 'photo-reflection', category: 'photography', difficulty: 'hard', sensorType: 'camera', title: 'Reflection Shot', description: 'Find water, glass, or another reflective surface and capture a creative reflection photo.', data: { subject: 'reflection' }, ...reward('hard') },
-  { id: 'mem-map-study', category: 'memory', difficulty: 'hard', sensorType: 'none', title: 'Mental Map', description: 'Study the area for 60 seconds. Then draw a rough map from memory showing paths and landmarks.', data: { studySeconds: 60 }, ...reward('hard') },
-  { id: 'lm-sketch', category: 'landmarks', difficulty: 'hard', sensorType: 'none', title: 'Quick Sketch', description: 'Choose a landmark and spend 2 minutes sketching its outline on paper or in your mind.', data: { timeLimit: 120 }, ...reward('hard') },
-  { id: 'nature-ecosystem', category: 'nature', difficulty: 'hard', sensorType: 'none', title: 'Ecosystem Survey', description: 'Document the mini-ecosystem around you: identify a producer, consumer, and decomposer.', data: { target: 3 }, ...reward('hard') },
-  { id: 'team-relay', category: 'team', difficulty: 'hard', sensorType: 'none', title: 'Memory Relay', description: 'One partner memorises a 5-item list, walks 50m, and recites it to the other. Then swap.', data: { sequence: ['tree', 'rock', 'path', 'sign', 'water'], targetMeters: 50 }, ...reward('hard') },
-  { id: 'reaction-stop-on-cue', category: 'reaction', difficulty: 'hard', sensorType: 'accelerometer', title: 'Freeze Frame', description: 'Walk for 30 seconds. When the cue appears, stop immediately. Your accelerometer detects if you hold still.', data: { walkSeconds: 30, freezeSeconds: 3 }, ...reward('hard') },
-  { id: 'explore-hidden', category: 'exploration', difficulty: 'hard', sensorType: 'none', title: 'Hidden Gem', description: 'Find something interesting that most people would walk past: a tiny garden, a mural, an unusual door.', data: { target: 1 }, ...reward('hard') },
-]
-
-const EXTREME: ChallengeTemplate[] = [
-  { id: 'sensor-balance-beam', category: 'balance', difficulty: 'extreme', sensorType: 'accelerometer', title: 'Balance Beam', description: 'Keep your phone approximately vertical (tilt under 15°) while walking 100 metres. The accelerometer monitors your balance.', data: { targetMeters: 100, maxTilt: 15 }, sensorConfig: { maxTiltDeg: 15, targetMeters: 100 }, ...reward('extreme') },
-  { id: 'sensor-level-walk', category: 'balance', difficulty: 'extreme', sensorType: 'accelerometer', title: 'Level Walk', description: 'Keep your phone level (tilt under 10°) while walking 80 metres. Any sharp tilt resets your progress.', data: { targetMeters: 80, maxTilt: 10 }, sensorConfig: { maxTiltDeg: 10, targetMeters: 80 }, ...reward('extreme') },
-  { id: 'sensor-compass-precision', category: 'compass', difficulty: 'extreme', sensorType: 'compass', title: 'Precision Compass', description: 'Face heading 45° (north-east) and hold within ±3° for 5 seconds. Then walk 75 metres maintaining heading.', data: { targetHeading: 45, tolerance: 3, holdSeconds: 5, targetMeters: 75 }, ...reward('extreme') },
-  { id: 'sensor-rotation-match', category: 'balance', difficulty: 'extreme', sensorType: 'gyroscope', title: 'Rotation Match', description: 'Rotate your phone to match three target orientations: 90°, 180°, then 270°. Hold each for 2 seconds.', data: { targets: [90, 180, 270], holdSeconds: 2 }, ...reward('extreme') },
-  { id: 'sensor-motion-steady', category: 'fitness', difficulty: 'extreme', sensorType: 'accelerometer', title: 'Steady Motion', description: 'Walk 150 metres at a consistent pace without stopping or sudden movements. The accelerometer tracks your steadiness.', data: { targetMeters: 150, maxJerk: 3 }, ...reward('extreme') },
-  { id: 'puzzle-chain', category: 'puzzle', difficulty: 'extreme', sensorType: 'none', title: 'Puzzle Chain', description: 'Solve three puzzles in sequence: 1) Unscramble K A E L (LAKE), 2) What has roots but never grows? (answer: route), 3) Decode X L I (shift 3 back = ULI... no — answer: RIVER from "ULYHU" shift 3).', data: { steps: ['LAKE', 'route', 'RIVER'] }, ...reward('extreme') },
-  { id: 'puzzle-multi-stage', category: 'puzzle', difficulty: 'extreme', sensorType: 'none', title: 'Multi-Stage Mystery', description: 'Stage 1: Count the benches visible. Stage 2: Multiply by 3. Stage 3: Walk that many metres north. Report the number.', data: { stages: 3 }, ...reward('extreme') },
-  { id: 'objective-multi', category: 'exploration', difficulty: 'extreme', sensorType: 'geolocation', title: 'Triple Objective', description: 'Complete three tasks in order: 1) Walk 200m north, 2) Photograph a landmark, 3) Walk 200m east to the finish.', data: { steps: ['walk-north-200', 'photo-landmark', 'walk-east-200'] }, ...reward('extreme') },
-  { id: 'objective-collection', category: 'collection', difficulty: 'extreme', sensorType: 'camera', title: 'Complete Collection', description: 'Photograph five different natural items: a leaf, a stone, a flower, bark, and water. All five required.', data: { targets: ['leaf', 'stone', 'flower', 'bark', 'water'], count: 5 }, ...reward('extreme') },
-  { id: 'mixed-nav-photo', category: 'exploration', difficulty: 'extreme', sensorType: 'camera', title: 'Navigate & Document', description: 'Walk 300 metres to a viewpoint, then take a panoramic photo showing the route you travelled.', data: { targetMeters: 300, photoType: 'panorama' }, ...reward('extreme') },
-  { id: 'mixed-memory-nav', category: 'memory', difficulty: 'extreme', sensorType: 'geolocation', title: 'Memory Route', description: 'Memorise a 6-item sequence, walk 250 metres, then recite the sequence in order at the checkpoint.', data: { sequence: ['oak', 'bridge', 'fountain', 'bench', 'sign', 'gate'], targetMeters: 250 }, ...reward('extreme') },
-  { id: 'mixed-compass-puzzle', category: 'compass', difficulty: 'extreme', sensorType: 'compass', title: 'Compass Cipher', description: 'Face north and decode: each letter shifts by the number of the nearest cardinal direction. "N B O O" → (N=0 shift) → "N B O O"... solve: LOOK.', data: { cipher: 'NBOO', answer: 'LOOK' }, ...reward('extreme') },
-  { id: 'timed-landmark-rush', category: 'timed', difficulty: 'extreme', sensorType: 'geolocation', title: 'Landmark Rush', description: 'Visit three checkpoints within 10 minutes. GPS tracks your arrival at each.', data: { timeLimit: 600, targets: 3 }, ...reward('extreme') },
-]
-
-export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [...EASY, ...MEDIUM, ...HARD, ...EXTREME]
-
-export function challengesByDifficulty(difficulty: Difficulty): ChallengeTemplate[] {
-  return CHALLENGE_LIBRARY.filter((c) => c.difficulty === difficulty)
-}
-
-export function challengesForGeneration(difficulty: Difficulty, categories?: ChallengeCategory[]): ChallengeTemplate[] {
-  let pool = challengesByDifficulty(difficulty)
-  if (pool.length < 4) {
-    const order: Difficulty[] = ['easy', 'medium', 'hard', 'extreme']
-    const idx = order.indexOf(difficulty)
-    const adjacent = [order[idx - 1], order[idx + 1]].filter(Boolean) as Difficulty[]
-    for (const d of adjacent) pool = pool.concat(challengesByDifficulty(d))
+const reward = (d: Difficulty): { xp: number; coins: number } => {
+  switch (d) {
+    case 'easy': return { xp: 15, coins: 10 }
+    case 'medium': return { xp: 35, coins: 25 }
+    case 'hard': return { xp: 70, coins: 50 }
+    case 'extreme': return { xp: 120, coins: 80 }
   }
-  if (categories && categories.length > 0) {
-    const filtered = pool.filter((c) => categories.includes(c.category))
-    if (filtered.length > 0) return filtered
-  }
+}
+
+const mk = (
+  id: string,
+  title: string,
+  description: string,
+  category: ChallengeCategory,
+  difficulty: Difficulty,
+  sensorType: SensorType = 'none',
+  extra: Partial<ChallengeTemplate> = {},
+): ChallengeTemplate => ({
+  id, title, description, category, difficulty, sensorType,
+  ...reward(difficulty),
+  ...extra,
+})
+
+export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [
+  // EASY (17)
+  mk('obs-e1', 'Spot the Colour', 'Find 3 objects matching the colour of the sky today.', 'observation', 'easy'),
+  mk('obs-e2', 'Cloud Shapes', 'Identify 3 different shapes in the clouds above.', 'observation', 'easy'),
+  mk('obs-e3', 'Texture Hunt', 'Touch 4 different natural textures (bark, leaf, stone, grass).', 'observation', 'easy'),
+  mk('photo-e1', 'Snap a Sign', 'Photograph a directional or street sign near you.', 'photography', 'easy'),
+  mk('photo-e2', 'Nature Close-up', 'Take a close-up photo of a leaf or flower.', 'photography', 'easy'),
+  mk('photo-e3', 'Shadow Shot', 'Capture an interesting shadow on the ground.', 'photography', 'easy'),
+  mk('fit-e1', 'Pace Walk', 'Walk 300 metres at a steady pace without stopping.', 'fitness', 'easy'),
+  mk('fit-e2', 'Step Counter', 'Count your steps for 2 minutes — aim for 200+.', 'fitness', 'easy'),
+  mk('mem-e1', 'Recall 5', 'Memorise 5 items you pass, then recite them at the finish.', 'memory', 'easy'),
+  mk('nav-e1', 'Left or Right', 'At the next junction, take the path less travelled.', 'navigation', 'easy'),
+  mk('lm-e1', 'Find a Bench', 'Locate the nearest public bench or seat.', 'landmarks', 'easy'),
+  mk('nature-e1', 'Bird Call', 'Listen for and identify 2 different bird calls.', 'nature', 'easy'),
+  mk('nature-e2', 'Tree Count', 'Count the number of trees within 50 metres of you.', 'nature', 'easy'),
+  mk('collect-e1', 'Gather 3 Leaves', 'Collect 3 different fallen leaves along the route.', 'collection', 'easy'),
+  mk('trivia-e1', 'Local Trivia', 'Answer a simple trivia question about your area.', 'trivia', 'easy', 'none', { data: { question: 'What is the capital of your country?', answers: ['Try your best!'], correct: 0 } }),
+  mk('explore-e1', 'New Path', 'Take a route you have never walked before.', 'exploration', 'easy'),
+  mk('reaction-e1', 'Quick Snap', 'When you see a dog, snap a photo within 5 seconds.', 'reaction', 'easy'),
+
+  // MEDIUM (22)
+  mk('obs-m1', 'Pattern Seeker', 'Find 3 repeating patterns in architecture or nature.', 'observation', 'medium'),
+  mk('obs-m2', 'Count Windows', 'Count the total windows on a building you pass.', 'observation', 'medium'),
+  mk('obs-m3', 'Wildlife Spotting', 'Spot 3 different types of animals or insects.', 'observation', 'medium'),
+  mk('photo-m1', 'Perspective Shot', 'Take a photo from an unusual angle or perspective.', 'photography', 'medium'),
+  mk('photo-m2', 'Reflection', 'Find and photograph a reflection in water or glass.', 'photography', 'medium'),
+  mk('photo-m3', 'Golden Frame', 'Frame a shot using natural elements as a border.', 'photography', 'medium'),
+  mk('fit-m1', 'Elevation Gain', 'Find and climb a hill or stairs — gain at least 10m elevation.', 'fitness', 'medium'),
+  mk('fit-m2', 'Power Walk', 'Walk briskly for 500 metres without slowing down.', 'fitness', 'medium'),
+  mk('fit-m3', 'Sprint Interval', 'Sprint for 30 seconds, walk for 60 — repeat 3 times.', 'fitness', 'medium'),
+  mk('puzzle-m1', 'Word Scramble', 'Unscramble the letters from 3 street signs to form a word.', 'puzzle', 'medium'),
+  mk('puzzle-m2', 'Number Logic', 'Find 3 consecutive house numbers and predict the next.', 'puzzle', 'medium'),
+  mk('mem-m1', 'Memory Lane', 'Memorise the order of 7 landmarks along the route.', 'memory', 'medium'),
+  mk('nav-m1', 'Compass Walk', 'Walk 200 metres north, then 200 metres east.', 'navigation', 'medium', 'compass', { sensorConfig: { targetHeading: 0 } }),
+  mk('nav-m2', 'Bearing Check', 'Check your compass bearing at each checkpoint.', 'navigation', 'medium', 'compass'),
+  mk('lm-m1', 'Historical Marker', 'Find and read a historical plaque or monument.', 'landmarks', 'medium'),
+  mk('lm-m2', 'Bridge Crossing', 'Find and cross a bridge along your route.', 'landmarks', 'medium'),
+  mk('nature-m1', 'Plant ID', 'Identify 3 different plant species by leaf shape.', 'nature', 'medium'),
+  mk('nature-m2', 'Insect Hunt', 'Find and photograph 3 different insect species.', 'nature', 'medium'),
+  mk('collect-m1', 'Rock Collection', 'Collect 3 interesting rocks of different colours.', 'collection', 'medium'),
+  mk('trivia-m1', 'Geography Quiz', 'Answer a geography question about your region.', 'trivia', 'medium', 'none', { data: { question: 'Which river is closest to your current location?', answers: ['A', 'B', 'C', 'D'], correct: 0 } }),
+  mk('team-m1', 'Sync Step', 'Walk in sync with a partner for 100 steps.', 'team', 'medium'),
+  mk('explore-m1', 'Hidden Alley', 'Find a path or alley you have never noticed before.', 'exploration', 'medium'),
+
+  // HARD (19)
+  mk('obs-h1', 'Architectural Era', 'Identify 3 buildings from different architectural periods.', 'observation', 'hard'),
+  mk('obs-h2', 'Material Survey', 'Catalogue 5 different building materials used nearby.', 'observation', 'hard'),
+  mk('photo-h1', 'Panorama', 'Take a 180-degree panorama photo from a high point.', 'photography', 'hard'),
+  mk('photo-h2', 'Long Exposure', 'Capture motion blur of water or traffic.', 'photography', 'hard'),
+  mk('fit-h1', 'Hill Repeats', 'Find a steep hill and climb it 3 times.', 'fitness', 'hard'),
+  mk('fit-h2', 'Distance Push', 'Walk 1.5 km without stopping at a brisk pace.', 'fitness', 'hard'),
+  mk('fit-h3', 'Step Master', 'Climb 200+ steps in a single session.', 'fitness', 'hard'),
+  mk('puzzle-h1', 'Coordinate Clue', 'Use GPS coordinates to find a hidden checkpoint.', 'puzzle', 'hard', 'gps', { sensorConfig: { targetRadius: 20 } }),
+  mk('puzzle-h2', 'Cipher Decode', 'Decode a simple substitution cipher from clues.', 'puzzle', 'hard', 'none', { data: { question: 'Decode: X J M F Q = ?', answers: ['WATER', 'WORLD', 'WHEAT', 'WORTH'], correct: 0 } }),
+  mk('mem-h1', 'Map Memory', 'Study a route map for 30 seconds, then navigate from memory.', 'memory', 'hard'),
+  mk('nav-h1', 'Precision Compass', 'Navigate to a specific bearing within 5 degrees accuracy.', 'navigation', 'hard', 'compass', { sensorConfig: { targetHeading: 45, tolerance: 5 } }),
+  mk('nav-h2', 'Triangulation', 'Use 3 landmarks to determine your position.', 'navigation', 'hard'),
+  mk('lm-h1', 'Oldest Structure', 'Find the oldest building or structure on your route.', 'landmarks', 'hard'),
+  mk('nature-h1', 'Ecosystem Survey', 'Document 5 species in a 10m radius — plant or animal.', 'nature', 'hard'),
+  mk('nature-h2', 'Track Identification', 'Find and identify animal tracks or signs.', 'nature', 'hard'),
+  mk('collect-h1', 'Seed Gathering', 'Collect seeds from 3 different tree species.', 'collection', 'hard'),
+  mk('trivia-h1', 'History Challenge', 'Answer a hard history question about your city.', 'trivia', 'hard', 'none', { data: { question: 'In what century was your city founded?', answers: ['16th', '17th', '18th', '19th'], correct: 0 } }),
+  mk('balance-h1', 'Balance Beam', 'Walk a narrow path or curb for 20 metres without stepping off.', 'balance', 'hard', 'accelerometer', { sensorConfig: { threshold: 1.5 } }),
+  mk('reaction-h1', 'Speed Snap', 'Photograph a moving object (bird, cyclist) within 3 seconds.', 'reaction', 'hard'),
+
+  // EXTREME (13)
+  mk('obs-x1', 'Night Observer', 'At dusk, identify 5 constellations or night phenomena.', 'observation', 'extreme'),
+  mk('photo-x1', 'Astrophotography', 'Capture a photo of the night sky with minimal light pollution.', 'photography', 'extreme'),
+  mk('fit-x1', 'Endurance March', 'Walk 5 km without stopping at a fast pace.', 'fitness', 'extreme'),
+  mk('fit-x2', 'Mountain Climb', 'Gain 100+ metres of elevation in a single climb.', 'fitness', 'extreme'),
+  mk('puzzle-x1', 'Multi-Stage Riddle', 'Solve a 3-part riddle using clues from 3 different checkpoints.', 'puzzle', 'extreme'),
+  mk('nav-x1', 'Dead Reckoning', 'Navigate 1 km using only compass and stride count — no GPS.', 'navigation', 'extreme', 'compass', { sensorConfig: { targetHeading: 180, distance: 1000 } }),
+  mk('nav-x2', 'Night Navigation', 'Navigate a route after dark using only a compass.', 'navigation', 'extreme', 'compass'),
+  mk('lm-x1', 'Summit Marker', 'Reach the highest point visible from your start location.', 'landmarks', 'extreme'),
+  mk('nature-x1', 'Biome Transition', 'Walk from one biome to another (e.g. forest to field) and document the change.', 'nature', 'extreme'),
+  mk('balance-x1', 'Level Walk', 'Walk 50 metres on uneven terrain holding a balanced object.', 'balance', 'extreme', 'accelerometer', { sensorConfig: { threshold: 2.0, duration: 50 } }),
+  mk('balance-x2', 'Tightrope Challenge', 'Walk a fallen log or narrow beam for 30 metres.', 'balance', 'extreme', 'gyroscope', { sensorConfig: { threshold: 1.0 } }),
+  mk('reaction-x1', 'Lightning Strike', 'Photograph lightning or a sudden weather event.', 'reaction', 'extreme'),
+  mk('team-x1', 'Relay Route', 'Complete a 2-stage relay with a partner, each walking 1 km.', 'team', 'extreme'),
+]
+
+export const challengesByDifficulty = (d: Difficulty) => CHALLENGE_LIBRARY.filter(c => c.difficulty === d)
+
+export const challengesForGeneration = (
+  difficulty: Difficulty,
+  categories: ChallengeCategory[],
+  sensorAvail: SensorAvailability,
+): ChallengeTemplate[] => {
+  let pool = CHALLENGE_LIBRARY.filter(c => c.difficulty === difficulty)
+  if (categories.length > 0) pool = pool.filter(c => categories.includes(c.category))
+  pool = pool.filter(c => {
+    if (c.sensorType === 'none') return true
+    return sensorAvail[c.sensorType] ?? false
+  })
   return pool
 }
 
+export const ALL_CATEGORIES: { id: ChallengeCategory; label: string; icon: string }[] = [
+  { id: 'observation', label: 'Observation', icon: '👁' },
+  { id: 'photography', label: 'Photography', icon: '📷' },
+  { id: 'fitness', label: 'Fitness', icon: '💪' },
+  { id: 'puzzle', label: 'Puzzle', icon: '🧩' },
+  { id: 'memory', label: 'Memory', icon: '🧠' },
+  { id: 'navigation', label: 'Navigation', icon: '🧭' },
+  { id: 'compass', label: 'Compass', icon: '🧭' },
+  { id: 'landmarks', label: 'Landmarks', icon: '🏛' },
+  { id: 'nature', label: 'Nature', icon: '🌿' },
+  { id: 'collection', label: 'Collection', icon: '🎒' },
+  { id: 'trivia', label: 'Trivia', icon: '❓' },
+  { id: 'timed', label: 'Timed', icon: '⏱' },
+  { id: 'team', label: 'Team', icon: '👥' },
+  { id: 'exploration', label: 'Exploration', icon: '🗺' },
+  { id: 'balance', label: 'Balance', icon: '⚖️' },
+  { id: 'reaction', label: 'Reaction', icon: '⚡' },
+]
+
 export const TOTAL_CHALLENGES = CHALLENGE_LIBRARY.length
 
-export const ALL_CATEGORIES: ChallengeCategory[] = [
-  'observation', 'photography', 'fitness', 'puzzle', 'memory', 'navigation',
-  'compass', 'landmarks', 'nature', 'collection', 'trivia', 'timed',
-  'team', 'exploration', 'balance', 'reaction',
-]
+// Need to import SensorAvailability type
+import type { SensorAvailability } from '@/types/adventure'

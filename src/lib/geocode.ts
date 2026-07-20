@@ -1,35 +1,38 @@
 import type { GeoPoint } from '@/types/adventure'
 
-interface NominatimResult { lat: string; lon: string; display_name: string; type: string; importance: number; address?: Record<string, string> }
-
-const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search'
-const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse'
-
-export interface GeocodeResult extends GeoPoint { label: string; type: string }
+export interface GeocodeResult {
+  label: string
+  point: GeoPoint
+  displayName: string
+}
 
 export async function geocodeLocation(query: string): Promise<GeocodeResult | null> {
-  const trimmed = query.trim()
-  if (!trimmed) return null
-  const url = `${NOMINATIM_SEARCH}?format=json&q=${encodeURIComponent(trimmed)}&limit=1&addressdetails=1`
+  if (!query.trim()) return null
   try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
     if (!res.ok) return null
-    const data = (await res.json()) as NominatimResult[]
-    if (!data || data.length === 0) return null
+    const data = await res.json()
+    if (!Array.isArray(data) || data.length === 0) return null
     const r = data[0]
-    return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), label: r.display_name, type: r.type }
-  } catch { return null }
+    return {
+      label: r.name || query,
+      point: { lat: parseFloat(r.lat), lng: parseFloat(r.lon) },
+      displayName: r.display_name || r.name || query,
+    }
+  } catch {
+    return null
+  }
 }
 
 export async function reverseGeocode(point: GeoPoint): Promise<string | null> {
-  const url = `${NOMINATIM_REVERSE}?format=json&lat=${point.lat}&lon=${point.lng}&zoom=14&addressdetails=1`
   try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${point.lat}&lon=${point.lng}&format=json`
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
     if (!res.ok) return null
-    const r = (await res.json()) as NominatimResult
-    if (!r || !r.address) return r?.display_name ?? null
-    const a = r.address
-    const parts = [a.suburb || a.neighbourhood || a.hamlet, a.city || a.town || a.village || a.municipality, a.state].filter(Boolean)
-    return parts.length > 0 ? parts.join(', ') : (r.display_name ?? null)
-  } catch { return null }
+    const data = await res.json()
+    return data.display_name || data.name || null
+  } catch {
+    return null
+  }
 }

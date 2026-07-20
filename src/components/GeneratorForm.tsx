@@ -1,101 +1,204 @@
 import { useState } from 'react'
-import type { AdventurePreferences, ChallengeCategory, Difficulty } from '@/types/adventure'
+import type { AdventurePreferences, ChallengeCategory, Difficulty, GpsStatus, SensorAvailability } from '@/types/adventure'
 import { ALL_CATEGORIES } from '@/data/challenges'
 import { detectSensors } from '@/lib/sensors'
+import { getCurrentPosition } from '@/lib/gps'
 
-export interface GeneratorFormProps {
-  onGenerate: (prefs: AdventurePreferences, location: string) => void
-  onUseGps: () => void
-  gpsStatus: string
-  isGenerating: boolean
+interface Props {
+  onGenerate: (prefs: AdventurePreferences, center: { lat: number; lng: number } | null, locationName: string) => void
+  gpsStatus: GpsStatus
+  setGpsStatus: (s: GpsStatus) => void
 }
 
-const DIFFICULTIES: { value: Difficulty; label: string; color: string }[] = [
-  { value: 'easy', label: 'Easy', color: 'bg-brand-600' },
-  { value: 'medium', label: 'Medium', color: 'bg-sky-600' },
-  { value: 'hard', label: 'Hard', color: 'bg-accent-600' },
-  { value: 'extreme', label: 'Extreme', color: 'bg-red-600' },
+const DIFFICULTIES: { id: Difficulty; label: string; color: string }[] = [
+  { id: 'easy', label: 'Easy', color: 'bg-success-500' },
+  { id: 'medium', label: 'Medium', color: 'bg-accent-500' },
+  { id: 'hard', label: 'Hard', color: 'bg-error-500' },
+  { id: 'extreme', label: 'Extreme', color: 'bg-purple-500' },
 ]
+
 const DURATIONS = [20, 30, 45, 60, 90, 120, 240]
-const CATEGORY_LABELS: Record<ChallengeCategory, string> = {
-  observation: 'Observation', photography: 'Photography', fitness: 'Fitness', puzzle: 'Puzzle', memory: 'Memory', navigation: 'Navigation',
-  compass: 'Compass', landmarks: 'Landmarks', nature: 'Nature', collection: 'Collection', trivia: 'Trivia', timed: 'Timed',
-  team: 'Team', exploration: 'Exploration', balance: 'Balance', reaction: 'Reaction',
+const DURATION_LABELS: Record<number, string> = {
+  20: '20 min', 30: '30 min', 45: '45 min', 60: '1 hr', 90: '1.5 hr', 120: '2 hr', 240: '4 hr',
 }
 
-export function GeneratorForm({ onGenerate, onUseGps, gpsStatus, isGenerating }: GeneratorFormProps) {
+export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: Props) {
   const [location, setLocation] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [duration, setDuration] = useState(45)
-  const [maxDistance, setMaxDistance] = useState<number | ''>('')
-  const [minDistance, setMinDistance] = useState<number | ''>('')
-  const [approxDistance, setApproxDistance] = useState<number | ''>('')
-  const [selectedCategories, setSelectedCategories] = useState<ChallengeCategory[]>([])
-  const sensors = detectSensors()
+  const [maxKm, setMaxKm] = useState('')
+  const [minKm, setMinKm] = useState('')
+  const [approxKm, setApproxKm] = useState('')
+  const [cats, setCats] = useState<ChallengeCategory[]>([])
+  const [generating, setGenerating] = useState(false)
+  const [sensorAvail] = useState<SensorAvailability>(detectSensors())
 
-  const toggleCategory = (cat: ChallengeCategory) => setSelectedCategories((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat])
+  const toggleCat = (c: ChallengeCategory) => {
+    setCats(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onGenerate({
-      difficulty, durationMin: duration,
-      maxDistanceKm: maxDistance === '' ? undefined : Number(maxDistance),
-      minDistanceKm: minDistance === '' ? undefined : Number(minDistance),
-      approxDistanceKm: approxDistance === '' ? undefined : Number(approxDistance),
-      challengeTypes: selectedCategories,
-    }, location)
+  const useGps = async () => {
+    setGpsStatus('locating')
+    const pos = await getCurrentPosition()
+    if (pos) {
+      setLocation(`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`)
+      setGpsStatus('located')
+    } else {
+      setGpsStatus('denied')
+    }
+  }
+
+  const handleGenerate = async () => {
+    setGenerating(true)
+    try {
+      let center: { lat: number; lng: number } | null = null
+      let locationName = location || 'Your Location'
+
+      if (location.trim()) {
+        // Try geocoding the entered location
+        const { geocodeLocation } = await import('@/lib/geocode')
+        const result = await geocodeLocation(location)
+        if (result) {
+          center = result.point
+          locationName = result.label
+        }
+      }
+
+      if (!center) {
+        // Fall back to GPS
+        const pos = await getCurrentPosition()
+        if (pos) {
+          center = { lat: pos.lat, lng: pos.lng }
+          locationName = 'Your GPS Location'
+          setGpsStatus('located')
+        }
+      }
+
+      const prefs: AdventurePreferences = {
+        location: location || undefined,
+        maxDistanceKm: maxKm ? parseFloat(maxKm) : undefined,
+        minDistanceKm: minKm ? parseFloat(minKm) : undefined,
+        approxDistanceKm: approxKm ? parseFloat(approxKm) : undefined,
+        difficulty,
+        durationMin: duration,
+        categories: cats,
+      }
+
+      onGenerate(prefs, center, locationName)
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="space-y-5">
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wide text-ink-400 mb-2">Location <span className="text-ink-600 normal-case font-normal">(optional)</span></label>
-        <div className="flex gap-2">
-          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Brisbane, Noosa, Central Park..." className="flex-1 px-4 py-2.5 rounded-xl bg-ink-900 border border-ink-700 text-ink-100 placeholder-ink-600 focus:outline-none focus:border-brand-500 transition-colors" />
-          <button type="button" onClick={onUseGps} className="px-4 py-2.5 rounded-xl bg-ink-700 hover:bg-ink-600 text-ink-100 text-sm font-medium whitespace-nowrap transition-colors">📍 Use GPS</button>
+        <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Location (optional)</label>
+        <div className="flex gap-2 mt-1.5">
+          <input
+            type="text"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder="e.g. Brisbane, Noosa, Central Park..."
+            className="flex-1 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none"
+          />
+          <button
+            onClick={useGps}
+            className="px-3 py-2.5 bg-ink-800 border border-ink-700 rounded-xl text-sm text-brand-400 hover:bg-ink-700 transition whitespace-nowrap"
+          >
+            📍 Use GPS
+          </button>
         </div>
-        <p className="text-xs text-ink-500 mt-1.5">{gpsStatus || 'Leave blank to use your GPS location. Never defaults to London.'}</p>
+        <p className="text-xs text-ink-500 mt-1.5">
+          {gpsStatus === 'locating' ? 'Getting your location...' :
+           gpsStatus === 'located' ? 'GPS location found!' :
+           gpsStatus === 'denied' ? 'GPS denied — enter a location above' :
+           gpsStatus === 'unavailable' ? 'GPS not available — enter a location above' :
+           'Leave blank to use your GPS location. Never defaults to London.'}
+        </p>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wide text-ink-400 mb-2">Difficulty</label>
-        <div className="grid grid-cols-4 gap-2">
-          {DIFFICULTIES.map((d) => (
-            <button key={d.value} type="button" onClick={() => setDifficulty(d.value)} className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${difficulty === d.value ? `${d.color} text-white shadow-lg scale-105` : 'bg-ink-900 text-ink-400 hover:bg-ink-700'}`}>{d.label}</button>
+        <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Difficulty</label>
+        <div className="flex gap-2 mt-1.5">
+          {DIFFICULTIES.map(d => (
+            <button
+              key={d.id}
+              onClick={() => setDifficulty(d.id)}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+                difficulty === d.id
+                  ? `${d.color} text-white`
+                  : 'bg-ink-900 border border-ink-700 text-ink-400 hover:text-ink-200'
+              }`}
+            >
+              {d.label}
+            </button>
           ))}
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wide text-ink-400 mb-2">Adventure Length</label>
-        <div className="flex flex-wrap gap-2">
-          {DURATIONS.map((d) => (
-            <button key={d} type="button" onClick={() => setDuration(d)} className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${duration === d ? 'bg-brand-600 text-white' : 'bg-ink-900 text-ink-400 hover:bg-ink-700'}`}>{d < 60 ? `${d} min` : `${d / 60} hr`}</button>
+        <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Adventure Length</label>
+        <div className="flex flex-wrap gap-2 mt-1.5">
+          {DURATIONS.map(d => (
+            <button
+              key={d}
+              onClick={() => setDuration(d)}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition ${
+                duration === d
+                  ? 'bg-brand-500 text-white'
+                  : 'bg-ink-900 border border-ink-700 text-ink-400 hover:text-ink-200'
+              }`}
+            >
+              {DURATION_LABELS[d]}
+            </button>
           ))}
         </div>
       </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div><label className="block text-xs text-ink-500 mb-1">Max km</label><input type="number" value={maxDistance} onChange={(e) => setMaxDistance(e.target.value === '' ? '' : Number(e.target.value))} placeholder="10" className="w-full px-3 py-2 rounded-lg bg-ink-900 border border-ink-700 text-ink-100 text-sm focus:outline-none focus:border-brand-500" /></div>
-        <div><label className="block text-xs text-ink-500 mb-1">Min km</label><input type="number" value={minDistance} onChange={(e) => setMinDistance(e.target.value === '' ? '' : Number(e.target.value))} placeholder="2" className="w-full px-3 py-2 rounded-lg bg-ink-900 border border-ink-700 text-ink-100 text-sm focus:outline-none focus:border-brand-500" /></div>
-        <div><label className="block text-xs text-ink-500 mb-1">~km</label><input type="number" value={approxDistance} onChange={(e) => setApproxDistance(e.target.value === '' ? '' : Number(e.target.value))} placeholder="5" className="w-full px-3 py-2 rounded-lg bg-ink-900 border border-ink-700 text-ink-100 text-sm focus:outline-none focus:border-brand-500" /></div>
-      </div>
-      <p className="text-xs text-ink-500 -mt-2">All distance fields are optional.</p>
 
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wide text-ink-400 mb-2">Challenge Types <span className="text-ink-600 normal-case font-normal">(optional, select any)</span></label>
-        <div className="flex flex-wrap gap-2">
-          {ALL_CATEGORIES.map((cat) => (
-            <button key={cat} type="button" onClick={() => toggleCategory(cat)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedCategories.includes(cat) ? 'bg-brand-600 text-white' : 'bg-ink-900 text-ink-400 hover:bg-ink-700'}`}>{CATEGORY_LABELS[cat]}</button>
+        <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Distance Preferences (optional)</label>
+        <div className="flex gap-2 mt-1.5">
+          <input type="number" value={maxKm} onChange={e => setMaxKm(e.target.value)} placeholder="Max km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
+          <input type="number" value={minKm} onChange={e => setMinKm(e.target.value)} placeholder="Min km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
+          <input type="number" value={approxKm} onChange={e => setApproxKm(e.target.value)} placeholder="~km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
+        </div>
+        <p className="text-xs text-ink-500 mt-1.5">All distance fields are optional.</p>
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Challenge Types (optional, select any)</label>
+        <div className="flex flex-wrap gap-2 mt-1.5">
+          {ALL_CATEGORIES.map(c => (
+            <button
+              key={c.id}
+              onClick={() => toggleCat(c.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                cats.includes(c.id)
+                  ? 'bg-brand-500 text-white'
+                  : 'bg-ink-900 border border-ink-700 text-ink-400 hover:text-ink-200'
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="bg-ink-900 rounded-xl p-3 border border-ink-700">
-        <p className="text-xs text-ink-500"><span className="text-ink-400 font-medium">Device sensors:</span> {[sensors.compass && 'Compass', sensors.accelerometer && 'Accelerometer', sensors.geolocation && 'GPS', sensors.camera && 'Camera'].filter(Boolean).join(' · ') || 'None detected — sensor challenges will be skippable.'}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {sensorAvail.compass && <span className="text-xs text-ink-500 bg-ink-900 px-2 py-1 rounded">🧭 Compass</span>}
+        {sensorAvail.accelerometer && <span className="text-xs text-ink-500 bg-ink-900 px-2 py-1 rounded">📱 Accelerometer</span>}
+        {sensorAvail.camera && <span className="text-xs text-ink-500 bg-ink-900 px-2 py-1 rounded">📷 Camera</span>}
+        {sensorAvail.gps && <span className="text-xs text-ink-500 bg-ink-900 px-2 py-1 rounded">📍 GPS</span>}
       </div>
 
-      <button type="submit" disabled={isGenerating} className="w-full py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-display font-bold text-lg transition-colors">{isGenerating ? 'Generating...' : 'Generate Adventure'}</button>
-    </form>
+      <button
+        onClick={handleGenerate}
+        disabled={generating}
+        className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50"
+      >
+        {generating ? 'Generating...' : 'Generate Adventure'}
+      </button>
+    </div>
   )
 }

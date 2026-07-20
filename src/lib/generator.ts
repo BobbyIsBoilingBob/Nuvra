@@ -1,107 +1,30 @@
-import type { Adventure, AdventurePreferences, AdventureRoute, ChallengeAssignment, Checkpoint, Difficulty, GeoPoint, LocationSource, SuggestedAdventure } from '@/types/adventure'
-import { destinationPoint, distanceMeters, pathLengthMeters, bearingDeg, WALKING_SPEED_MPS } from './geo'
+import type {
+  Adventure, AdventurePreferences, AdventureRoute, Checkpoint, ChallengeAssignment,
+  Difficulty, GeoPoint, SuggestedAdventure, SensorAvailability,
+} from '@/types/adventure'
 import { challengesForGeneration, type ChallengeTemplate } from '@/data/challenges'
-import { detectSensors, isSensorAvailable } from './sensors'
-import type { SensorAvailability } from '@/types/adventure'
+import { destinationPoint, distanceMeters, pathLengthMeters, WALKING_SPEED_MPS } from './geo'
 
-const TITLE_TEMPLATES = ['The {place} Expedition','{place} Hidden Trail','Mystery of {place}','{place} Discovery Walk','The {place} Quest','{place} Adventure Loop','Secrets of {place}','{place} Explorer','The {place} Challenge','{place} Wander']
-const DESC_TEMPLATES = ['A {difficulty} adventure weaving through {place}. Complete {count} challenges along the route.','Explore {place} on this {difficulty} route with {count} challenges. {tag} meets exploration.','A handcrafted {difficulty} journey through {place} with {count} checkpoints of discovery.','Discover {place} through {count} {difficulty} challenges. Every step reveals something new.']
-const TAG_WORDS = ['Nature','History','Mystery','Fitness','Photography','Puzzle','Navigation','Observation']
-const EMOJIS = ['🧭','🗺️','🌲','🏔️','🌊','🏛️','🦜','🌸','🪨','🌿','🌅','🚶','📍','🌟','🍃']
+const ADJECTIVES = ['Hidden', 'Secret', 'Lost', 'Forgotten', 'Golden', 'Wandering', 'Mystery', 'Urban', 'Wild', 'Riverside', 'Hilltop', 'Forest', 'Coastal', 'Twilight', 'Dawn']
+const NOUNS = ['Trail', 'Path', 'Quest', 'Loop', 'Discovery', 'Journey', 'Expedition', 'Adventure', 'Route', 'Walk', 'Trek', 'Voyage']
 
-function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
-function titleFor(place: string): string { return pick(TITLE_TEMPLATES).replace('{place}', place.split(',')[0].trim() || 'the Area') }
-function descriptionFor(place: string, difficulty: Difficulty, count: number, tag: string): string {
-  return pick(DESC_TEMPLATES).replace('{place}', place.split(',')[0].trim() || 'the area').replace('{difficulty}', difficulty).replace('{count}', String(count)).replace('{tag}', tag)
+const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+
+function titleFor(locationName: string): string {
+  const short = locationName.split(',')[0].trim()
+  return `${short} ${pick(ADJECTIVES)} ${pick(NOUNS)}`
 }
 
-export function generateRoute(center: GeoPoint, targetDistanceKm: number, numCheckpoints: number): { points: GeoPoint[]; checkpoints: GeoPoint[] } {
-  const targetMeters = targetDistanceKm * 1000
-  const segLen = targetMeters / numCheckpoints
-  const points: GeoPoint[] = [{ ...center }]
-  const checkpoints: GeoPoint[] = [{ ...center }]
-  const half = Math.ceil(numCheckpoints / 2)
-  let current = { ...center }
-  let baseBearing = Math.floor(Math.random() * 360)
-  for (let i = 0; i < half; i++) {
-    const bearing = (baseBearing + (Math.random() - 0.5) * 70 + 360) % 360
-    const len = segLen * (0.85 + Math.random() * 0.3)
-    current = destinationPoint(current, bearing, len)
-    points.push({ ...current })
-    checkpoints.push({ ...current })
-  }
-  let returnCurrent = { ...current }
-  for (let i = half; i < numCheckpoints - 1; i++) {
-    const toCenter = bearingDeg(returnCurrent, center)
-    const bearing = (toCenter + (Math.random() - 0.5) * 50 + 360) % 360
-    const len = segLen * (0.85 + Math.random() * 0.3)
-    returnCurrent = destinationPoint(returnCurrent, bearing, len)
-    points.push({ ...returnCurrent })
-    checkpoints.push({ ...returnCurrent })
-  }
-  points.push({ ...center })
-  return { points, checkpoints }
-}
-
-function templateToAssignment(t: ChallengeTemplate): ChallengeAssignment {
-  return { id: t.id, category: t.category, title: t.title, description: t.description, difficulty: t.difficulty, sensorType: t.sensorType, sensorConfig: t.sensorConfig, data: t.data, rewardXp: t.rewardXp, rewardCoins: t.rewardCoins }
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
-  return a
-}
-
-function assignChallenges(numCheckpoints: number, difficulty: Difficulty, categories: ChallengeCategoryInput, sensorAvailability: SensorAvailability): ChallengeAssignment[] {
-  const pool = shuffle(challengesForGeneration(difficulty, categories.length > 0 ? categories : undefined))
-  const usable = pool.filter((c) => isSensorAvailable(c.sensorType, sensorAvailability))
-  const finalPool = usable.length >= 3 ? usable : pool
-  const assignments: ChallengeAssignment[] = []
-  const used = new Set<string>()
-  for (let i = 0; i < numCheckpoints; i++) {
-    let chosen = finalPool.find((c) => !used.has(c.id))
-    if (!chosen) { used.clear(); chosen = finalPool[0] ?? pool[0] }
-    if (chosen) { used.add(chosen.id); assignments.push(templateToAssignment(chosen)) }
-  }
-  return assignments
-}
-
-type ChallengeCategoryInput = import('@/types/adventure').ChallengeCategory[]
-
-export interface GenerateOptions { center: GeoPoint; locationName: string; locationSource: LocationSource; preferences: AdventurePreferences; sensorAvailability: SensorAvailability }
-
-export function generateAdventure(opts: GenerateOptions): Adventure {
-  if (opts.center.lat === 0 && opts.center.lng === 0) throw new Error('No location provided — cannot generate adventure without a centre point.')
-  const { center, locationName, locationSource, preferences, sensorAvailability } = opts
-  const targetDistanceKm = resolveTargetDistance(preferences)
-  const numCheckpoints = resolveCheckpointCount(preferences.durationMin)
-  const { points, checkpoints: cpPoints } = generateRoute(center, targetDistanceKm, numCheckpoints)
-  const challengeAssignments = assignChallenges(numCheckpoints, preferences.difficulty, preferences.challengeTypes, sensorAvailability)
-  const checkpoints: Checkpoint[] = cpPoints.map((pos, i) => ({
-    index: i, position: pos, label: i === 0 ? 'Start' : i === cpPoints.length - 1 ? 'Finish' : `Checkpoint ${i + 1}`,
-    challenge: challengeAssignments[i] ?? challengeAssignments[0], isStart: i === 0, isFinish: i === cpPoints.length - 1,
-  }))
-  const distanceM = pathLengthMeters(points)
-  const durationMin = Math.max(10, Math.round((distanceM / WALKING_SPEED_MPS) / 60))
-  const geojson = { type: 'LineString' as const, coordinates: points.map((p) => [p.lng, p.lat] as [number, number]) }
-  const route: AdventureRoute = { geojson, checkpoints, distanceKm: distanceM / 1000, durationMin }
-  const totalXp = checkpoints.reduce((sum, cp) => sum + cp.challenge.rewardXp, 0)
-  const totalCoins = checkpoints.reduce((sum, cp) => sum + cp.challenge.rewardCoins, 0)
-  const tags = Array.from(new Set(checkpoints.map((cp) => cp.challenge.category)))
-  const tagWord = tags.length > 0 ? TAG_WORDS[Math.min(tags.length - 1, TAG_WORDS.length - 1)] : 'Exploration'
-  return {
-    id: crypto.randomUUID(), title: titleFor(locationName), description: descriptionFor(locationName, preferences.difficulty, checkpoints.length, tagWord),
-    difficulty: preferences.difficulty, locationName, locationSource, center, route, preferences, rewardXp: totalXp, rewardCoins: totalCoins,
-    rewardItem: pickRewardItem(preferences.difficulty), tags: tags.map(String), imageEmoji: pick(EMOJIS), createdAt: new Date().toISOString(), isSuggested: false,
-  }
+function descFor(difficulty: Difficulty, locationName: string, numCp: number): string {
+  const adj = { easy: 'relaxed', medium: 'medium', hard: 'challenging', extreme: 'extreme' }[difficulty]
+  return `A handcrafted ${adj} journey through ${locationName} with ${numCp} checkpoints of discovery.`
 }
 
 function resolveTargetDistance(prefs: AdventurePreferences): number {
-  if (prefs.approxDistanceKm && prefs.approxDistanceKm > 0) return prefs.approxDistanceKm
-  if (prefs.maxDistanceKm && prefs.maxDistanceKm > 0) return Math.max(0.5, prefs.maxDistanceKm * 0.8)
-  const meters = prefs.durationMin * 60 * WALKING_SPEED_MPS
-  return Math.max(0.5, meters / 1000)
+  if (prefs.approxDistanceKm) return prefs.approxDistanceKm
+  if (prefs.maxDistanceKm) return prefs.maxDistanceKm * 0.8
+  if (prefs.minDistanceKm) return prefs.minDistanceKm * 1.5
+  return (prefs.durationMin * WALKING_SPEED_MPS * 60) / 1000
 }
 
 function resolveCheckpointCount(durationMin: number): number {
@@ -112,47 +35,164 @@ function resolveCheckpointCount(durationMin: number): number {
   return 10
 }
 
-function pickRewardItem(difficulty: Difficulty): string | undefined {
-  const items: Record<Difficulty, string[]> = {
-    easy: ['Trail Badge','Explorer Coin','Leaf Token'], medium: ['Pathfinder Medal','Compass Charm','Nature Token'],
-    hard: ['Explorer Crest','Trail Master Badge','Discovery Gem'], extreme: ['Legendary Compass','Master Explorer Crown','Mythic Trail Token'],
+export function generateRoute(center: GeoPoint, targetDistanceKm: number, numCheckpoints: number): AdventureRoute {
+  if (center.lat === 0 && center.lng === 0) throw new Error('Center point cannot be {0,0} — location resolution failed')
+
+  const radius = Math.max(200, (targetDistanceKm * 1000) / (2 * Math.PI) * 0.7)
+  const startAngle = Math.random() * 360
+  const angleStep = 360 / numCheckpoints
+  const wobble = () => (Math.random() - 0.5) * radius * 0.3
+
+  const checkpoints: Checkpoint[] = []
+  for (let i = 0; i < numCheckpoints; i++) {
+    const angle = (startAngle + i * angleStep) % 360
+    const r = radius * (0.7 + Math.random() * 0.3)
+    const pos = destinationPoint(center, angle, r)
+    checkpoints.push({
+      index: i,
+      position: { lat: pos.lat + wobble() / 111000, lng: pos.lng + wobble() / (111000 * Math.cos(pos.lat * Math.PI / 180)) },
+      label: i === 0 ? 'Start' : i === numCheckpoints - 1 ? 'Finish' : `Checkpoint ${i + 1}`,
+    })
   }
-  return pick(items[difficulty])
+
+  // Build a meandering path through checkpoints
+  const path: GeoPoint[] = [checkpoints[0].position]
+  for (let i = 1; i < checkpoints.length; i++) {
+    const prev = checkpoints[i - 1].position
+    const curr = checkpoints[i].position
+    const segDist = distanceMeters(prev, curr)
+    const steps = Math.max(3, Math.floor(segDist / 80))
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps
+      const lat = prev.lat + (curr.lat - prev.lat) * t
+      const lng = prev.lng + (curr.lng - prev.lng) * t
+      const jitter = (Math.random() - 0.5) * 0.00015 * Math.sin(t * Math.PI)
+      path.push({ lat: lat + jitter, lng: lng + jitter })
+    }
+  }
+
+  const totalDistKm = pathLengthMeters(path) / 1000
+  const estDurationMin = (totalDistKm * 1000) / WALKING_SPEED_MPS / 60
+
+  return { center, checkpoints, path, totalDistanceKm: totalDistKm, estimatedDurationMin: estDurationMin }
 }
 
-export interface SuggestedOptions { center: GeoPoint; sensorAvailability: SensorAvailability }
+function assignChallenges(
+  checkpoints: Checkpoint[],
+  prefs: AdventurePreferences,
+  sensorAvail: SensorAvailability,
+): Checkpoint[] {
+  const pool = challengesForGeneration(prefs.difficulty, prefs.categories, sensorAvail)
+  const fallback = challengesForGeneration(prefs.difficulty, [], sensorAvail)
+  const source = pool.length > 0 ? pool : fallback
+  if (source.length === 0) return checkpoints
 
-export function generateSuggestedAdventures(opts: SuggestedOptions): SuggestedAdventure[] {
-  const { center } = opts
-  const suggestions: SuggestedAdventure[] = []
-  for (let i = 0; i < 7; i++) {
-    const distance = 1000 + Math.random() * 25000
-    const point = destinationPoint(center, Math.floor(Math.random() * 360), distance)
-    suggestions.push(makeSuggestion(point, 'nearby', Math.round((distance / 1000) / 50 * 60)))
-  }
-  for (let i = 0; i < 2; i++) {
-    const distance = 25000 + Math.random() * 50000
-    const point = destinationPoint(center, Math.floor(Math.random() * 360), distance)
-    suggestions.push(makeSuggestion(point, 'medium', Math.round((distance / 1000) / 50 * 60)))
-  }
-  const distance = 75000 + Math.random() * 25000
-  suggestions.push(makeSuggestion(destinationPoint(center, Math.floor(Math.random() * 360), distance), 'far', Math.round((distance / 1000) / 50 * 60)))
-  return suggestions
+  const used = new Set<string>()
+  return checkpoints.map((cp, i) => {
+    let template: ChallengeTemplate | undefined
+    const available = source.filter(t => !used.has(t.id))
+    if (available.length > 0) {
+      template = available[Math.floor(Math.random() * available.length)]
+      used.add(template.id)
+    } else {
+      template = source[Math.floor(Math.random() * source.length)]
+    }
+
+    const assignment: ChallengeAssignment = {
+      id: template.id,
+      title: template.title,
+      description: template.description,
+      category: template.category,
+      difficulty: template.difficulty,
+      sensorType: template.sensorType,
+      sensorConfig: template.sensorConfig,
+      data: template.data,
+      xp: template.xp,
+      coins: template.coins,
+    }
+    return { ...cp, challenge: assignment }
+  })
 }
 
-const SUGGESTED_PLACES = [
-  { name: 'Riverside Park', emoji: '🌊', cat: 'nature' }, { name: 'Hilltop Lookout', emoji: '🏔️', cat: 'exploration' },
-  { name: 'Heritage Trail', emoji: '🏛️', cat: 'landmarks' }, { name: 'Lakeside Walk', emoji: '🪨', cat: 'nature' },
-  { name: 'Forest Loop', emoji: '🌲', cat: 'exploration' }, { name: 'Garden Path', emoji: '🌸', cat: 'nature' },
-  { name: 'Coastal Trail', emoji: '🌅', cat: 'exploration' }, { name: 'City Discovery', emoji: '🏛️', cat: 'landmarks' },
-  { name: 'Creek Path', emoji: '🌿', cat: 'nature' }, { name: 'Valley Walk', emoji: '🦜', cat: 'exploration' },
+export function generateAdventure(
+  opts: {
+    center: GeoPoint
+    locationName: string
+    locationSource: 'gps' | 'manual' | 'suggested'
+    preferences: AdventurePreferences
+    sensorAvail: SensorAvailability
+  },
+): Adventure {
+  const { center, locationName, locationSource, preferences, sensorAvail } = opts
+  const targetDist = resolveTargetDistance(preferences)
+  const numCp = resolveCheckpointCount(preferences.durationMin)
+  const route = generateRoute(center, targetDist, numCp)
+  const withChallenges = assignChallenges(route.checkpoints, preferences, sensorAvail)
+
+  return {
+    id: `adv-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    title: titleFor(locationName),
+    description: descFor(preferences.difficulty, locationName, withChallenges.length),
+    difficulty: preferences.difficulty,
+    durationMin: Math.round(route.estimatedDurationMin),
+    distanceKm: Math.round(route.totalDistanceKm * 10) / 10,
+    locationName,
+    locationSource,
+    center,
+    checkpoints: withChallenges,
+    path: route.path,
+    preferences,
+    createdAt: new Date().toISOString(),
+  }
+}
+
+const SUGGESTED_LOCATIONS: { name: string; lat: number; lng: number; travelMin: number; travelKm: number }[] = [
+  { name: 'Riverside Park', lat: 0, lng: 0, travelMin: 15, travelKm: 2 },
+  { name: 'Hilltop Lookout', lat: 0, lng: 0, travelMin: 20, travelKm: 4 },
+  { name: 'Old Town Square', lat: 0, lng: 0, travelMin: 25, travelKm: 5 },
+  { name: 'Lakeside Trail', lat: 0, lng: 0, travelMin: 30, travelKm: 7 },
+  { name: 'Forest Edge', lat: 0, lng: 0, travelMin: 35, travelKm: 9 },
+  { name: 'Coastal Path', lat: 0, lng: 0, travelMin: 45, travelKm: 12 },
+  { name: 'Botanic Gardens', lat: 0, lng: 0, travelMin: 50, travelKm: 15 },
+  { name: 'Canyon Viewpoint', lat: 0, lng: 0, travelMin: 75, travelKm: 35 },
+  { name: 'Mountain Pass', lat: 0, lng: 0, travelMin: 90, travelKm: 50 },
+  { name: 'Distant Summit', lat: 0, lng: 0, travelMin: 110, travelKm: 80 },
 ]
-const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard', 'extreme']
 
-function makeSuggestion(point: GeoPoint, tier: 'nearby' | 'medium' | 'far', travelMin: number): SuggestedAdventure {
-  const place = pick(SUGGESTED_PLACES)
-  const difficulty: Difficulty = tier === 'nearby' ? pick<Difficulty>(['easy', 'easy', 'medium']) : tier === 'medium' ? pick<Difficulty>(['medium', 'hard']) : pick<Difficulty>(['hard', 'extreme'])
-  const duration = tier === 'nearby' ? pick([20, 30, 45]) : tier === 'medium' ? pick([45, 60, 90]) : pick([90, 120])
-  const distanceKm = Math.round((duration * 60 * WALKING_SPEED_MPS) / 1000 * 10) / 10
-  return { id: crypto.randomUUID(), title: `${place.name} Adventure`, emoji: place.emoji, difficulty, locationName: place.name, distanceKm, durationMin: duration, travelTimeMin: Math.min(travelMin, 120), category: place.cat, description: `A ${difficulty} ${duration}-minute adventure at ${place.name}. Perfect for ${place.cat} lovers.`, center: point }
+export function generateSuggestedAdventures(
+  center: GeoPoint,
+  sensorAvail: SensorAvailability,
+): SuggestedAdventure[] {
+  // 70% within 30 min, 20% within 90 min, 10% up to 2 hr
+  const result: SuggestedAdventure[] = []
+  const difficulties: Difficulty[] = ['easy', 'medium', 'hard', 'extreme']
+  const durations = [20, 30, 45, 60, 90, 120]
+
+  for (let i = 0; i < 10; i++) {
+    const loc = SUGGESTED_LOCATIONS[i]
+    const isNearby = i < 7
+    // Offset from center based on travel distance
+    const angle = (i * 36) % 360
+    const offset = destinationPoint(center, angle, loc.travelKm * 1000)
+    const prefs: AdventurePreferences = {
+      difficulty: difficulties[i % 4],
+      durationMin: durations[i % durations.length],
+      categories: [],
+    }
+    const adv = generateAdventure({
+      center: offset,
+      locationName: loc.name,
+      locationSource: 'suggested',
+      preferences: prefs,
+      sensorAvail,
+    })
+    adv.isSuggested = true
+    result.push({
+      adventure: adv,
+      travelTimeMin: loc.travelMin,
+      travelDistanceKm: loc.travelKm,
+      isNearby,
+    })
+  }
+  return result
 }

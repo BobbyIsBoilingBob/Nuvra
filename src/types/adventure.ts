@@ -1,18 +1,97 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme'
+
 export type LocationSource = 'gps' | 'manual' | 'suggested'
-export type ChallengeCategory = 'observation' | 'photography' | 'fitness' | 'puzzle' | 'memory' | 'navigation' | 'compass' | 'landmarks' | 'nature' | 'collection' | 'trivia' | 'timed' | 'team' | 'exploration' | 'balance' | 'reaction'
-export type SensorType = 'compass' | 'accelerometer' | 'gyroscope' | 'geolocation' | 'camera' | 'none'
+
+export type ChallengeCategory =
+  | 'observation' | 'photography' | 'fitness' | 'puzzle' | 'memory'
+  | 'navigation' | 'compass' | 'landmarks' | 'nature' | 'collection'
+  | 'trivia' | 'timed' | 'team' | 'exploration' | 'balance' | 'reaction'
+
+export type SensorType = 'compass' | 'accelerometer' | 'gyroscope' | 'camera' | 'gps' | 'none'
 
 export interface GeoPoint { lat: number; lng: number }
-export interface Checkpoint { index: number; position: GeoPoint; label: string; challenge: ChallengeAssignment; isStart: boolean; isFinish: boolean }
-export interface ChallengeAssignment { id: string; category: ChallengeCategory; title: string; description: string; difficulty: Difficulty; sensorType: SensorType; sensorConfig?: Record<string, unknown>; data: Record<string, unknown>; rewardXp: number; rewardCoins: number }
-export interface AdventureRoute { geojson: GeoJSONLineString; checkpoints: Checkpoint[]; distanceKm: number; durationMin: number }
-export interface GeoJSONLineString { type: 'LineString'; coordinates: [number, number][] }
-export interface AdventurePreferences { location?: string; maxDistanceKm?: number; minDistanceKm?: number; approxDistanceKm?: number; difficulty: Difficulty; durationMin: number; challengeTypes: ChallengeCategory[] }
-export interface Adventure { id: string; title: string; description: string; difficulty: Difficulty; locationName: string; locationSource: LocationSource; center: GeoPoint; route: AdventureRoute; preferences: AdventurePreferences; rewardXp: number; rewardCoins: number; rewardItem?: string; tags: string[]; imageEmoji: string; createdAt: string; isSuggested: boolean }
-export interface SuggestedAdventure { id: string; title: string; emoji: string; difficulty: Difficulty; locationName: string; distanceKm: number; durationMin: number; travelTimeMin: number; category: string; description: string; center: GeoPoint }
-export interface SensorAvailability { compass: boolean; accelerometer: boolean; gyroscope: boolean; geolocation: boolean; camera: boolean }
-export interface CompassReading { heading: number; accuracy: number }
-export interface AccelerometerReading { x: number; y: number; z: number; tilt: number }
-export interface GpsPosition { lat: number; lng: number; accuracy: number; heading: number | null; speed: number | null; timestamp: number }
-export type GpsStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable' | 'error'
+
+export interface Checkpoint {
+  index: number
+  position: GeoPoint
+  label: string
+  challenge?: ChallengeAssignment
+}
+
+export interface ChallengeAssignment {
+  id: string
+  title: string
+  description: string
+  category: ChallengeCategory
+  difficulty: Difficulty
+  sensorType: SensorType
+  sensorConfig?: Record<string, unknown>
+  data?: Record<string, unknown>
+  xp: number
+  coins: number
+}
+
+export interface AdventureRoute {
+  center: GeoPoint
+  checkpoints: Checkpoint[]
+  path: GeoPoint[]
+  totalDistanceKm: number
+  estimatedDurationMin: number
+}
+
+export interface AdventurePreferences {
+  location?: string
+  maxDistanceKm?: number
+  minDistanceKm?: number
+  approxDistanceKm?: number
+  difficulty: Difficulty
+  durationMin: number
+  categories: ChallengeCategory[]
+}
+
+export interface Adventure {
+  id: string
+  title: string
+  description: string
+  difficulty: Difficulty
+  durationMin: number
+  distanceKm: number
+  locationName: string
+  locationSource: LocationSource
+  center: GeoPoint
+  checkpoints: Checkpoint[]
+  path: GeoPoint[]
+  preferences: AdventurePreferences
+  isSuggested?: boolean
+  createdAt: string
+}
+
+export interface SuggestedAdventure {
+  adventure: Adventure
+  travelTimeMin: number
+  travelDistanceKm: number
+  isNearby: boolean
+}
+
+export interface SensorAvailability {
+  compass: boolean
+  accelerometer: boolean
+  gyroscope: boolean
+  camera: boolean
+  gps: boolean
+}
+
+export interface GpsPosition {
+  lat: number
+  lng: number
+  accuracy: number
+  timestamp: number
+}
+
+export type GpsStatus = 'idle' | 'locating' | 'located' | 'denied' | 'unavailable'
+
+export type ScreenName =
+  | 'home' | 'profile' | 'community' | 'friends' | 'party'
+  | 'leaderboard' | 'challenges' | 'quests' | 'history' | 'rewards'
+  | 'inventory' | 'avatar' | 'seasonal' | 'shop' | 'settings'
+  | 'creator' | 'generator' | 'preview' | 'map'
