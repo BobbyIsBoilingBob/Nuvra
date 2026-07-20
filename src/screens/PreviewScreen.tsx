@@ -3,6 +3,8 @@ import AdventureMap from '@/components/AdventureMap'
 import type { Adventure } from '@/types/adventure'
 import { formatDistance, formatDuration } from '@/lib/geo'
 import { ALL_CATEGORIES } from '@/data/challenges'
+import { saveAdventure } from '@/lib/db'
+import { useState } from 'react'
 
 interface Props {
   adventure: Adventure
@@ -11,9 +13,20 @@ interface Props {
 }
 
 export default function PreviewScreen({ adventure, onBack, onStart }: Props) {
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   const diffColors: Record<string, string> = {
     easy: 'text-success-400', medium: 'text-accent-400', hard: 'text-error-400', extreme: 'text-purple-400',
   }
+
+  const handleSave = async () => {
+    setSaving(true)
+    await saveAdventure(adventure)
+    setSaving(false)
+    setSaved(true)
+  }
+
   return (
     <ScreenShell title="Adventure Preview" icon="🗺" onBack={onBack}>
       <div className="mb-4">
@@ -52,12 +65,21 @@ export default function PreviewScreen({ adventure, onBack, onStart }: Props) {
         </div>
       </div>
 
-      <button
-        onClick={onStart}
-        className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition"
-      >
-        Start Adventure
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={saving || saved}
+          className="flex-1 py-3 bg-ink-800 hover:bg-ink-700 text-ink-200 rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 border border-ink-700"
+        >
+          {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save'}
+        </button>
+        <button
+          onClick={onStart}
+          className="flex-[2] py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95"
+        >
+          Start Adventure
+        </button>
+      </div>
     </ScreenShell>
   )
 }

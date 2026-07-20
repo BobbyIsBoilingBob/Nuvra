@@ -55,7 +55,6 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
       let locationName = location || 'Your Location'
 
       if (location.trim()) {
-        // Try geocoding the entered location
         const { geocodeLocation } = await import('@/lib/geocode')
         const result = await geocodeLocation(location)
         if (result) {
@@ -65,7 +64,6 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
       }
 
       if (!center) {
-        // Fall back to GPS
         const pos = await getCurrentPosition()
         if (pos) {
           center = { lat: pos.lat, lng: pos.lng }
@@ -100,11 +98,11 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder="e.g. Brisbane, Noosa, Central Park..."
-            className="flex-1 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none"
+            className="flex-1 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
           />
           <button
             onClick={useGps}
-            className="px-3 py-2.5 bg-ink-800 border border-ink-700 rounded-xl text-sm text-brand-400 hover:bg-ink-700 transition whitespace-nowrap"
+            className="px-3 py-2.5 bg-ink-800 border border-ink-700 rounded-xl text-sm text-brand-400 hover:bg-ink-700 transition whitespace-nowrap active:scale-95"
           >
             📍 Use GPS
           </button>
@@ -125,7 +123,7 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
             <button
               key={d.id}
               onClick={() => setDifficulty(d.id)}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition active:scale-95 ${
                 difficulty === d.id
                   ? `${d.color} text-white`
                   : 'bg-ink-900 border border-ink-700 text-ink-400 hover:text-ink-200'
@@ -144,7 +142,7 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
             <button
               key={d}
               onClick={() => setDuration(d)}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition ${
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition active:scale-95 ${
                 duration === d
                   ? 'bg-brand-500 text-white'
                   : 'bg-ink-900 border border-ink-700 text-ink-400 hover:text-ink-200'
@@ -159,9 +157,9 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
       <div>
         <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Distance Preferences (optional)</label>
         <div className="flex gap-2 mt-1.5">
-          <input type="number" value={maxKm} onChange={e => setMaxKm(e.target.value)} placeholder="Max km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
-          <input type="number" value={minKm} onChange={e => setMinKm(e.target.value)} placeholder="Min km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
-          <input type="number" value={approxKm} onChange={e => setApproxKm(e.target.value)} placeholder="~km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
+          <input type="number" value={maxKm} onChange={e => setMaxKm(e.target.value)} placeholder="Max km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+          <input type="number" value={minKm} onChange={e => setMinKm(e.target.value)} placeholder="Min km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+          <input type="number" value={approxKm} onChange={e => setApproxKm(e.target.value)} placeholder="~km" className="w-1/3 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
         </div>
         <p className="text-xs text-ink-500 mt-1.5">All distance fields are optional.</p>
       </div>
@@ -173,7 +171,7 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
             <button
               key={c.id}
               onClick={() => toggleCat(c.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition active:scale-95 ${
                 cats.includes(c.id)
                   ? 'bg-brand-500 text-white'
                   : 'bg-ink-900 border border-ink-700 text-ink-400 hover:text-ink-200'
@@ -195,9 +193,14 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
       <button
         onClick={handleGenerate}
         disabled={generating}
-        className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50"
+        className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50 active:scale-95 disabled:active:scale-100"
       >
-        {generating ? 'Generating...' : 'Generate Adventure'}
+        {generating ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Generating...
+          </span>
+        ) : 'Generate Adventure'}
       </button>
     </div>
   )

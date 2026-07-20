@@ -24,12 +24,14 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const startPos = useRef<{ lat: number; lng: number } | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   const sensor = challenge.sensorType
 
   useEffect(() => {
     return () => {
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+      if (cleanupRef.current) cleanupRef.current()
     }
   }, [])
 
@@ -38,21 +40,19 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
     setError('')
 
     if (sensor === 'compass' && sensorAvail.compass) {
-      startCompass(h => setHeading(h))
+      cleanupRef.current = startCompass(h => setHeading(h))
     } else if (sensor === 'accelerometer' && sensorAvail.accelerometer) {
-      startAccelerometer((x, y, z) => setTilt({ x, y, z }))
+      cleanupRef.current = startAccelerometer((x, y, z) => setTilt({ x, y, z }))
     } else if (sensor === 'gps' && sensorAvail.gps) {
       const pos = await getCurrentPosition()
       if (pos) startPos.current = { lat: pos.lat, lng: pos.lng }
       const target = challenge.sensorConfig?.targetRadius as number
       if (target) setTargetDist(target * 10)
-      const stopWatch = watchPosition(p => {
+      cleanupRef.current = watchPosition(p => {
         if (startPos.current) {
           setWalkDist(distanceMeters(startPos.current, { lat: p.lat, lng: p.lng }))
         }
       })
-      // Store cleanup
-      return () => stopWatch()
     } else if (sensor === 'camera' && sensorAvail.camera) {
       const stream = await requestCamera('environment')
       if (stream && videoRef.current) {
@@ -67,12 +67,14 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
   const complete = () => {
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+    if (cleanupRef.current) cleanupRef.current()
     setPhase('success')
     onComplete(challenge.xp, challenge.coins)
   }
 
   const fail = () => {
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+    if (cleanupRef.current) cleanupRef.current()
     setPhase('failed')
   }
 
@@ -80,7 +82,7 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
   if (phase === 'success') {
     return (
-      <div className="text-center py-6">
+      <div className="text-center py-6 animate-pop">
         <div className="text-4xl mb-2">✓</div>
         <p className="text-success-400 font-semibold">Challenge Complete!</p>
         <p className="text-sm text-ink-400 mt-1">+{challenge.xp} XP · +{challenge.coins} coins</p>
@@ -90,10 +92,10 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
   if (phase === 'failed') {
     return (
-      <div className="text-center py-6">
+      <div className="text-center py-6 animate-pop">
         <div className="text-4xl mb-2">✗</div>
         <p className="text-error-400 font-semibold">Challenge Failed</p>
-        <button onClick={() => setPhase('idle')} className="mt-3 px-4 py-2 bg-ink-800 rounded-lg text-sm text-ink-200">Try Again</button>
+        <button onClick={() => setPhase('idle')} className="mt-3 px-4 py-2 bg-ink-800 rounded-lg text-sm text-ink-200 hover:bg-ink-700 transition active:scale-95">Try Again</button>
       </div>
     )
   }
@@ -156,13 +158,13 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
       {phase === 'running' && Boolean(challenge.data?.question) && (
         <div className="py-2">
-          <p className="text-sm text-ink-200 font-medium mb-3">{String(challenge.data.question ?? '')}</p>
+          <p className="text-sm text-ink-200 font-medium mb-3">{String(challenge.data?.question ?? '')}</p>
           <div className="space-y-2">
-            {(challenge.data.answers as string[]).map((ans, i) => (
+            {((challenge.data?.answers as string[]) ?? []).map((ans, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedAnswer(i)}
-                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition ${
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition active:scale-95 ${
                   selectedAnswer === i ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-200 hover:bg-ink-700'
                 }`}
               >
@@ -174,15 +176,15 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
       )}
 
       {phase === 'idle' ? (
-        <button onClick={start} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition">
+        <button onClick={start} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95">
           Start Challenge
         </button>
       ) : (
         <div className="flex gap-2">
-          <button onClick={complete} className="flex-1 py-3 bg-success-500 hover:bg-success-600 text-white rounded-xl font-semibold text-sm transition">
+          <button onClick={complete} className="flex-1 py-3 bg-success-500 hover:bg-success-600 text-white rounded-xl font-semibold text-sm transition active:scale-95">
             Mark Complete
           </button>
-          <button onClick={fail} className="px-4 py-3 bg-ink-800 text-ink-400 rounded-xl text-sm transition hover:bg-ink-700">
+          <button onClick={fail} className="px-4 py-3 bg-ink-800 text-ink-400 rounded-xl text-sm transition hover:bg-ink-700 active:scale-95">
             Skip
           </button>
         </div>

@@ -62,3 +62,11 @@ export function formatDuration(min: number): string {
   const m = Math.round(min % 60)
   return m > 0 ? `${h} hr ${m} min` : `${h} hr`
 }
+
+export function levelFromXp(xp: number): number {
+  return Math.floor(Math.sqrt(xp / 100)) + 1
+}
+
+export function xpForNextLevel(level: number): number {
+  return Math.pow(level, 2) * 100
+}

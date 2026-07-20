@@ -18,15 +18,40 @@ export function isSensorAvailable(type: SensorType, avail: SensorAvailability): 
   return avail[type] ?? false
 }
 
-export function startCompass(cb: (heading: number) => void): () => void {
-  if (typeof window === 'undefined') return () => {}
+// Low-pass filter for compass smoothing to reduce jitter
+class CompassFilter {
+  private smoothed: number | null = null
+  private alpha = 0.15
 
-  const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
-    const heading = e.webkitCompassHeading ?? (e.alpha != null ? 360 - e.alpha : 0)
-    cb(heading)
+  update(raw: number): number {
+    if (this.smoothed === null) {
+      this.smoothed = raw
+      return raw
+    }
+    // Handle wraparound (0/360 boundary)
+    let diff = raw - this.smoothed
+    if (diff > 180) diff -= 360
+    if (diff < -180) diff += 360
+    this.smoothed = (this.smoothed + diff * this.alpha + 360) % 360
+    return this.smoothed
   }
 
-  // iOS 13+ requires permission
+  reset() {
+    this.smoothed = null
+  }
+}
+
+const compassFilter = new CompassFilter()
+
+export function startCompass(cb: (heading: number) => void): () => void {
+  if (typeof window === 'undefined') return () => {}
+  compassFilter.reset()
+
+  const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+    const raw = e.webkitCompassHeading ?? (e.alpha != null ? 360 - e.alpha : 0)
+    cb(compassFilter.update(raw))
+  }
+
   const orient = DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }
   if (typeof orient.requestPermission === 'function') {
     orient.requestPermission().then((state: string) => {

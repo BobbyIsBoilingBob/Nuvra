@@ -13,9 +13,8 @@ interface Props {
 
 export default function AIGeneratorScreen({ onBack, onPreview }: Props) {
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle')
-  const [suggested, setSuggested] = useState(() => {
+  const [suggested] = useState(() => {
     const sensorAvail = detectSensors()
-    // Use a default center for suggested adventures display
     return generateSuggestedAdventures({ lat: -27.4698, lng: 153.0251 }, sensorAvail)
   })
 
@@ -51,7 +50,7 @@ export default function AIGeneratorScreen({ onBack, onPreview }: Props) {
             <button
               key={i}
               onClick={() => onPreview(s.adventure)}
-              className="w-full text-left bg-ink-900 rounded-xl p-3 border border-ink-800 hover:border-brand-500/50 transition"
+              className="w-full text-left bg-ink-900 rounded-xl p-3 border border-ink-800 hover:border-brand-500/50 transition active:scale-95"
             >
               <div className="flex justify-between items-start">
                 <div>

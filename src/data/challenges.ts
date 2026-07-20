@@ -1,4 +1,4 @@
-import type { ChallengeCategory, Difficulty, SensorType } from '@/types/adventure'
+import type { ChallengeCategory, Difficulty, SensorType, SensorAvailability } from '@/types/adventure'
 
 export interface ChallengeTemplate {
   id: string
@@ -153,6 +153,3 @@ export const ALL_CATEGORIES: { id: ChallengeCategory; label: string; icon: strin
 ]
 
 export const TOTAL_CHALLENGES = CHALLENGE_LIBRARY.length
-
-// Need to import SensorAvailability type
-import type { SensorAvailability } from '@/types/adventure'

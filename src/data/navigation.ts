@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'inventory', label: 'Inventory', icon: '🎒', color: 'from-lime-500 to-lime-700' },
   { id: 'seasonal', label: 'Seasonal', icon: '🍂', color: 'from-orange-500 to-orange-700' },
   { id: 'shop', label: 'Shop', icon: '🛒', color: 'from-red-500 to-red-700' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔', color: 'from-sky-500 to-sky-700' },
   { id: 'settings', label: 'Settings', icon: '⚙️', color: 'from-gray-500 to-gray-700' },
   { id: 'creator', label: 'Creator Studio', icon: '✏️', color: 'from-violet-500 to-violet-700' },
 ]

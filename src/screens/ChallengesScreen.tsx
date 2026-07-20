@@ -1,7 +1,9 @@
 import ScreenShell from '@/components/ScreenShell'
 import { CHALLENGE_LIBRARY, ALL_CATEGORIES } from '@/data/challenges'
 
-export default function ChallengesScreen({ onBack }: { onBack: () => void }) {
+interface Props { onBack: () => void }
+
+export default function ChallengesScreen({ onBack }: Props) {
   return (
     <ScreenShell title="Challenges" icon="⚔️" onBack={onBack}>
       <p className="text-sm text-ink-400 mb-4">Browse all {CHALLENGE_LIBRARY.length} challenges across {ALL_CATEGORIES.length} categories.</p>

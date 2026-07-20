@@ -6,6 +6,7 @@ import type { Adventure, SensorAvailability } from '@/types/adventure'
 import { detectSensors } from '@/lib/sensors'
 import { formatDistance, formatDuration } from '@/lib/geo'
 import { ALL_CATEGORIES } from '@/data/challenges'
+import { recordAdventureCompletion } from '@/lib/db'
 
 interface Props {
   adventure: Adventure
@@ -18,6 +19,7 @@ export default function MapScreen({ adventure, onBack, onComplete }: Props) {
   const [xp, setXp] = useState(0)
   const [coins, setCoins] = useState(0)
   const [completed, setCompleted] = useState<Set<number>>(new Set())
+  const [finishing, setFinishing] = useState(false)
   const sensorAvail: SensorAvailability = detectSensors()
 
   const currentChallenge = adventure.checkpoints[activeCp]?.challenge
@@ -32,10 +34,22 @@ export default function MapScreen({ adventure, onBack, onComplete }: Props) {
     }
   }
 
+  const handleFinish = async () => {
+    setFinishing(true)
+    await recordAdventureCompletion({
+      adventure,
+      xpEarned: xp,
+      coinsEarned: coins,
+      challengesCompleted: completed.size,
+    })
+    setFinishing(false)
+    onComplete()
+  }
+
   if (allDone) {
     return (
       <ScreenShell title="Adventure Complete!" icon="🏁" onBack={onBack}>
-        <div className="text-center py-8">
+        <div className="text-center py-8 animate-celebrate">
           <div className="text-6xl mb-4">🏆</div>
           <h2 className="text-2xl font-bold text-ink-100 mb-2">Adventure Complete!</h2>
           <p className="text-sm text-ink-400 mb-6">{adventure.title}</p>
@@ -48,9 +62,17 @@ export default function MapScreen({ adventure, onBack, onComplete }: Props) {
               <p className="text-3xl font-bold text-accent-400">{coins}</p>
               <p className="text-xs text-ink-500">Coins Earned</p>
             </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-ink-100">{completed.size}</p>
+              <p className="text-xs text-ink-500">Challenges</p>
+            </div>
           </div>
-          <button onClick={onComplete} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition">
-            Back to Home
+          <button
+            onClick={handleFinish}
+            disabled={finishing}
+            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50"
+          >
+            {finishing ? 'Saving...' : 'Back to Home'}
           </button>
         </div>
       </ScreenShell>

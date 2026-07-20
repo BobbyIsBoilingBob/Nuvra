@@ -55,7 +55,6 @@ export function generateRoute(center: GeoPoint, targetDistanceKm: number, numChe
     })
   }
 
-  // Build a meandering path through checkpoints
   const path: GeoPoint[] = [checkpoints[0].position]
   for (let i = 1; i < checkpoints.length; i++) {
     const prev = checkpoints[i - 1].position
@@ -88,7 +87,7 @@ function assignChallenges(
   if (source.length === 0) return checkpoints
 
   const used = new Set<string>()
-  return checkpoints.map((cp, i) => {
+  return checkpoints.map((cp) => {
     let template: ChallengeTemplate | undefined
     const available = source.filter(t => !used.has(t.id))
     if (available.length > 0) {
@@ -163,7 +162,6 @@ export function generateSuggestedAdventures(
   center: GeoPoint,
   sensorAvail: SensorAvailability,
 ): SuggestedAdventure[] {
-  // 70% within 30 min, 20% within 90 min, 10% up to 2 hr
   const result: SuggestedAdventure[] = []
   const difficulties: Difficulty[] = ['easy', 'medium', 'hard', 'extreme']
   const durations = [20, 30, 45, 60, 90, 120]
@@ -171,7 +169,6 @@ export function generateSuggestedAdventures(
   for (let i = 0; i < 10; i++) {
     const loc = SUGGESTED_LOCATIONS[i]
     const isNearby = i < 7
-    // Offset from center based on travel distance
     const angle = (i * 36) % 360
     const offset = destinationPoint(center, angle, loc.travelKm * 1000)
     const prefs: AdventurePreferences = {
