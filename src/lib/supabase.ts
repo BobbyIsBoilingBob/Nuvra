@@ -1,10 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const url = import.meta.env.VITE_SUPABASE_URL
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(
-  url ?? 'https://placeholder.supabase.co',
-  anonKey ?? 'placeholder-anon-key',
-  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } },
-);
+if (!url || !key) {
+  console.warn('[supabase] Missing env vars — running in offline mode. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+}
+
+export const supabase = createClient(url ?? '', key ?? '', {
+  auth: { persistSession: true, autoRefreshToken: true },
+})
+
+export const isSupabaseConfigured = Boolean(url && key)
