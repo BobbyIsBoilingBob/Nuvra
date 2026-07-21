@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { MapPin, Sparkles, Compass, Camera, Smartphone, Navigation } from 'lucide-react'
 import type { AdventurePreferences, ChallengeCategory, Difficulty, GpsStatus, SensorAvailability } from '@/types/adventure'
 import { ALL_CATEGORIES } from '@/data/challenges'

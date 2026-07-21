@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { UserProfile, FriendRequest, NotificationItem, AdventureHistoryItem, DailyReward, Achievement, QuestProgress, InventoryItem, Party, Adventure, GeoPoint, SensorAvailability, AdventurePreferences, ChallengeCategory, Difficulty } from '@/types/adventure'
+import type { UserProfile, FriendRequest, NotificationItem, AdventureHistoryItem, DailyReward, Achievement, QuestProgress, InventoryItem, Party, Adventure } from '@/types/adventure'
 
 export async function searchProfiles(q: string): Promise<UserProfile[]> {
   if (!supabase || !q.trim()) return []
@@ -63,20 +63,12 @@ export async function declineFriendRequest(rid: string): Promise<{ error: string
   const { error } = await supabase.from('friend_requests').update({ status: 'declined', updated_at: new Date().toISOString() }).eq('id', rid)
   return { error: error?.message ?? null }
 }
-export async function removeFriend(fid: string): Promise<{ error: string | null }> {
-  if (!supabase) return { error: 'Not configured' }
-  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { error: 'Not signed in' }
-  await supabase.from('friends').delete().eq('user_id', user.id).eq('friend_id', fid)
-  await supabase.from('friends').delete().eq('user_id', fid).eq('friend_id', user.id)
-  return { error: null }
-}
 export async function getNotifications(): Promise<NotificationItem[]> {
   if (!supabase) return []
   const { data } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)
   return (data || []) as NotificationItem[]
 }
 export async function markNotificationRead(id: string): Promise<void> { if (supabase) await supabase.from('notifications').update({ read: true }).eq('id', id) }
-export async function markAllNotificationsRead(): Promise<void> { if (supabase) await supabase.from('notifications').update({ read: true }).eq('read', false) }
 export async function saveAdventure(a: Adventure): Promise<{ error: string | null }> {
   if (!supabase) return { error: 'Not configured' }
   const { data: { user } } = await supabase.auth.getUser(); if (!user) return { error: 'Not signed in' }
@@ -105,7 +97,8 @@ export async function getAdventureHistory(): Promise<AdventureHistoryItem[]> {
 }
 export async function getDailyReward(): Promise<DailyReward | null> {
   if (!supabase) return null
-  const { data } = await supabase.from('daily_rewards').select('*').maybeSingle()
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return null
+  const { data } = await supabase.from('daily_rewards').select('*').eq('user_id', user.id).maybeSingle()
   return data as DailyReward | null
 }
 export async function claimDailyReward(): Promise<{ success: boolean; coins: number; streak: number; error: string | null }> {
@@ -144,7 +137,8 @@ export const WEEKLY_QUESTS = [
 ]
 export async function getQuestProgress(): Promise<QuestProgress[]> {
   if (!supabase) return []
-  const { data } = await supabase.from('quest_progress').select('*')
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return []
+  const { data } = await supabase.from('quest_progress').select('*').eq('user_id', user.id)
   return (data || []) as QuestProgress[]
 }
 export async function claimQuestReward(qid: string, xp: number, coins: number): Promise<{ error: string | null }> {
@@ -156,29 +150,16 @@ export async function claimQuestReward(qid: string, xp: number, coins: number): 
   if (p) await supabase.from('profiles').update({ xp: (p.xp || 0) + xp, coins: (p.coins || 0) + coins }).eq('id', user.id)
   return { error: null }
 }
-export const ACHIEVEMENT_DEFS = [
-  { key: 'first_adventure', name: 'First Steps', desc: 'Complete your first adventure', icon: 'target', target: 1 },
-  { key: 'adventures_5', name: 'Trail Blazer', desc: 'Complete 5 adventures', icon: 'footprints', target: 5 },
-  { key: 'adventures_25', name: 'Seasoned Explorer', desc: 'Complete 25 adventures', icon: 'map', target: 25 },
-  { key: 'adventures_50', name: 'Master Adventurer', desc: 'Complete 50 adventures', icon: 'trophy', target: 50 },
-  { key: 'distance_10', name: 'Walker', desc: 'Walk 10 km total', icon: 'footprints', target: 10 },
-  { key: 'distance_50', name: 'Hiker', desc: 'Walk 50 km total', icon: 'mountain', target: 50 },
-  { key: 'distance_100', name: 'Marathon Walker', desc: 'Walk 100 km total', icon: 'medal', target: 100 },
-  { key: 'challenges_10', name: 'Challenge Taker', desc: 'Complete 10 challenges', icon: 'sword', target: 10 },
-  { key: 'challenges_50', name: 'Challenge Master', desc: 'Complete 50 challenges', icon: 'star', target: 50 },
-  { key: 'challenges_100', name: 'Challenge Legend', desc: 'Complete 100 challenges', icon: 'crown', target: 100 },
-  { key: 'streak_3', name: 'On Fire', desc: '3-day walking streak', icon: 'flame', target: 3 },
-  { key: 'streak_7', name: 'Week Warrior', desc: '7-day walking streak', icon: 'zap', target: 7 },
-  { key: 'streak_30', name: 'Unstoppable', desc: '30-day walking streak', icon: 'gem', target: 30 },
-]
 export async function getAchievements(): Promise<Achievement[]> {
   if (!supabase) return []
-  const { data } = await supabase.from('achievements').select('*').order('unlocked_at', { ascending: false })
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return []
+  const { data } = await supabase.from('achievements').select('*').eq('user_id', user.id).order('unlocked_at', { ascending: false })
   return (data || []) as Achievement[]
 }
 export async function getInventory(): Promise<InventoryItem[]> {
   if (!supabase) return []
-  const { data } = await supabase.from('inventory_items').select('*').order('acquired_at', { ascending: false })
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return []
+  const { data } = await supabase.from('inventory_items').select('*').eq('user_id', user.id).order('acquired_at', { ascending: false })
   return (data || []) as InventoryItem[]
 }
 export async function getParties(): Promise<Party[]> {
@@ -207,5 +188,5 @@ export async function getSeasonalProgress() {
   if (!supabase) return null
   const { data } = await supabase.from('seasonal_progress').select('*').maybeSingle()
   if (!data) return null
-  return { adventures_completed: data.adventures_completed, distance_walked: data.distance_walked, target_adventures: data.target_adventures, target_distance: data.target_distance, reward_claimed: data.reward_claimed }
+  return { seasonName: 'Adventure Season', level: data.level || 1, xp: data.xp || 0, xpToLevel: data.xp_to_level || 1000, daysLeft: data.days_left || 30, rewards: data.rewards || [] }
 }

@@ -4,12 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 interface Action { icon: ReactNode; onClick: () => void; label?: string }
 
 interface Props {
-  title: string
-  subtitle?: string
-  icon?: ReactNode
-  onBack?: () => void
-  children: ReactNode
-  actions?: Action[]
+  title: string; subtitle?: string; icon?: ReactNode; onBack?: () => void; children: ReactNode; actions?: Action[]
 }
 
 export default function ScreenShell({ title, subtitle, icon, onBack, children, actions }: Props) {

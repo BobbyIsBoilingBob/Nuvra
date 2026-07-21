@@ -1,43 +1,36 @@
 import { useEffect, useState } from 'react'
-import { Mountain, Clock, Star, MapPin } from 'lucide-react'
+import { History, MapPin, Clock, Zap, Gem } from 'lucide-react'
 import { getAdventureHistory } from '@/lib/db'
 import type { AdventureHistoryItem } from '@/types/adventure'
-import { formatDuration, formatDistance } from '@/lib/geo'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
 
-interface Props { onNavigate: (s: string) => void }
+const diffColors: Record<string, string> = { easy: 'text-brand-400', medium: 'text-sky-400', hard: 'text-accent-400', extreme: 'text-rose-400' }
 
-export default function HistoryScreen({ onNavigate }: Props) {
-  const [history, setHistory] = useState<AdventureHistoryItem[]>([])
+export default function HistoryScreen() {
+  const [items, setItems] = useState<AdventureHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    (async () => {
-      const h = await getAdventureHistory()
-      setHistory(h || []); setLoading(false)
-    })()
-  }, [])
+  useEffect(() => { (async () => { const h = await getAdventureHistory(); setItems(h || []); setLoading(false) })() }, [])
 
   return (
-    <ScreenShell title="History" subtitle="Past adventures">
-      {loading ? <div className="flex justify-center py-20"><LoadingSpinner /></div> : history.length === 0 ? (
-        <EmptyState icon={<Mountain size={32} />} title="No history yet" message="Your completed adventures will appear here" actionLabel="Start Adventure" onAction={() => onNavigate('generator')} />
-      ) : (
+    <ScreenShell title="History" subtitle="Your adventure log">
+      {loading ? <div className="flex justify-center py-20"><LoadingSpinner /></div> : items.length === 0 ? <EmptyState icon={<History size={32} />} title="No adventures yet" message="Complete your first adventure to see it here" /> : (
         <div className="space-y-3">
-          {history.map((h, i) => (
-            <div key={h.id} className="card-premium p-4 stagger" style={{ animationDelay: `${i * 40}ms` }}>
+          {items.map((h, i) => (
+            <div key={h.id} className="card-premium p-4 stagger" style={{ animationDelay: `${i * 50}ms` }}>
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2"><MapPin size={14} className="text-brand-400" /><span className="text-sm font-bold text-ink-100">{h.adventure_name}</span></div>
-                <span className="text-xs text-ink-500">{new Date(h.completed_at).toLocaleDateString()}</span>
+                <div><p className="text-sm font-bold text-ink-100">{h.adventure_name}</p><p className="text-xs text-ink-500 capitalize">{h.type?.replace('_', ' ') || 'Adventure'}</p></div>
+                <span className={`text-xs font-bold capitalize ${diffColors[h.difficulty] || 'text-ink-400'}`}>{h.difficulty}</span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-ink-500 mb-3">
-                <span className="flex items-center gap-1"><Clock size={12} /> {formatDuration(h.duration)}</span>
-                <span className="flex items-center gap-1"><Mountain size={12} /> {h.treasures_found} challenges</span>
-                <span className="flex items-center gap-1"><Star size={12} className="text-brand-400" /> +{h.xp_earned} XP</span>
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="flex items-center gap-1.5 text-xs text-ink-500"><MapPin size={13} className="text-brand-400" />{h.distance?.toFixed(1) || '0'}km</div>
+                <div className="flex items-center gap-1.5 text-xs text-ink-500"><Clock size={13} className="text-sky-400" />{h.duration || 0}min</div>
+                <div className="flex items-center gap-1.5 text-xs text-ink-500"><Zap size={13} className="text-accent-400" />{h.xp_earned || 0} XP</div>
               </div>
-              <div className="h-1.5 bg-surface-300 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-brand-500 to-accent-500 rounded-full" style={{ width: '100%' }} /></div>
+              {h.treasures_found > 0 && <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-400"><Gem size={13} />{h.treasures_found} treasures found</div>}
+              <p className="text-xs text-ink-600 mt-2">{new Date(h.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
             </div>
           ))}
         </div>

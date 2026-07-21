@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, Flame, Star, ChevronRight, Compass } from 'lucide-react'
+import { Bell, Flame, Star, ChevronRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { NAV_ITEMS } from '@/data/navigation'
 import { levelFromXp, xpProgressInLevel } from '@/lib/geo'

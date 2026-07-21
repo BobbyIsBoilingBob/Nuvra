@@ -14,7 +14,6 @@ import { useToasts, ToastContainer } from '@/components/Toast'
 interface Props { onPreview: (a: Adventure) => void }
 
 export default function AIGeneratorScreen({ onPreview }: Props) {
-  const { profile } = useAuth()
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle')
   const [generating, setGenerating] = useState(false)
   const [suggested, setSuggested] = useState<SuggestedAdventure[]>([])

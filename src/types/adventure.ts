@@ -44,9 +44,3 @@ export interface QuestProgress { id: string; user_id: string; quest_id: string; 
 export interface InventoryItem { id: string; user_id: string; item_id: string; item_name: string; item_type: string; quantity: number; rarity: string; icon: string; acquired_at: string }
 export interface Party { id: string; name: string; leader_id: string; adventure_id: string | null; status: string; created_at: string }
 export interface PartyMember { id: string; party_id: string; user_id: string; role: string; joined_at: string }
-
-export interface Quest { id: string; key: string; title: string; description: string; type: 'daily' | 'weekly'; target: number; progress: number; rewardXp: number; rewardCoins: number; claimed: boolean }
-export interface ShopItem { id: string; name: string; description: string; price: number; currency: 'coins' | 'gems'; owned: boolean; rarity?: string }
-export interface ActivityFeedItem { id: string; userId: string; userName: string; action: string; target: string; createdAt: string }
-export interface SeasonalProgressData { seasonName: string; level: number; xp: number; xpToLevel: number; daysLeft: number; rewards: { name: string; level: number }[] }
-export interface Friend { id: string; username: string; avatar_color: string; level: number; xp: number }

@@ -1,80 +1,65 @@
 import { useEffect, useState } from 'react'
-import { Flame, Gift, Check } from 'lucide-react'
-import { useAuth } from '@/lib/auth'
+import { Gift, Flame, Check } from 'lucide-react'
 import { getDailyReward, claimDailyReward } from '@/lib/db'
 import type { DailyReward } from '@/types/adventure'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { useToasts, ToastContainer } from '@/components/Toast'
 
-const DAY_REWARDS = [
-  { day: 1, coins: 50, xp: 10 }, { day: 2, coins: 75, xp: 15 }, { day: 3, coins: 100, xp: 20 },
-  { day: 4, coins: 150, xp: 25 }, { day: 5, coins: 200, xp: 30 }, { day: 6, coins: 300, xp: 40 },
-  { day: 7, coins: 500, xp: 100 },
-]
+const DAY_REWARDS = [50, 60, 70, 80, 100, 120, 150]
 
 export default function RewardsScreen() {
-  const { profile, refreshProfile } = useAuth()
-  const [status, setStatus] = useState<DailyReward | null>(null)
+  const [reward, setReward] = useState<DailyReward | null>(null)
   const [loading, setLoading] = useState(true)
+  const [claiming, setClaiming] = useState(false)
   const { toasts, push, dismiss } = useToasts()
 
-  useEffect(() => {
-    (async () => {
-      const s = await getDailyReward()
-      setStatus(s); setLoading(false)
-    })()
-  }, [])
+  const load = async () => { const r = await getDailyReward(); setReward(r); setLoading(false) }
+  useEffect(() => { load() }, [])
 
   const today = new Date().toISOString().split('T')[0]
-  const claimedToday = status?.last_claim_date === today
-  const currentDay = status ? Math.min(7, status.current_streak + (claimedToday ? 0 : 1)) : 1
+  const claimedToday = reward?.last_claim_date === today
+  const streak = reward?.current_streak || 0
 
   const handleClaim = async () => {
-    if (claimedToday) return
-    const result = await claimDailyReward()
-    if (result.success) {
-      setStatus(prev => prev ? { ...prev, last_claim_date: today, current_streak: result.streak } : prev)
-      push('reward', `+${result.coins} coins!`, `Day ${result.streak} streak`)
-      refreshProfile()
-    } else {
-      push('error', 'Failed', result.error || 'Already claimed')
-    }
+    setClaiming(true)
+    const res = await claimDailyReward()
+    setClaiming(false)
+    if (res.success) { push('reward', 'Reward Claimed!', `+${res.coins} coins, ${res.streak} day streak`); load() }
+    else if (res.error) push('error', 'Cannot claim', res.error)
   }
-
-  if (loading) return <ScreenShell title="Rewards" subtitle="Daily rewards"><div className="flex justify-center py-20"><LoadingSpinner /></div></ScreenShell>
 
   return (
     <>
-      <ScreenShell title="Rewards" subtitle="Daily login bonuses">
-        <div className="space-y-5">
-          <div className="bg-gradient-to-br from-accent-500/15 to-brand-500/10 border border-accent-500/20 rounded-2xl p-5 text-center animate-slide-up">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-500 to-accent-600 shadow-glow-accent mb-3"><Flame size={32} className="text-white" /></div>
-            <p className="text-sm text-ink-400">Current Streak</p>
-            <p className="text-3xl font-extrabold text-ink-100">{profile?.walking_streak ?? 0} <span className="text-lg text-ink-400">days</span></p>
-            <button onClick={handleClaim} disabled={claimedToday} className={`mt-4 px-6 py-3 rounded-xl font-bold text-sm btn-press ${claimedToday ? 'bg-surface-200 text-ink-500' : 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-glow-accent'}`}>
-              {claimedToday ? <span className="flex items-center gap-1.5"><Check size={16} /> Claimed Today</span> : 'Claim Today\'s Reward'}
-            </button>
-          </div>
+      <ScreenShell title="Rewards" subtitle="Daily bonuses">
+        {loading ? <div className="flex justify-center py-20"><LoadingSpinner /></div> : (
+          <div className="space-y-5">
+            <div className="card-premium p-6 text-center bg-gradient-to-br from-brand-500/10 to-accent-500/10">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center mb-3"><Gift className="text-white" size={28} /></div>
+              <p className="text-sm text-ink-400 mb-1">Today's Reward</p>
+              <p className="text-2xl font-bold gradient-text mb-4">{DAY_REWARDS[(streak % 7)] || 50} coins</p>
+              <button onClick={handleClaim} disabled={claiming || claimedToday} className={`px-6 py-3 rounded-xl text-sm font-bold btn-press ${claimedToday ? 'bg-surface-200 text-ink-600' : 'bg-gradient-to-r from-brand-500 to-brand-600 text-white'}`}>
+                {claimedToday ? <span className="flex items-center gap-1.5"><Check size={16} /> Claimed</span> : 'Claim Reward'}
+              </button>
+            </div>
 
-          <div>
-            <h3 className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Gift size={12} /> Weekly Rewards</h3>
-            <div className="grid grid-cols-4 gap-2.5">
-              {DAY_REWARDS.map((r, i) => {
-                const claimed = status ? status.current_streak > r.day || (status.current_streak === r.day && claimedToday) : false
-                const isToday = currentDay === r.day
-                return (
-                  <div key={r.day} className={`rounded-xl border p-3 text-center stagger ${r.day === 7 ? 'col-span-4' : ''} ${isToday ? 'bg-gradient-to-br from-brand-500/20 to-accent-500/10 border-brand-500/40' : claimed ? 'bg-surface-100 border-success-500/20' : 'bg-surface-100 border-white/[0.04]'}`} style={{ animationDelay: `${i * 40}ms` }}>
-                    <p className="text-xs text-ink-500 mb-1">Day {r.day}</p>
-                    {claimed ? <Check size={20} className="text-success-400 mx-auto" /> : <Gift size={20} className={isToday ? 'text-brand-400 mx-auto' : 'text-ink-600 mx-auto'} />}
-                    <p className="text-xs font-bold text-accent-400 mt-1">{r.coins}</p>
-                    <p className="text-[10px] text-ink-500">+{r.xp} XP</p>
-                  </div>
-                )
-              })}
+            <div className="card-premium p-4">
+              <div className="flex items-center gap-2 mb-3"><Flame size={16} className="text-accent-400" /><p className="text-sm font-bold text-ink-100">Streak: {streak} days</p></div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {DAY_REWARDS.map((amt, i) => {
+                  const dayClaimed = i < streak
+                  const isToday = i === streak && !claimedToday
+                  return (
+                    <div key={i} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-center ${dayClaimed ? 'bg-gradient-to-br from-brand-500 to-brand-600 text-white' : isToday ? 'bg-accent-500/20 border border-accent-500/50' : 'bg-surface-200 text-ink-600'}`}>
+                      <span className="text-xs font-bold">{amt}</span>
+                      <span className="text-[10px] opacity-80">D{i + 1}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </ScreenShell>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
