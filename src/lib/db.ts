@@ -145,6 +145,9 @@ export async function recordAdventureCompletion(opts: {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
   if (profile) {
     const newXp = (profile.xp || 0) + xpEarned
+    const today = new Date().toISOString().split('T')[0]
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const newStreak = profile.last_walk_date === yesterday ? (profile.walking_streak || 0) + 1 : 1
     await supabase.from('profiles').update({
       coins: (profile.coins || 0) + coinsEarned,
       gems: (profile.gems || 0) + Math.floor(xpEarned / 100),
@@ -152,9 +155,15 @@ export async function recordAdventureCompletion(opts: {
       completed_adventures: (profile.completed_adventures || 0) + 1,
       completed_challenges: (profile.completed_challenges || 0) + challengesCompleted,
       xp: newXp, level: Math.floor(Math.sqrt(newXp / 100)) + 1,
-      last_walk_date: new Date().toISOString().split('T')[0],
+      walking_streak: newStreak,
+      last_walk_date: today,
       last_seen: new Date().toISOString(),
     }).eq('id', user.id)
+    await supabase.from('activity_log').insert({
+      user_id: user.id, activity_type: 'adventure_completed',
+      description: `Completed ${adventure.title}`,
+      metadata: { xp: xpEarned, coins: coinsEarned, challenges: challengesCompleted },
+    })
   }
   return { error: null }
 }

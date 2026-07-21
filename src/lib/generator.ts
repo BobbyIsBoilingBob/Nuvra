@@ -16,8 +16,8 @@ function titleFor(locationName: string): string {
 }
 
 function descFor(difficulty: Difficulty, locationName: string, numCp: number): string {
-  const adj = { easy: 'relaxed', medium: 'medium', hard: 'challenging', extreme: 'extreme' }[difficulty]
-  return `A handcrafted ${adj} journey through ${locationName} with ${numCp} checkpoints of discovery.`
+  const adj = { easy: 'relaxed', medium: 'moderate', hard: 'challenging', extreme: 'extreme' }[difficulty]
+  return `A ${adj} journey through ${locationName} with ${numCp} checkpoints of discovery.`
 }
 
 function resolveTargetDistance(prefs: AdventurePreferences): number {

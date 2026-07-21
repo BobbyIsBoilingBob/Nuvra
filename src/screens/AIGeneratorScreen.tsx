@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Bot, Sparkles, Info } from 'lucide-react'
+import { Bot, Sparkles, Info, MapPin, Clock, Route, ChevronRight } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import GeneratorForm from '@/components/GeneratorForm'
-import type { AdventurePreferences, Adventure, GpsStatus, ScreenName } from '@/types/adventure'
+import type { AdventurePreferences, Adventure, GpsStatus, SensorAvailability } from '@/types/adventure'
 import { generateAdventure, generateSuggestedAdventures } from '@/lib/generator'
 import { detectSensors } from '@/lib/sensors'
 
@@ -15,17 +15,16 @@ interface Props {
 export default function AIGeneratorScreen({ onBack, onPreview, onToast }: Props) {
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle')
   const [generating, setGenerating] = useState(false)
+  const [sensorAvail] = useState<SensorAvailability>(detectSensors)
+  const [suggestions] = useState(() => generateSuggestedAdventures({ lat: 51.5074, lng: -0.1278 }, sensorAvail))
 
   const handleGenerate = async (prefs: AdventurePreferences, center: { lat: number; lng: number } | null, locationName: string) => {
     setGenerating(true)
     try {
       const fallbackCenter = center ?? { lat: 51.5074, lng: -0.1278 }
       const adventure = generateAdventure({
-        center: fallbackCenter,
-        locationName,
-        locationSource: center ? 'gps' : 'manual',
-        preferences: prefs,
-        sensorAvail: detectSensors(),
+        center: fallbackCenter, locationName, locationSource: center ? 'gps' : 'manual',
+        preferences: prefs, sensorAvail,
       })
       onToast('success', 'Adventure generated!', `${adventure.checkpoints.length} checkpoints · ${adventure.distanceKm.toFixed(1)} km`)
       onPreview(adventure)
@@ -37,18 +36,19 @@ export default function AIGeneratorScreen({ onBack, onPreview, onToast }: Props)
   }
 
   return (
-    <ScreenShell title="AI Adventure Generator" icon={<Bot size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="AI Adventure Generator" icon={<Bot size={18} />} onBack={onBack}>
       <div className="bg-brand-500/10 border border-brand-500/30 rounded-xl p-3 mb-5 flex items-start gap-2.5">
         <Info size={16} className="text-brand-400 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-ink-300">Describe your ideal adventure and the AI will generate a custom route with checkpoints, challenges, and sensors.</p>
       </div>
 
       {generating ? (
-        <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500/20 border border-brand-500/30 mb-3">
-            <Sparkles size={28} className="text-brand-400 animate-pulse" />
+        <div className="text-center py-16 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-brand-500/20 border border-brand-500/30 mb-4">
+            <Sparkles size={36} className="text-brand-400 animate-pulse" />
           </div>
           <p className="text-sm text-ink-300">Generating your adventure...</p>
+          <p className="text-xs text-ink-500 mt-1">Building route and assigning challenges</p>
         </div>
       ) : (
         <GeneratorForm onGenerate={handleGenerate} gpsStatus={gpsStatus} setGpsStatus={setGpsStatus} />
@@ -56,30 +56,33 @@ export default function AIGeneratorScreen({ onBack, onPreview, onToast }: Props)
 
       <div className="mt-8">
         <h3 className="text-sm font-semibold text-ink-200 mb-3">Suggested Adventures</h3>
-        <SuggestedList onPreview={onPreview} />
+        <div className="space-y-2">
+          {suggestions.map(s => (
+            <button
+              key={s.adventure.id}
+              onClick={() => onPreview(s.adventure)}
+              className="w-full text-left bg-ink-900 border border-ink-800 rounded-xl p-3.5 hover:border-ink-700 transition active:scale-95"
+            >
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink-100">{s.adventure.title}</p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-ink-500">
+                    <span className="flex items-center gap-1"><MapPin size={10} /> {s.adventure.locationName}</span>
+                    <span className="flex items-center gap-1"><Route size={10} /> {s.adventure.distanceKm.toFixed(1)} km</span>
+                    <span className="flex items-center gap-1"><Clock size={10} /> {s.adventure.durationMin} min</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`text-xs px-2 py-1 rounded-full ${s.isNearby ? 'bg-success-500/20 text-success-400' : 'bg-ink-800 text-ink-400'}`}>
+                    {s.isNearby ? 'Nearby' : `${s.travelTimeMin} min`}
+                  </span>
+                  <ChevronRight size={14} className="text-ink-600" />
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </ScreenShell>
-  )
-}
-
-function SuggestedList({ onPreview }: { onPreview: (a: Adventure) => void }) {
-  const [suggestions] = useState(() => generateSuggestedAdventures({ lat: 51.5074, lng: -0.1278 }, { compass: true, accelerometer: true, gyroscope: false, camera: true, gps: true }))
-  return (
-    <div className="space-y-2">
-      {suggestions.map(s => (
-        <button key={s.adventure.id} onClick={() => onPreview(s.adventure)}
-          className="w-full text-left bg-ink-900 border border-ink-800 rounded-xl p-3 hover:border-ink-700 transition active:scale-95">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-ink-100">{s.adventure.title}</p>
-              <p className="text-xs text-ink-500 mt-0.5">{s.adventure.locationName} · {s.adventure.distanceKm.toFixed(1)} km · {s.adventure.durationMin} min</p>
-            </div>
-            <span className={`text-xs px-2 py-1 rounded-full ${s.isNearby ? 'bg-success-500/20 text-success-400' : 'bg-ink-800 text-ink-400'}`}>
-              {s.isNearby ? 'Nearby' : `${s.travelTimeMin} min away`}
-            </span>
-          </div>
-        </button>
-      ))}
-    </div>
   )
 }

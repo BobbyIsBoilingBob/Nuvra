@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Map, Navigation, Check, ChevronRight, Flag, Trophy } from 'lucide-react'
+import { Map, Navigation, Check, ChevronRight, Flag, Trophy, Star, Coins } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import AdventureMap from '@/components/AdventureMap'
 import ChallengeRunner from '@/components/ChallengeRunner'
-import type { Adventure, GpsPosition, SensorAvailability, ScreenName } from '@/types/adventure'
+import type { Adventure, GpsPosition, SensorAvailability } from '@/types/adventure'
 import { detectSensors } from '@/lib/sensors'
 import { watchPosition } from '@/lib/gps'
 import { recordAdventureCompletion } from '@/lib/db'
@@ -21,7 +21,7 @@ export default function MapScreen({ adventure, onBack, onComplete, onToast }: Pr
   const [playerPos, setPlayerPos] = useState<GpsPosition | null>(null)
   const [totalXp, setTotalXp] = useState(0)
   const [totalCoins, setTotalCoins] = useState(0)
-  const [sensorAvail] = useState<SensorAvailability>(detectSensors())
+  const [sensorAvail] = useState<SensorAvailability>(detectSensors)
   const [finished, setFinished] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -59,21 +59,27 @@ export default function MapScreen({ adventure, onBack, onComplete, onToast }: Pr
     return (
       <ScreenShell title="Adventure Complete" icon={<Trophy size={18} className="text-accent-400" />} onBack={onBack}>
         <div className="text-center py-8 animate-pop">
-          <Trophy size={48} className="mx-auto mb-3 text-accent-400" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-accent-500/20 border-2 border-accent-500/40 mb-4">
+            <Trophy size={48} className="text-accent-400" />
+          </div>
           <h2 className="text-2xl font-bold text-ink-100">Congratulations!</h2>
           <p className="text-sm text-ink-400 mt-1">You completed {adventure.title}</p>
           <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-ink-900 border border-ink-800 rounded-xl p-4">
+            <div className="bg-ink-900 border border-ink-800 rounded-2xl p-4">
+              <Star size={24} className="mx-auto mb-1 text-brand-400" />
               <p className="text-2xl font-bold text-brand-400">{totalXp}</p>
               <p className="text-xs text-ink-500 uppercase mt-1">XP Earned</p>
             </div>
-            <div className="bg-ink-900 border border-ink-800 rounded-xl p-4">
+            <div className="bg-ink-900 border border-ink-800 rounded-2xl p-4">
+              <Coins size={24} className="mx-auto mb-1 text-accent-400" />
               <p className="text-2xl font-bold text-accent-400">{totalCoins}</p>
               <p className="text-xs text-ink-500 uppercase mt-1">Coins Earned</p>
             </div>
           </div>
-          <button onClick={handleFinish} disabled={saving}
-            className="w-full mt-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+          <button
+            onClick={handleFinish} disabled={saving}
+            className="w-full mt-6 py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+          >
             {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Check size={18} /> Finish & Save</>}
           </button>
         </div>
@@ -87,22 +93,22 @@ export default function MapScreen({ adventure, onBack, onComplete, onToast }: Pr
   return (
     <ScreenShell
       title={adventure.title}
-      icon={<Map size={18} className="text-brand-400" />}
+      icon={<Map size={18} />}
       onBack={onBack}
       headerRight={
-        <span className="text-xs text-ink-500">{currentIdx + 1} / {adventure.checkpoints.length}</span>
+        <span className="text-xs text-ink-500 tabular-nums">{currentIdx + 1} / {adventure.checkpoints.length}</span>
       }
     >
       <div className="space-y-4">
-        <AdventureMap adventure={adventure} playerPos={playerPos} />
+        <AdventureMap adventure={adventure} playerPos={playerPos} completedIndices={completed} />
 
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-ink-500 uppercase font-semibold">Progress</span>
-            <span className="text-xs text-ink-400">{completed.size} / {adventure.checkpoints.length} done</span>
+            <span className="text-xs text-ink-400 tabular-nums">{completed.size} / {adventure.checkpoints.length} done</span>
           </div>
-          <div className="h-2 bg-ink-800 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${(completed.size / adventure.checkpoints.length) * 100}%` }} />
+          <div className="h-2.5 bg-ink-800 rounded-full overflow-hidden">
+            <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${(completed.size / adventure.checkpoints.length) * 100}%` }} />
           </div>
         </div>
 
@@ -113,7 +119,7 @@ export default function MapScreen({ adventure, onBack, onComplete, onToast }: Pr
                 <div className="w-7 h-7 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-xs text-brand-400 font-bold">{currentIdx + 1}</div>
                 <span className="text-sm font-semibold text-ink-200">{currentCp.label}</span>
               </div>
-              <ChallengeRunner challenge={currentChallenge} sensorAvail={sensorAvail} onComplete={handleChallengeComplete} />
+              <ChallengeRunner key={currentIdx} challenge={currentChallenge} sensorAvail={sensorAvail} onComplete={handleChallengeComplete} />
             </>
           ) : (
             <div className="text-center py-4">
@@ -125,8 +131,10 @@ export default function MapScreen({ adventure, onBack, onComplete, onToast }: Pr
         </div>
 
         {completed.has(currentIdx) && (
-          <button onClick={handleNext}
-            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2">
+          <button
+            onClick={handleNext}
+            className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+          >
             {currentIdx < adventure.checkpoints.length - 1 ? <><ChevronRight size={18} /> Next Checkpoint</> : <><Flag size={18} /> Finish Adventure</>}
           </button>
         )}

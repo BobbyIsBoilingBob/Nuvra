@@ -27,17 +27,17 @@ export default function CommunityScreen({ onBack }: Props) {
   }, [])
 
   return (
-    <ScreenShell title="Community" icon={<Globe size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Community" icon={<Globe size={18} />} onBack={onBack}>
       {loading ? <LoadingSpinner label="Loading activity..." /> :
        feed.length === 0 ? (
          <EmptyState icon={<Activity size={40} />} title="No activity yet" message="Community activity will appear here as you and others complete adventures" />
        ) : (
          <div className="space-y-2">
            {feed.map(item => (
-             <div key={item.id} className="bg-ink-900 border border-ink-800 rounded-xl p-3">
+             <div key={item.id} className="bg-ink-900 border border-ink-800 rounded-xl p-3 animate-fade-in">
                <div className="flex items-start gap-3">
-                 <div className="w-9 h-9 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center flex-shrink-0">
-                   <Activity size={16} className="text-brand-400" />
+                 <div className="w-10 h-10 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center flex-shrink-0">
+                   <Activity size={18} className="text-brand-400" />
                  </div>
                  <div className="flex-1 min-w-0">
                    <p className="text-sm text-ink-200">{item.description || item.activity_type}</p>

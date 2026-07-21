@@ -17,7 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'community', label: 'Community', icon: screenIcons.community, color: 'from-cyan-500 to-cyan-700' },
   { id: 'friends', label: 'Friends', icon: screenIcons.friends, color: 'from-teal-500 to-teal-700' },
   { id: 'party', label: 'Party', icon: screenIcons.party, color: 'from-pink-500 to-pink-700' },
-  { id: 'profile', label: 'Profile', icon: screenIcons.profile, color: 'from-purple-500 to-purple-700' },
+  { id: 'profile', label: 'Profile', icon: screenIcons.profile, color: 'from-emerald-500 to-emerald-700' },
   { id: 'avatar', label: 'Avatar / Customise', icon: screenIcons.avatar, color: 'from-rose-500 to-rose-700' },
   { id: 'history', label: 'History', icon: screenIcons.history, color: 'from-indigo-500 to-indigo-700' },
   { id: 'rewards', label: 'Rewards', icon: screenIcons.rewards, color: 'from-emerald-500 to-emerald-700' },

@@ -79,10 +79,10 @@ function AppInner() {
 
   const renderScreen = () => {
     switch (screen) {
-      case 'home': return <HomeScreen profile={null} unreadNotifications={unreadCount} onNavigate={navigate} />
+      case 'home': return <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
       case 'generator': return <AIGeneratorScreen onBack={goHome} onPreview={handlePreview} onToast={addToast} />
-      case 'preview': return previewAdventure ? <PreviewScreen adventure={previewAdventure} onBack={goHome} onStart={handleStartAdventure} onToast={addToast} /> : <HomeScreen profile={null} unreadNotifications={unreadCount} onNavigate={navigate} />
-      case 'map': return previewAdventure ? <MapScreen adventure={previewAdventure} onBack={() => setScreen('preview')} onComplete={goHome} onToast={addToast} /> : <HomeScreen profile={null} unreadNotifications={unreadCount} onNavigate={navigate} />
+      case 'preview': return previewAdventure ? <PreviewScreen adventure={previewAdventure} onBack={goHome} onStart={handleStartAdventure} onToast={addToast} /> : <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
+      case 'map': return previewAdventure ? <MapScreen adventure={previewAdventure} onBack={() => setScreen('preview')} onComplete={goHome} onToast={addToast} /> : <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
       case 'profile': return <ProfileScreen onBack={goHome} onNavigate={navigate} onToast={addToast} />
       case 'community': return <CommunityScreen onBack={goHome} />
       case 'friends': return <FriendsScreen onBack={goHome} onToast={addToast} />
@@ -99,7 +99,7 @@ function AppInner() {
       case 'settings': return <SettingsScreen onBack={goHome} onToast={addToast} />
       case 'creator': return <CreatorScreen onBack={goHome} onToast={addToast} />
       case 'notifications': return <NotificationsScreen onBack={goHome} />
-      default: return <HomeScreen profile={null} unreadNotifications={unreadCount} onNavigate={navigate} />
+      default: return <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
     }
   }
 

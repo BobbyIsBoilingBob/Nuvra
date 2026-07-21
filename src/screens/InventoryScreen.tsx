@@ -3,8 +3,8 @@ import { Backpack, Package } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
-import type { InventoryItem } from '@/types/adventure'
 import { getInventory } from '@/lib/db'
+import type { InventoryItem } from '@/types/adventure'
 
 interface Props {
   onBack: () => void
@@ -27,13 +27,13 @@ export default function InventoryScreen({ onBack }: Props) {
   }, [])
 
   return (
-    <ScreenShell title="Inventory" icon={<Backpack size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Inventory" icon={<Backpack size={18} />} onBack={onBack}>
       {loading ? <LoadingSpinner label="Loading inventory..." /> : items.length === 0 ? (
         <EmptyState icon={<Backpack size={40} />} title="Empty inventory" message="Items collected from adventures will appear here" />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {items.map(item => (
-            <div key={item.id} className={`bg-ink-900 border rounded-xl p-3 ${rarityColors[item.rarity] || rarityColors.common}`}>
+            <div key={item.id} className={`bg-ink-900 border rounded-xl p-3 animate-fade-in ${rarityColors[item.rarity] || rarityColors.common}`}>
               <div className="flex items-center justify-center mb-2">
                 <Package size={32} className="opacity-80" />
               </div>

@@ -31,26 +31,26 @@ export default function QuestsScreen({ onBack, onToast }: Props) {
     const claimed = prog?.claimed ?? false
     const complete = current >= q.target
     return (
-      <div key={q.key} className="bg-ink-900 border border-ink-800 rounded-xl p-3">
+      <div key={q.key} className="bg-ink-900 border border-ink-800 rounded-xl p-3.5 animate-fade-in">
         <div className="flex items-start justify-between mb-2">
           <div>
             <p className="text-sm font-semibold text-ink-100">{q.title}</p>
             <p className="text-xs text-ink-500 mt-0.5">{q.desc}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs flex-shrink-0">
             <span className="flex items-center gap-0.5 text-brand-400"><Star size={12} /> {q.xp}</span>
             <span className="flex items-center gap-0.5 text-accent-400"><Coins size={12} /> {q.coins}</span>
           </div>
         </div>
-        <div className="h-2 bg-ink-800 rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${Math.min(100, (current / q.target) * 100)}%` }} />
+        <div className="h-2.5 bg-ink-800 rounded-full overflow-hidden mb-2">
+          <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (current / q.target) * 100)}%` }} />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-ink-500">{current} / {q.target}</span>
+          <span className="text-xs text-ink-500 tabular-nums">{current} / {q.target}</span>
           {claimed ? (
             <span className="text-xs text-success-400 flex items-center gap-1"><Check size={12} /> Claimed</span>
           ) : complete ? (
-            <button onClick={() => claim(q)} className="px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-medium transition active:scale-95">Claim</button>
+            <button onClick={() => claim(q)} className="px-3.5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-medium transition active:scale-95">Claim</button>
           ) : (
             <span className="text-xs text-ink-600 flex items-center gap-1"><Lock size={12} /> In progress</span>
           )}
@@ -60,7 +60,7 @@ export default function QuestsScreen({ onBack, onToast }: Props) {
   }
 
   return (
-    <ScreenShell title="Quests" icon={<ScrollText size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Quests" icon={<ScrollText size={18} />} onBack={onBack}>
       {loading ? <LoadingSpinner /> : (
         <div className="space-y-5">
           <div>

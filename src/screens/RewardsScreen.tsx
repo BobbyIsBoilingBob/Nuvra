@@ -44,16 +44,16 @@ export default function RewardsScreen({ onBack, onToast }: Props) {
     }
   }
 
-  if (loading) return <ScreenShell title="Rewards" icon={<Gift size={18} className="text-brand-400" />} onBack={onBack}><LoadingSpinner /></ScreenShell>
+  if (loading) return <ScreenShell title="Rewards" icon={<Gift size={18} />} onBack={onBack}><LoadingSpinner /></ScreenShell>
 
   return (
-    <ScreenShell title="Rewards" icon={<Gift size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Rewards" icon={<Gift size={18} />} onBack={onBack}>
       <div className="space-y-5">
         <div className="bg-gradient-to-br from-accent-500/20 to-brand-500/10 border border-accent-500/30 rounded-2xl p-5 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-500/20 border border-accent-500/30 mb-3">
-            <Flame size={28} className="text-accent-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-500/20 border border-accent-500/30 mb-3">
+            <Flame size={32} className="text-accent-400" />
           </div>
-          <p className="text-3xl font-bold text-ink-100">{streak}</p>
+          <p className="text-4xl font-bold text-ink-100 tabular-nums">{streak}</p>
           <p className="text-sm text-ink-400">day streak</p>
           <p className="text-xs text-ink-500 mt-2">{totalClaimed} total rewards claimed</p>
         </div>
@@ -71,15 +71,17 @@ export default function RewardsScreen({ onBack, onToast }: Props) {
                   <div className="flex items-center justify-center">
                     {isClaimed ? <Check size={14} className="text-success-400" /> : <Coins size={14} className="text-ink-500" />}
                   </div>
-                  <p className="text-xs font-semibold text-ink-300 mt-1">{reward}</p>
+                  <p className="text-xs font-semibold text-ink-300 mt-1 tabular-nums">{reward}</p>
                 </div>
               )
             })}
           </div>
         </div>
 
-        <button onClick={handleClaim} disabled={claiming || claimedToday}
-          className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+        <button
+          onClick={handleClaim} disabled={claiming || claimedToday}
+          className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+        >
           {claiming ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Claiming...</> :
            claimedToday ? <><Check size={18} /> Claimed Today</> : <><Gift size={18} /> Claim Daily Reward</>}
         </button>

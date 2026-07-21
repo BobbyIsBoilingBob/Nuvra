@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Map, Play, Save, Clock, Route, MapPin, Check } from 'lucide-react'
+import { Map, Play, Save, Clock, Route, MapPin, Star, Coins } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import AdventureMap from '@/components/AdventureMap'
-import type { Adventure, ScreenName } from '@/types/adventure'
+import type { Adventure } from '@/types/adventure'
 import { formatDistance, formatDuration } from '@/lib/geo'
 import { categoryIcons, difficultyIcons } from '@/data/icons'
 import { saveAdventure } from '@/lib/db'
@@ -25,7 +25,7 @@ export default function PreviewScreen({ adventure, onBack, onStart, onToast }: P
   }
 
   return (
-    <ScreenShell title="Adventure Preview" icon={<Map size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Adventure Preview" icon={<Map size={18} />} onBack={onBack}>
       <div className="space-y-4">
         <div>
           <h2 className="text-xl font-bold text-ink-100">{adventure.title}</h2>
@@ -63,7 +63,10 @@ export default function PreviewScreen({ adventure, onBack, onStart, onToast }: P
                       <span className="text-xs text-ink-500 uppercase">{ch.category} · {ch.difficulty}</span>
                     </div>
                     <p className="text-sm font-medium text-ink-100">{ch.title}</p>
-                    <p className="text-xs text-ink-500 mt-0.5">+{ch.xp} XP · +{ch.coins} coins</p>
+                    <p className="text-xs text-ink-500 mt-0.5 flex items-center gap-2">
+                      <span className="flex items-center gap-0.5"><Star size={10} className="text-brand-400" /> {ch.xp} XP</span>
+                      <span className="flex items-center gap-0.5"><Coins size={10} className="text-accent-400" /> {ch.coins}</span>
+                    </p>
                   </div>
                 </div>
               )
@@ -72,12 +75,16 @@ export default function PreviewScreen({ adventure, onBack, onStart, onToast }: P
         </div>
 
         <div className="flex gap-2 pt-2">
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-3 bg-ink-800 hover:bg-ink-700 text-ink-200 rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+          <button
+            onClick={handleSave} disabled={saving}
+            className="flex-1 py-3 bg-ink-800 hover:bg-ink-700 text-ink-200 rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
             {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Save size={16} /> Save</>}
           </button>
-          <button onClick={onStart}
-            className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2">
+          <button
+            onClick={onStart}
+            className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+          >
             <Play size={16} /> Start Adventure
           </button>
         </div>

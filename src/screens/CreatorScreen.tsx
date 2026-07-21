@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { PenTool, Plus, Save, X } from 'lucide-react'
+import { PenTool, Save } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
-import type { Difficulty, ChallengeCategory, ScreenName } from '@/types/adventure'
+import type { Difficulty, ChallengeCategory } from '@/types/adventure'
 import { ALL_CATEGORIES } from '@/data/challenges'
 import { categoryIcons, difficultyIcons } from '@/data/icons'
 
@@ -31,7 +31,7 @@ export default function CreatorScreen({ onBack, onToast }: Props) {
   }
 
   return (
-    <ScreenShell title="Creator Studio" icon={<PenTool size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Creator Studio" icon={<PenTool size={18} />} onBack={onBack}>
       <div className="space-y-5">
         <div className="bg-brand-500/10 border border-brand-500/30 rounded-xl p-3">
           <p className="text-xs text-ink-300">Design your own custom adventure with hand-picked challenges and checkpoints.</p>
@@ -39,14 +39,18 @@ export default function CreatorScreen({ onBack, onToast }: Props) {
 
         <div>
           <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Adventure Title</label>
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="My Custom Adventure"
-            className="w-full mt-1.5 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+          <input
+            type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="My Custom Adventure"
+            className="w-full mt-1.5 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
+          />
         </div>
 
         <div>
           <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe your adventure..." rows={3}
-            className="w-full mt-1.5 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition resize-none" />
+          <textarea
+            value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe your adventure..." rows={3}
+            className="w-full mt-1.5 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition resize-none"
+          />
         </div>
 
         <div>
@@ -55,8 +59,10 @@ export default function CreatorScreen({ onBack, onToast }: Props) {
             {DIFFICULTIES.map(d => {
               const Icon = difficultyIcons[d]
               return (
-                <button key={d} onClick={() => setDifficulty(d)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition active:scale-95 flex items-center justify-center gap-1.5 ${difficulty === d ? 'bg-brand-500 text-white' : 'bg-ink-900 border border-ink-700 text-ink-400'}`}>
+                <button
+                  key={d} onClick={() => setDifficulty(d)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition active:scale-95 flex items-center justify-center gap-1.5 ${difficulty === d ? 'bg-brand-500 text-white' : 'bg-ink-900 border border-ink-700 text-ink-400 hover:bg-ink-800'}`}
+                >
                   <Icon size={14} /> {d}
                 </button>
               )
@@ -66,14 +72,12 @@ export default function CreatorScreen({ onBack, onToast }: Props) {
 
         <div>
           <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Duration: {duration} min</label>
-          <input type="range" min={20} max={240} step={5} value={duration} onChange={e => setDuration(Number(e.target.value))}
-            className="w-full mt-2 accent-brand-500" />
+          <input type="range" min={20} max={240} step={5} value={duration} onChange={e => setDuration(Number(e.target.value))} className="w-full mt-2" />
         </div>
 
         <div>
           <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Checkpoints: {checkpoints}</label>
-          <input type="range" min={3} max={12} step={1} value={checkpoints} onChange={e => setCheckpoints(Number(e.target.value))}
-            className="w-full mt-2 accent-brand-500" />
+          <input type="range" min={3} max={12} step={1} value={checkpoints} onChange={e => setCheckpoints(Number(e.target.value))} className="w-full mt-2" />
         </div>
 
         <div>
@@ -82,8 +86,10 @@ export default function CreatorScreen({ onBack, onToast }: Props) {
             {ALL_CATEGORIES.map(c => {
               const Icon = categoryIcons[c.id]
               return (
-                <button key={c.id} onClick={() => toggleCat(c.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition active:scale-95 flex items-center gap-1.5 ${cats.includes(c.id) ? 'bg-brand-500 text-white' : 'bg-ink-900 border border-ink-700 text-ink-400'}`}>
+                <button
+                  key={c.id} onClick={() => toggleCat(c.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition active:scale-95 flex items-center gap-1.5 ${cats.includes(c.id) ? 'bg-brand-500 text-white' : 'bg-ink-900 border border-ink-700 text-ink-400 hover:bg-ink-800'}`}
+                >
                   <Icon size={14} /> {c.label}
                 </button>
               )
@@ -91,8 +97,10 @@ export default function CreatorScreen({ onBack, onToast }: Props) {
           </div>
         </div>
 
-        <button onClick={handleSave}
-          className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2">
+        <button
+          onClick={handleSave}
+          className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+        >
           <Save size={18} /> Save Custom Adventure
         </button>
       </div>

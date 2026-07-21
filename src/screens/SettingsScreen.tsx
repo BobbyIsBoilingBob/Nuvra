@@ -32,13 +32,15 @@ export default function SettingsScreen({ onBack, onToast }: Props) {
   ]
 
   return (
-    <ScreenShell title="Settings" icon={<SettingsIcon size={18} className="text-brand-400" />} onBack={onBack}>
+    <ScreenShell title="Settings" icon={<SettingsIcon size={18} />} onBack={onBack}>
       <div className="space-y-2">
         {settings.map(s => {
           const Icon = s.icon
           return (
-            <button key={s.key} onClick={() => toggle(s.key)}
-              className="w-full flex items-center gap-3 bg-ink-900 border border-ink-800 rounded-xl p-3 hover:bg-ink-800/50 transition active:scale-[0.98]">
+            <button
+              key={s.key} onClick={() => toggle(s.key)}
+              className="w-full flex items-center gap-3 bg-ink-900 border border-ink-800 rounded-xl p-3.5 hover:bg-ink-800/50 transition active:scale-[0.98]"
+            >
               <div className="w-9 h-9 rounded-xl bg-ink-800 flex items-center justify-center">
                 <Icon size={18} className="text-ink-300" />
               </div>
@@ -51,8 +53,10 @@ export default function SettingsScreen({ onBack, onToast }: Props) {
         })}
 
         <div className="pt-4">
-          <button onClick={async () => { await signOut(); onToast('info', 'Signed out') }}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-error-500/10 border border-error-500/30 text-error-400 rounded-xl font-semibold text-sm transition hover:bg-error-500/20 active:scale-95">
+          <button
+            onClick={async () => { await signOut(); onToast('info', 'Signed out') }}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-error-500/10 border border-error-500/30 text-error-400 rounded-xl font-semibold text-sm transition hover:bg-error-500/20 active:scale-95"
+          >
             <LogOut size={18} /> Sign Out
           </button>
         </div>

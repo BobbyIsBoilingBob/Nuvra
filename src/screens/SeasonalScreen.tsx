@@ -29,7 +29,7 @@ export default function SeasonalScreen({ onBack }: Props) {
     <ScreenShell title="Seasonal" icon={<Leaf size={18} className="text-orange-400" />} onBack={onBack}>
       <div className="space-y-5">
         <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/10 border border-orange-500/30 rounded-2xl p-5 text-center">
-          <Leaf size={32} className="mx-auto mb-2 text-orange-400" />
+          <Leaf size={36} className="mx-auto mb-2 text-orange-400" />
           <h2 className="text-lg font-bold text-ink-100">Summer Season</h2>
           <p className="text-xs text-ink-400 mt-1">Complete seasonal goals for exclusive rewards</p>
         </div>
@@ -55,10 +55,10 @@ function SeasonalCard({ icon, label, value, target, claimed, displayValue }: { i
     <div className="bg-ink-900 border border-ink-800 rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-semibold text-ink-200 flex items-center gap-2">{icon} {label}</span>
-        <span className="text-xs text-ink-400">{displayValue ?? value} / {target}</span>
+        <span className="text-xs text-ink-400 tabular-nums">{displayValue ?? value} / {target}</span>
       </div>
-      <div className="h-2 bg-ink-800 rounded-full overflow-hidden">
-        <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${Math.min(100, (value / target) * 100)}%` }} />
+      <div className="h-2.5 bg-ink-800 rounded-full overflow-hidden">
+        <div className="h-full bg-orange-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (value / target) * 100)}%` }} />
       </div>
     </div>
   )

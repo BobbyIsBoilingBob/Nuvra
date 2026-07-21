@@ -1,89 +1,118 @@
-import type { SensorAvailability, SensorType } from '@/types/adventure'
+import type { SensorAvailability } from '@/types/adventure'
 
 export function detectSensors(): SensorAvailability {
-  if (typeof window === 'undefined') {
-    return { compass: false, accelerometer: false, gyroscope: false, camera: false, gps: false }
-  }
+  const has = (name: string) => typeof name !== 'undefined' && name in window
   return {
     compass: typeof DeviceOrientationEvent !== 'undefined',
     accelerometer: typeof DeviceMotionEvent !== 'undefined',
-    gyroscope: typeof window !== 'undefined' && 'Gyroscope' in window,
-    camera: typeof navigator !== 'undefined' && !!navigator.mediaDevices && !!navigator.mediaDevices.getUserMedia,
-    gps: typeof navigator !== 'undefined' && 'geolocation' in navigator,
+    gyroscope: typeof DeviceMotionEvent !== 'undefined',
+    camera: !!navigator.mediaDevices?.getUserMedia,
+    gps: 'geolocation' in navigator,
   }
 }
 
-export function isSensorAvailable(type: SensorType, avail: SensorAvailability): boolean {
-  if (type === 'none') return true
-  return avail[type] ?? false
-}
+export function startCompass(onHeading: (heading: number) => void): () => void {
+  let alpha = 0
+  let beta = 0
+  let gamma = 0
+  let smoothed = 0
+  let initialized = false
 
-class CompassFilter {
-  private smoothed: number | null = null
-  private alpha = 0.15
-
-  update(raw: number): number {
-    if (this.smoothed === null) {
-      this.smoothed = raw
-      return raw
+  const handler = (event: DeviceOrientationEvent) => {
+    if (event.absolute || event.alpha != null) {
+      alpha = event.alpha ?? 0
+      beta = event.beta ?? 0
+      gamma = event.gamma ?? 0
+    } else {
+      return
     }
-    let diff = raw - this.smoothed
-    if (diff > 180) diff -= 360
-    if (diff < -180) diff += 360
-    this.smoothed = (this.smoothed + diff * this.alpha + 360) % 360
-    return this.smoothed
+
+    let heading = 360 - alpha
+
+    if (beta !== undefined && gamma !== undefined) {
+      const _beta = beta
+      const _gamma = gamma
+      if (_beta < -45 || _beta > 45) return
+    }
+
+    if (!initialized) {
+      smoothed = heading
+      initialized = true
+    } else {
+      let diff = heading - smoothed
+      if (diff > 180) diff -= 360
+      if (diff < -180) diff += 360
+      smoothed += diff * 0.15
+      smoothed = (smoothed + 360) % 360
+    }
+    onHeading(smoothed)
   }
 
-  reset() { this.smoothed = null }
+  const tryStart = async () => {
+    try {
+      if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+        const perm = await (DeviceOrientationEvent as any).requestPermission()
+        if (perm !== 'granted') return
+      }
+      window.addEventListener('deviceorientationabsolute', handler as EventListener, true)
+      window.addEventListener('deviceorientation', handler as EventListener, true)
+    } catch {
+      // ignore
+    }
+  }
+
+  tryStart()
+
+  return () => {
+    window.removeEventListener('deviceorientationabsolute', handler as EventListener, true)
+    window.removeEventListener('deviceorientation', handler as EventListener, true)
+  }
 }
 
-const compassFilter = new CompassFilter()
+export function startAccelerometer(onTilt: (x: number, y: number, z: number) => void): () => void {
+  let smoothed = { x: 0, y: 0, z: 0 }
+  let initialized = false
 
-export function startCompass(cb: (heading: number) => void): () => void {
-  if (typeof window === 'undefined') return () => {}
-  compassFilter.reset()
-
-  const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
-    const raw = e.webkitCompassHeading ?? (e.alpha != null ? 360 - e.alpha : 0)
-    cb(compassFilter.update(raw))
+  const handler = (event: DeviceMotionEvent) => {
+    const acc = event.accelerationIncludingGravity
+    if (!acc) return
+    const x = acc.x ?? 0
+    const y = acc.y ?? 0
+    const z = acc.z ?? 0
+    if (!initialized) {
+      smoothed = { x, y, z }
+      initialized = true
+    } else {
+      smoothed.x += (x - smoothed.x) * 0.2
+      smoothed.y += (y - smoothed.y) * 0.2
+      smoothed.z += (z - smoothed.z) * 0.2
+    }
+    onTilt(smoothed.x, smoothed.y, smoothed.z)
   }
 
-  const orient = DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }
-  if (typeof orient.requestPermission === 'function') {
-    orient.requestPermission().then((state: string) => {
-      if (state === 'granted') window.addEventListener('deviceorientation', handler, true)
-    }).catch(() => {})
-  } else {
-    window.addEventListener('deviceorientation', handler, true)
+  const tryStart = async () => {
+    try {
+      if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        const perm = await (DeviceMotionEvent as any).requestPermission()
+        if (perm !== 'granted') return
+      }
+      window.addEventListener('devicemotion', handler as EventListener, true)
+    } catch {
+      // ignore
+    }
   }
 
-  return () => window.removeEventListener('deviceorientation', handler, true)
+  tryStart()
+
+  return () => window.removeEventListener('devicemotion', handler as EventListener, true)
 }
 
-export function startAccelerometer(cb: (x: number, y: number, z: number) => void): () => void {
-  if (typeof window === 'undefined') return () => {}
-
-  const handler = (e: DeviceMotionEvent) => {
-    const acc = e.accelerationIncludingGravity
-    if (acc) cb(acc.x ?? 0, acc.y ?? 0, acc.z ?? 0)
-  }
-
-  const motion = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> }
-  if (typeof motion.requestPermission === 'function') {
-    motion.requestPermission().then((state: string) => {
-      if (state === 'granted') window.addEventListener('devicemotion', handler, true)
-    }).catch(() => {})
-  } else {
-    window.addEventListener('devicemotion', handler, true)
-  }
-
-  return () => window.removeEventListener('devicemotion', handler, true)
-}
-
-export async function requestCamera(facingMode: 'user' | 'environment' = 'environment'): Promise<MediaStream | null> {
+export async function requestCamera(facingMode: 'environment' | 'user' = 'environment'): Promise<MediaStream | null> {
   try {
-    if (!navigator.mediaDevices?.getUserMedia) return null
-    return await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false })
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode },
+      audio: false,
+    })
   } catch {
     return null
   }

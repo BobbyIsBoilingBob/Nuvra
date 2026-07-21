@@ -8,12 +8,12 @@ interface Props {
 }
 
 const SHOP_ITEMS = [
-  { id: 'boost_xp', name: 'XP Boost (1 hr)', cost: 100, currency: 'coins', icon: 'star' },
-  { id: 'boost_coin', name: 'Coin Boost (1 hr)', cost: 150, currency: 'coins', icon: 'coins' },
-  { id: 'skin_map', name: 'Map Theme: Forest', cost: 300, currency: 'coins', icon: 'map' },
-  { id: 'gem_pack', name: 'Gem Pack (10)', cost: 5, currency: 'gems', icon: 'gem' },
-  { id: 'avatar_frame', name: 'Avatar Frame: Gold', cost: 500, currency: 'coins', icon: 'crown' },
-  { id: 'premium_month', name: 'Premium (1 month)', cost: 20, currency: 'gems', icon: 'crown' },
+  { id: 'boost_xp', name: 'XP Boost (1 hr)', cost: 100, currency: 'coins' as const },
+  { id: 'boost_coin', name: 'Coin Boost (1 hr)', cost: 150, currency: 'coins' as const },
+  { id: 'skin_map', name: 'Map Theme: Forest', cost: 300, currency: 'coins' as const },
+  { id: 'gem_pack', name: 'Gem Pack (10)', cost: 5, currency: 'gems' as const },
+  { id: 'avatar_frame', name: 'Avatar Frame: Gold', cost: 500, currency: 'coins' as const },
+  { id: 'premium_month', name: 'Premium (1 month)', cost: 20, currency: 'gems' as const },
 ]
 
 export default function ShopScreen({ onBack, onToast }: Props) {
@@ -44,7 +44,7 @@ export default function ShopScreen({ onBack, onToast }: Props) {
           const balance = item.currency === 'gems' ? gems : coins
           const canAfford = balance >= item.cost
           return (
-            <div key={item.id} className="bg-ink-900 border border-ink-800 rounded-xl p-3 flex flex-col">
+            <div key={item.id} className="bg-ink-900 border border-ink-800 rounded-xl p-3 flex flex-col animate-fade-in">
               <div className="flex items-center justify-center h-16 mb-2">
                 {item.currency === 'gems' ? <Gem size={28} className="text-cyan-400" /> : <Coins size={28} className="text-accent-400" />}
               </div>
@@ -53,8 +53,10 @@ export default function ShopScreen({ onBack, onToast }: Props) {
                 {item.currency === 'gems' ? <Gem size={10} className="text-cyan-400" /> : <Coins size={10} className="text-accent-400" />}
                 {item.cost} {item.currency}
               </p>
-              <button onClick={() => handleBuy(item)} disabled={!canAfford}
-                className={`mt-3 py-2 rounded-lg text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1 ${canAfford ? 'bg-brand-500 hover:bg-brand-600 text-white' : 'bg-ink-800 text-ink-600 cursor-not-allowed'}`}>
+              <button
+                onClick={() => handleBuy(item)} disabled={!canAfford}
+                className={`mt-3 py-2 rounded-lg text-xs font-medium transition active:scale-95 flex items-center justify-center gap-1 ${canAfford ? 'bg-brand-500 hover:bg-brand-600 text-white' : 'bg-ink-800 text-ink-600 cursor-not-allowed'}`}
+              >
                 {canAfford ? <><Check size={12} /> Buy</> : <><Lock size={12} /> Locked</>}
               </button>
             </div>
