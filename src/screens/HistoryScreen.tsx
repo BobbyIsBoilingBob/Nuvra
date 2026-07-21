@@ -1,73 +1,60 @@
 import { useEffect, useState } from 'react'
+import { History, Route, Clock, Star, Coins, Gem, MapPin } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
+import type { AdventureHistoryItem } from '@/types/adventure'
 import { getAdventureHistory } from '@/lib/db'
 import { formatDistance, formatDuration } from '@/lib/geo'
-import { useAuth } from '@/lib/auth'
-import type { AdventureHistoryItem } from '@/types/adventure'
+import { difficultyIcons } from '@/data/icons'
+import type { Difficulty } from '@/types/adventure'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+}
 
 export default function HistoryScreen({ onBack }: Props) {
-  const { profile } = useAuth()
-  const [history, setHistory] = useState<AdventureHistoryItem[]>([])
+  const [items, setItems] = useState<AdventureHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getAdventureHistory().then(data => {
-      setHistory(data)
-      setLoading(false)
-    })
+    getAdventureHistory().then(h => { setItems(h); setLoading(false) })
   }, [])
 
-  const diffColors: Record<string, string> = {
-    easy: 'text-success-400', medium: 'text-accent-400', hard: 'text-error-400', extreme: 'text-purple-400',
-  }
-
   return (
-    <ScreenShell title="History" icon="📊" onBack={onBack}>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-ink-900 rounded-xl p-4 border border-ink-800 text-center">
-          <p className="text-3xl font-bold text-brand-400">{profile?.completed_adventures ?? 0}</p>
-          <p className="text-xs text-ink-500 mt-1">Total Adventures</p>
+    <ScreenShell title="History" icon={<History size={18} className="text-brand-400" />} onBack={onBack}>
+      {loading ? <LoadingSpinner label="Loading history..." /> : items.length === 0 ? (
+        <EmptyState icon={<History size={40} />} title="No adventures yet" message="Your completed adventures will appear here" />
+      ) : (
+        <div className="space-y-3">
+          {items.map(h => {
+            const DiffIcon = difficultyIcons[h.difficulty as Difficulty] || Star
+            return (
+              <div key={h.id} className="bg-ink-900 border border-ink-800 rounded-xl p-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center flex-shrink-0">
+                    <DiffIcon size={18} className="text-brand-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink-100">{h.adventure_name}</p>
+                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-ink-500">
+                      <span className="flex items-center gap-1"><MapPin size={10} /> {h.difficulty}</span>
+                      <span className="flex items-center gap-1"><Route size={10} /> {formatDistance(h.distance)}</span>
+                      <span className="flex items-center gap-1"><Clock size={10} /> {formatDuration(h.duration)}</span>
+                    </div>
+                    <div className="flex gap-3 mt-2 text-xs">
+                      <span className="flex items-center gap-0.5 text-brand-400"><Star size={10} /> {h.xp_earned} XP</span>
+                      <span className="flex items-center gap-0.5 text-accent-400"><Coins size={10} /> {h.coins_earned}</span>
+                      <span className="flex items-center gap-0.5 text-cyan-400"><Gem size={10} /> {h.gems_earned}</span>
+                    </div>
+                    <p className="text-xs text-ink-600 mt-1">{new Date(h.completed_at).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
-        <div className="bg-ink-900 rounded-xl p-4 border border-ink-800 text-center">
-          <p className="text-3xl font-bold text-accent-400">{profile?.completed_challenges ?? 0}</p>
-          <p className="text-xs text-ink-500 mt-1">Challenges Done</p>
-        </div>
-        <div className="bg-ink-900 rounded-xl p-4 border border-ink-800 text-center">
-          <p className="text-3xl font-bold text-ink-100">{formatDistance(profile?.distance_walked ?? 0)}</p>
-          <p className="text-xs text-ink-500 mt-1">Distance Walked</p>
-        </div>
-        <div className="bg-ink-900 rounded-xl p-4 border border-ink-800 text-center">
-          <p className="text-3xl font-bold text-ink-100">{profile?.walking_streak ?? 0}🔥</p>
-          <p className="text-xs text-ink-500 mt-1">Walking Streak</p>
-        </div>
-      </div>
-
-      <h3 className="text-sm font-semibold text-ink-300 mb-2">Recent Adventures</h3>
-      {loading ? <LoadingSpinner label="Loading history..." /> :
-       history.length === 0 ? <EmptyState icon="📊" title="No Adventures Yet" message="Complete your first adventure to see it here!" /> :
-       <div className="space-y-2">
-         {history.map(h => (
-           <div key={h.id} className="bg-ink-900 rounded-xl p-3 border border-ink-800">
-             <div className="flex items-center gap-2 mb-1">
-               <span className="text-lg">{h.emoji}</span>
-               <p className="text-sm font-semibold text-ink-200 flex-1">{h.adventure_name}</p>
-               <span className={`text-xs ${diffColors[h.difficulty] ?? 'text-ink-400'}`}>{h.difficulty}</span>
-             </div>
-             <div className="flex gap-3 text-xs text-ink-500">
-               <span>📏 {formatDistance(h.distance)}</span>
-               <span>⏱ {formatDuration(h.duration)}</span>
-               <span>⭐ {h.xp_earned} XP</span>
-               <span>🪙 {h.coins_earned}</span>
-             </div>
-             <p className="text-xs text-ink-600 mt-1">{new Date(h.completed_at).toLocaleDateString()}</p>
-           </div>
-         ))}
-       </div>
-      }
+      )}
     </ScreenShell>
   )
 }

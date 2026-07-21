@@ -1,137 +1,141 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Map, Navigation, Check, ChevronRight, Flag, Trophy } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import AdventureMap from '@/components/AdventureMap'
 import ChallengeRunner from '@/components/ChallengeRunner'
-import type { Adventure, SensorAvailability } from '@/types/adventure'
+import type { Adventure, GpsPosition, SensorAvailability, ScreenName } from '@/types/adventure'
 import { detectSensors } from '@/lib/sensors'
-import { formatDistance, formatDuration } from '@/lib/geo'
-import { ALL_CATEGORIES } from '@/data/challenges'
+import { watchPosition } from '@/lib/gps'
 import { recordAdventureCompletion } from '@/lib/db'
 
 interface Props {
   adventure: Adventure
   onBack: () => void
   onComplete: () => void
+  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
 }
 
-export default function MapScreen({ adventure, onBack, onComplete }: Props) {
-  const [activeCp, setActiveCp] = useState(0)
-  const [xp, setXp] = useState(0)
-  const [coins, setCoins] = useState(0)
+export default function MapScreen({ adventure, onBack, onComplete, onToast }: Props) {
+  const [currentIdx, setCurrentIdx] = useState(0)
   const [completed, setCompleted] = useState<Set<number>>(new Set())
-  const [finishing, setFinishing] = useState(false)
-  const sensorAvail: SensorAvailability = detectSensors()
+  const [playerPos, setPlayerPos] = useState<GpsPosition | null>(null)
+  const [totalXp, setTotalXp] = useState(0)
+  const [totalCoins, setTotalCoins] = useState(0)
+  const [sensorAvail] = useState<SensorAvailability>(detectSensors())
+  const [finished, setFinished] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const currentChallenge = adventure.checkpoints[activeCp]?.challenge
-  const allDone = completed.size >= adventure.checkpoints.length
+  useEffect(() => {
+    const cleanup = watchPosition(p => setPlayerPos({ lat: p.lat, lng: p.lng, accuracy: p.accuracy, timestamp: Date.now() }))
+    return cleanup
+  }, [])
 
-  const handleChallengeComplete = (gainedXp: number, gainedCoins: number) => {
-    setXp(xp + gainedXp)
-    setCoins(coins + gainedCoins)
-    setCompleted(prev => new Set([...prev, activeCp]))
-    if (activeCp < adventure.checkpoints.length - 1) {
-      setActiveCp(activeCp + 1)
+  const handleChallengeComplete = (xp: number, coins: number) => {
+    setCompleted(prev => new Set(prev).add(currentIdx))
+    setTotalXp(x => x + xp)
+    setTotalCoins(c => c + coins)
+  }
+
+  const handleNext = () => {
+    if (currentIdx < adventure.checkpoints.length - 1) {
+      setCurrentIdx(i => i + 1)
+    } else {
+      setFinished(true)
     }
   }
 
   const handleFinish = async () => {
-    setFinishing(true)
-    await recordAdventureCompletion({
-      adventure,
-      xpEarned: xp,
-      coinsEarned: coins,
-      challengesCompleted: completed.size,
+    setSaving(true)
+    const { error } = await recordAdventureCompletion({
+      adventure, xpEarned: totalXp, coinsEarned: totalCoins, challengesCompleted: completed.size,
     })
-    setFinishing(false)
+    setSaving(false)
+    if (error) onToast('error', 'Save failed', error)
+    else onToast('reward', 'Adventure Complete!', `+${totalXp} XP · +${totalCoins} coins`)
     onComplete()
   }
 
-  if (allDone) {
+  if (finished) {
     return (
-      <ScreenShell title="Adventure Complete!" icon="🏁" onBack={onBack}>
-        <div className="text-center py-8 animate-celebrate">
-          <div className="text-6xl mb-4">🏆</div>
-          <h2 className="text-2xl font-bold text-ink-100 mb-2">Adventure Complete!</h2>
-          <p className="text-sm text-ink-400 mb-6">{adventure.title}</p>
-          <div className="flex justify-center gap-6 mb-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-brand-400">{xp}</p>
-              <p className="text-xs text-ink-500">XP Earned</p>
+      <ScreenShell title="Adventure Complete" icon={<Trophy size={18} className="text-accent-400" />} onBack={onBack}>
+        <div className="text-center py-8 animate-pop">
+          <Trophy size={48} className="mx-auto mb-3 text-accent-400" />
+          <h2 className="text-2xl font-bold text-ink-100">Congratulations!</h2>
+          <p className="text-sm text-ink-400 mt-1">You completed {adventure.title}</p>
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="bg-ink-900 border border-ink-800 rounded-xl p-4">
+              <p className="text-2xl font-bold text-brand-400">{totalXp}</p>
+              <p className="text-xs text-ink-500 uppercase mt-1">XP Earned</p>
             </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-accent-400">{coins}</p>
-              <p className="text-xs text-ink-500">Coins Earned</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-ink-100">{completed.size}</p>
-              <p className="text-xs text-ink-500">Challenges</p>
+            <div className="bg-ink-900 border border-ink-800 rounded-xl p-4">
+              <p className="text-2xl font-bold text-accent-400">{totalCoins}</p>
+              <p className="text-xs text-ink-500 uppercase mt-1">Coins Earned</p>
             </div>
           </div>
-          <button
-            onClick={handleFinish}
-            disabled={finishing}
-            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50"
-          >
-            {finishing ? 'Saving...' : 'Back to Home'}
+          <button onClick={handleFinish} disabled={saving}
+            className="w-full mt-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+            {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Check size={18} /> Finish & Save</>}
           </button>
         </div>
       </ScreenShell>
     )
   }
 
+  const currentCp = adventure.checkpoints[currentIdx]
+  const currentChallenge = currentCp?.challenge
+
   return (
-    <ScreenShell title={adventure.title} icon="🗺" onBack={onBack}>
-      <div className="flex items-center justify-between mb-3 text-xs">
-        <span className="text-ink-400">📍 {adventure.locationName}</span>
-        <span className="text-ink-400">📏 {formatDistance(adventure.distanceKm)} · ⏱ {formatDuration(adventure.durationMin)}</span>
-      </div>
+    <ScreenShell
+      title={adventure.title}
+      icon={<Map size={18} className="text-brand-400" />}
+      onBack={onBack}
+      headerRight={
+        <span className="text-xs text-ink-500">{currentIdx + 1} / {adventure.checkpoints.length}</span>
+      }
+    >
+      <div className="space-y-4">
+        <AdventureMap adventure={adventure} playerPos={playerPos} />
 
-      <div className="flex items-center gap-2 mb-4 text-xs">
-        <span className="text-brand-400">⭐ {xp} XP</span>
-        <span className="text-accent-400">🪙 {coins}</span>
-        <span className="text-ink-500 ml-auto">Checkpoint {activeCp + 1}/{adventure.checkpoints.length}</span>
-      </div>
-
-      <div className="mb-4 overflow-hidden rounded-2xl">
-        <AdventureMap adventure={adventure} />
-      </div>
-
-      {currentChallenge && !completed.has(activeCp) && (
-        <div className="bg-ink-900 rounded-xl p-4 border border-ink-800 mb-4">
-          <ChallengeRunner
-            challenge={currentChallenge}
-            sensorAvail={sensorAvail}
-            onComplete={handleChallengeComplete}
-          />
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-ink-500 uppercase font-semibold">Progress</span>
+            <span className="text-xs text-ink-400">{completed.size} / {adventure.checkpoints.length} done</span>
+          </div>
+          <div className="h-2 bg-ink-800 rounded-full overflow-hidden">
+            <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${(completed.size / adventure.checkpoints.length) * 100}%` }} />
+          </div>
         </div>
-      )}
 
-      <div>
-        <h3 className="text-sm font-semibold text-ink-300 mb-2">Route Checkpoints</h3>
-        <div className="space-y-2">
-          {adventure.checkpoints.map((cp, i) => {
-            const cat = cp.challenge ? ALL_CATEGORIES.find(c => c.id === cp.challenge!.category) : null
-            const done = completed.has(i)
-            const active = i === activeCp
-            return (
-              <div key={i} className={`flex items-center gap-3 rounded-xl p-3 border transition ${
-                done ? 'bg-success-500/10 border-success-500/30' :
-                active ? 'bg-brand-500/10 border-brand-500/30' :
-                'bg-ink-900 border-ink-800'
-              }`}>
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  done ? 'bg-success-500 text-white' : active ? 'bg-brand-500 text-white' : 'bg-ink-700 text-ink-200'
-                }`}>{done ? '✓' : i + 1}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-ink-200">{cp.label}</p>
-                  {cp.challenge && (
-                    <p className="text-xs text-ink-500">{cat?.icon} {cp.challenge.title} · {cp.challenge.category}</p>
-                  )}
-                </div>
+        <div className="bg-ink-900 border border-ink-800 rounded-2xl p-4">
+          {currentChallenge ? (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-xs text-brand-400 font-bold">{currentIdx + 1}</div>
+                <span className="text-sm font-semibold text-ink-200">{currentCp.label}</span>
               </div>
-            )
-          })}
+              <ChallengeRunner challenge={currentChallenge} sensorAvail={sensorAvail} onComplete={handleChallengeComplete} />
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <Navigation size={24} className="mx-auto mb-2 text-ink-500" />
+              <p className="text-sm text-ink-300">{currentCp.label}</p>
+              <p className="text-xs text-ink-500 mt-1">Walk to this checkpoint</p>
+            </div>
+          )}
         </div>
+
+        {completed.has(currentIdx) && (
+          <button onClick={handleNext}
+            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2">
+            {currentIdx < adventure.checkpoints.length - 1 ? <><ChevronRight size={18} /> Next Checkpoint</> : <><Flag size={18} /> Finish Adventure</>}
+          </button>
+        )}
+
+        {playerPos && (
+          <p className="text-xs text-ink-500 text-center flex items-center justify-center gap-1">
+            <Navigation size={12} /> {playerPos.lat.toFixed(4)}, {playerPos.lng.toFixed(4)} · ±{Math.round(playerPos.accuracy)}m
+          </p>
+        )}
       </div>
     </ScreenShell>
   )

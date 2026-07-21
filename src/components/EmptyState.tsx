@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
+
 interface Props {
-  icon: string
+  icon: ReactNode
   title: string
   message: string
   actionLabel?: string
@@ -9,7 +11,7 @@ interface Props {
 export default function EmptyState({ icon, title, message, actionLabel, onAction }: Props) {
   return (
     <div className="text-center py-12 px-4">
-      <div className="text-5xl mb-3 opacity-50">{icon}</div>
+      <div className="flex justify-center mb-3 text-ink-600">{icon}</div>
       <h3 className="text-base font-semibold text-ink-200 mb-1">{title}</h3>
       <p className="text-sm text-ink-500 mb-4">{message}</p>
       {actionLabel && onAction && (

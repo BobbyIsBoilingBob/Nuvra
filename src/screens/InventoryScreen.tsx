@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react'
+import { Backpack, Package } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
-import { getInventory } from '@/lib/db'
 import type { InventoryItem } from '@/types/adventure'
+import { getInventory } from '@/lib/db'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+}
 
 const rarityColors: Record<string, string> = {
-  common: 'text-ink-400 border-ink-700',
-  uncommon: 'text-success-400 border-success-500/30',
-  rare: 'text-blue-400 border-blue-500/30',
-  epic: 'text-purple-400 border-purple-500/30',
-  legendary: 'text-accent-400 border-accent-500/30',
+  common: 'border-ink-700 text-ink-300',
+  uncommon: 'border-success-500/40 text-success-400',
+  rare: 'border-blue-500/40 text-blue-400',
+  epic: 'border-purple-500/40 text-purple-400',
+  legendary: 'border-accent-500/40 text-accent-400',
 }
 
 export default function InventoryScreen({ onBack }: Props) {
@@ -20,27 +23,27 @@ export default function InventoryScreen({ onBack }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getInventory().then(data => {
-      setItems(data)
-      setLoading(false)
-    })
+    getInventory().then(i => { setItems(i); setLoading(false) })
   }, [])
 
   return (
-    <ScreenShell title="Inventory" icon="🎒" onBack={onBack}>
-      {loading ? <LoadingSpinner label="Loading inventory..." /> :
-       items.length === 0 ? <EmptyState icon="🎒" title="Empty Inventory" message="Complete adventures to collect items!" /> :
-       <div className="grid grid-cols-3 gap-3">
-         {items.map(item => (
-           <div key={item.id} className={`bg-ink-900 rounded-xl p-3 border text-center ${rarityColors[item.rarity] || rarityColors.common}`}>
-             <div className="text-3xl mb-1">{item.icon}</div>
-             <p className="text-xs font-semibold text-ink-200">{item.item_name}</p>
-             <p className={`text-xs capitalize ${rarityColors[item.rarity]?.split(' ')[0] || 'text-ink-400'}`}>{item.rarity}</p>
-             {item.quantity > 1 && <p className="text-xs text-ink-500 mt-0.5">x{item.quantity}</p>}
-           </div>
-         ))}
-       </div>
-      }
+    <ScreenShell title="Inventory" icon={<Backpack size={18} className="text-brand-400" />} onBack={onBack}>
+      {loading ? <LoadingSpinner label="Loading inventory..." /> : items.length === 0 ? (
+        <EmptyState icon={<Backpack size={40} />} title="Empty inventory" message="Items collected from adventures will appear here" />
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {items.map(item => (
+            <div key={item.id} className={`bg-ink-900 border rounded-xl p-3 ${rarityColors[item.rarity] || rarityColors.common}`}>
+              <div className="flex items-center justify-center mb-2">
+                <Package size={32} className="opacity-80" />
+              </div>
+              <p className="text-sm font-semibold text-ink-100 text-center">{item.item_name}</p>
+              <p className="text-xs text-center mt-1 capitalize">{item.rarity}</p>
+              {item.quantity > 1 && <p className="text-xs text-center text-ink-500 mt-1">x{item.quantity}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </ScreenShell>
   )
 }

@@ -1,40 +1,53 @@
 import { useEffect, useState } from 'react'
+import { Globe, Activity } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
 import { getActivityFeed } from '@/lib/db'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+}
+
+interface ActivityItem {
+  id: string
+  activity_type: string
+  description: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  user_id: string
+}
 
 export default function CommunityScreen({ onBack }: Props) {
-  const [activities, setActivities] = useState<{ id: string; activity_type: string; description: string | null; metadata: Record<string, unknown>; created_at: string; user_id: string }[]>([])
+  const [feed, setFeed] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getActivityFeed(30).then(data => {
-      setActivities(data)
-      setLoading(false)
-    })
+    getActivityFeed().then(f => { setFeed(f); setLoading(false) })
   }, [])
 
   return (
-    <ScreenShell title="Community" icon="🌐" onBack={onBack}>
-      <p className="text-sm text-ink-400 mb-4">See what the community is up to.</p>
+    <ScreenShell title="Community" icon={<Globe size={18} className="text-brand-400" />} onBack={onBack}>
       {loading ? <LoadingSpinner label="Loading activity..." /> :
-       activities.length === 0 ? <EmptyState icon="🌐" title="No Activity Yet" message="Community activity will appear here once you and others start adventuring." /> :
-       <div className="space-y-3">
-         {activities.map(a => (
-           <div key={a.id} className="bg-ink-900 rounded-xl p-4 border border-ink-800">
-             <div className="flex items-center gap-2 mb-2">
-               <div className="w-8 h-8 rounded-full bg-ink-700 flex items-center justify-center text-sm">👤</div>
-               <span className="text-sm font-semibold text-ink-200">{a.activity_type}</span>
-               <span className="text-xs text-ink-500 ml-auto">{new Date(a.created_at).toLocaleDateString()}</span>
+       feed.length === 0 ? (
+         <EmptyState icon={<Activity size={40} />} title="No activity yet" message="Community activity will appear here as you and others complete adventures" />
+       ) : (
+         <div className="space-y-2">
+           {feed.map(item => (
+             <div key={item.id} className="bg-ink-900 border border-ink-800 rounded-xl p-3">
+               <div className="flex items-start gap-3">
+                 <div className="w-9 h-9 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center flex-shrink-0">
+                   <Activity size={16} className="text-brand-400" />
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <p className="text-sm text-ink-200">{item.description || item.activity_type}</p>
+                   <p className="text-xs text-ink-500 mt-1">{new Date(item.created_at).toLocaleString()}</p>
+                 </div>
+               </div>
              </div>
-             <p className="text-sm text-ink-300">{a.description || a.activity_type}</p>
-           </div>
-         ))}
-       </div>
-      }
+           ))}
+         </div>
+       )}
     </ScreenShell>
   )
 }

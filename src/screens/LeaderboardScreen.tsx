@@ -1,61 +1,57 @@
 import { useEffect, useState } from 'react'
+import { Trophy, Crown, Medal, Star } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { getLeaderboard } from '@/lib/db'
-import { levelFromXp } from '@/lib/geo'
-import { useAuth } from '@/lib/auth'
+import EmptyState from '@/components/EmptyState'
 import type { UserProfile } from '@/types/adventure'
+import { getLeaderboard } from '@/lib/db'
+import { useAuth } from '@/lib/auth'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+}
 
 export default function LeaderboardScreen({ onBack }: Props) {
-  const { user } = useAuth()
-  const [leaders, setLeaders] = useState<UserProfile[]>([])
+  const [players, setPlayers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const { profile } = useAuth()
 
   useEffect(() => {
-    getLeaderboard(50).then(data => {
-      setLeaders(data)
-      setLoading(false)
-    })
+    getLeaderboard().then(p => { setPlayers(p); setLoading(false) })
   }, [])
 
-  const rankIcon = (rank: number) => {
-    if (rank === 1) return '🥇'
-    if (rank === 2) return '🥈'
-    if (rank === 3) return '🥉'
-    return String(rank)
-  }
+  const rankIcons = [Crown, Medal, Trophy]
 
   return (
-    <ScreenShell title="Leaderboard" icon="🏆" onBack={onBack}>
-      {loading ? <LoadingSpinner label="Loading leaderboard..." /> :
-       leaders.length === 0 ? (
-         <div className="text-center py-12">
-           <div className="text-5xl mb-3 opacity-50">🏆</div>
-           <p className="text-sm text-ink-500">No players yet. Be the first to adventure!</p>
-         </div>
-       ) : (
-         <div className="space-y-2">
-           {leaders.map((l, i) => {
-             const isYou = l.id === user?.id
-             return (
-               <div key={l.id} className={`flex items-center gap-3 rounded-xl p-3 border transition ${
-                 isYou ? 'bg-brand-500/10 border-brand-500/30' : 'bg-ink-900 border-ink-800'
-               }`}>
-                 <span className="text-lg font-bold w-8 text-center">{rankIcon(i + 1)}</span>
-                 <div className="w-9 h-9 rounded-full bg-ink-700 flex items-center justify-center text-sm">{l.avatar_emoji}</div>
-                 <div className="flex-1">
-                   <p className={`text-sm font-semibold ${isYou ? 'text-brand-400' : 'text-ink-200'}`}>{l.username}{isYou ? ' (You)' : ''}</p>
-                   <p className="text-xs text-ink-500">Level {levelFromXp(l.xp)}</p>
-                 </div>
-                 <p className="text-sm text-ink-400">{l.xp.toLocaleString()} XP</p>
-               </div>
-             )
-           })}
-         </div>
-       )
-      }
+    <ScreenShell title="Leaderboard" icon={<Trophy size={18} className="text-yellow-400" />} onBack={onBack}>
+      {loading ? <LoadingSpinner label="Loading rankings..." /> : players.length === 0 ? (
+        <EmptyState icon={<Trophy size={40} />} title="No rankings yet" message="Be the first to top the leaderboard!" />
+      ) : (
+        <div className="space-y-2">
+          {players.map((p, i) => {
+            const isMe = profile?.id === p.id
+            const RankIcon = i < 3 ? rankIcons[i] : null
+            return (
+              <div key={p.id} className={`flex items-center gap-3 rounded-xl p-3 border ${isMe ? 'bg-brand-500/20 border-brand-500/40' : 'bg-ink-900 border-ink-800'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${i < 3 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-ink-800 text-ink-400'}`}>
+                  {RankIcon ? <RankIcon size={16} /> : i + 1}
+                </div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: p.avatar_color || '#3fc59b' }}>
+                  <Star size={16} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink-100">{p.username}{isMe && ' (You)'}</p>
+                  <p className="text-xs text-ink-500">Level {p.level}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-brand-400">{p.xp}</p>
+                  <p className="text-xs text-ink-500">XP</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </ScreenShell>
   )
 }

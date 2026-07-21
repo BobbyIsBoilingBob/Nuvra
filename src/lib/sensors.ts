@@ -18,7 +18,6 @@ export function isSensorAvailable(type: SensorType, avail: SensorAvailability): 
   return avail[type] ?? false
 }
 
-// Low-pass filter for compass smoothing to reduce jitter
 class CompassFilter {
   private smoothed: number | null = null
   private alpha = 0.15
@@ -28,7 +27,6 @@ class CompassFilter {
       this.smoothed = raw
       return raw
     }
-    // Handle wraparound (0/360 boundary)
     let diff = raw - this.smoothed
     if (diff > 180) diff -= 360
     if (diff < -180) diff += 360
@@ -36,9 +34,7 @@ class CompassFilter {
     return this.smoothed
   }
 
-  reset() {
-    this.smoothed = null
-  }
+  reset() { this.smoothed = null }
 }
 
 const compassFilter = new CompassFilter()

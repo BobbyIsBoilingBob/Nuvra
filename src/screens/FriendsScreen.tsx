@@ -1,152 +1,155 @@
 import { useEffect, useState } from 'react'
+import { Users, Search, UserPlus, Check, X, User } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
-import { getFriends, getPendingFriendRequests, searchProfiles, acceptFriendRequest, declineFriendRequest, removeFriend, sendFriendRequest } from '@/lib/db'
 import type { UserProfile, FriendRequest } from '@/types/adventure'
+import {
+  getFriends, getPendingFriendRequests, searchProfiles,
+  sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend,
+} from '@/lib/db'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
+}
 
-export default function FriendsScreen({ onBack }: Props) {
+export default function FriendsScreen({ onBack, onToast }: Props) {
+  const [tab, setTab] = useState<'friends' | 'requests' | 'search'>('friends')
   const [friends, setFriends] = useState<UserProfile[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<UserProfile[]>([])
-  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [actionError, setActionError] = useState('')
+  const [searching, setSearching] = useState(false)
 
-  const loadData = async () => {
-    setLoading(true)
+  const load = async () => {
     const [f, r] = await Promise.all([getFriends(), getPendingFriendRequests()])
-    setFriends(f)
-    setRequests(r)
-    setLoading(false)
+    setFriends(f); setRequests(r); setLoading(false)
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { load() }, [])
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) { setSearchResults([]); return }
+  const handleSearch = async (q: string) => {
+    setQuery(q)
+    if (q.trim().length < 2) { setResults([]); return }
     setSearching(true)
-    const results = await searchProfiles(searchQuery)
-    setSearchResults(results)
-    setSearching(false)
+    const r = await searchProfiles(q)
+    setResults(r); setSearching(false)
   }
 
-  const handleSendRequest = async (userId: string) => {
-    setActionError('')
-    const { error } = await sendFriendRequest(userId)
-    if (error) setActionError(error)
-    else {
-      setSearchResults(prev => prev.filter(u => u.id !== userId))
-      loadData()
-    }
+  const handleSend = async (id: string) => {
+    const { error } = await sendFriendRequest(id)
+    onToast(error ? 'error' : 'success', error ? 'Failed' : 'Request sent!', error ?? undefined)
   }
 
-  const handleAccept = async (requestId: string, senderId: string) => {
-    const { error } = await acceptFriendRequest(requestId, senderId)
-    if (error) setActionError(error)
-    else loadData()
+  const handleAccept = async (id: string, senderId: string) => {
+    const { error } = await acceptFriendRequest(id, senderId)
+    onToast(error ? 'error' : 'success', error ? 'Failed' : 'Friend added!', error ?? undefined)
+    if (!error) load()
   }
 
-  const handleDecline = async (requestId: string) => {
-    const { error } = await declineFriendRequest(requestId)
-    if (error) setActionError(error)
-    else loadData()
+  const handleDecline = async (id: string) => {
+    const { error } = await declineFriendRequest(id)
+    if (!error) load()
   }
 
-  const handleRemove = async (friendId: string) => {
-    const { error } = await removeFriend(friendId)
-    if (error) setActionError(error)
-    else loadData()
+  const handleRemove = async (id: string) => {
+    const { error } = await removeFriend(id)
+    onToast(error ? 'error' : 'info', error ? 'Failed' : 'Friend removed')
+    if (!error) load()
   }
 
   return (
-    <ScreenShell title="Friends" icon="👥" onBack={onBack}>
-      {actionError && (
-        <div className="bg-error-500/10 border border-error-500/30 rounded-xl p-3 mb-4">
-          <p className="text-sm text-error-400">{actionError}</p>
-        </div>
-      )}
-
-      <div className="mb-5">
-        <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Search Players</label>
-        <div className="flex gap-2 mt-1.5">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Search by username..."
-            className="flex-1 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
-          />
-          <button onClick={handleSearch} disabled={searching} className="px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium transition active:scale-95 disabled:opacity-50">
-            {searching ? '...' : 'Search'}
+    <ScreenShell title="Friends" icon={<Users size={18} className="text-brand-400" />} onBack={onBack}>
+      <div className="flex gap-2 mb-4">
+        {(['friends', 'requests', 'search'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition active:scale-95 ${tab === t ? 'bg-brand-500 text-white' : 'bg-ink-900 border border-ink-700 text-ink-400'}`}>
+            {t === 'friends' ? 'Friends' : t === 'requests' ? `Requests${requests.length ? ` (${requests.length})` : ''}` : 'Search'}
           </button>
-        </div>
-        {searchResults.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {searchResults.map(u => (
-              <div key={u.id} className="flex items-center gap-3 bg-ink-900 rounded-xl p-3 border border-ink-800">
-                <div className="w-10 h-10 rounded-full bg-ink-700 flex items-center justify-center text-lg">{u.avatar_emoji}</div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-ink-200">{u.username}</p>
-                  <p className="text-xs text-ink-500">Level {Math.floor(Math.sqrt(u.xp / 100)) + 1}</p>
+        ))}
+      </div>
+
+      {tab === 'friends' && (
+        loading ? <LoadingSpinner /> : friends.length === 0 ? (
+          <EmptyState icon={<Users size={40} />} title="No friends yet" message="Search for players to add friends" actionLabel="Search Players" onAction={() => setTab('search')} />
+        ) : (
+          <div className="space-y-2">
+            {friends.map(f => (
+              <div key={f.id} className="flex items-center gap-3 bg-ink-900 border border-ink-800 rounded-xl p-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: f.avatar_color || '#3fc59b' }}>
+                  <User size={18} className="text-white" />
                 </div>
-                <button onClick={() => handleSendRequest(u.id)} className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-medium transition active:scale-95">
-                  Add
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink-100">{f.username}</p>
+                  <p className="text-xs text-ink-500">Level {f.level} · {f.xp} XP</p>
+                </div>
+                <button onClick={() => handleRemove(f.id)} className="text-ink-500 hover:text-error-400 transition active:scale-95">
+                  <X size={16} />
                 </button>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        )
+      )}
 
-      {loading ? <LoadingSpinner label="Loading friends..." /> : (
-        <>
-          {requests.length > 0 && (
-            <div className="mb-5">
-              <h3 className="text-sm font-semibold text-ink-300 mb-2">Pending Requests ({requests.length})</h3>
-              <div className="space-y-2">
-                {requests.map(r => (
-                  <div key={r.id} className="flex items-center gap-3 bg-ink-900 rounded-xl p-3 border border-ink-800">
-                    <div className="w-10 h-10 rounded-full bg-ink-700 flex items-center justify-center text-lg">{r.sender?.avatar_emoji ?? '👤'}</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-ink-200">{r.sender?.username ?? 'Unknown'}</p>
-                      <p className="text-xs text-ink-500">wants to be your friend</p>
-                    </div>
-                    <button onClick={() => handleAccept(r.id, r.sender_id)} className="px-3 py-1.5 bg-success-500 hover:bg-success-600 text-white rounded-lg text-xs font-medium transition active:scale-95">Accept</button>
-                    <button onClick={() => handleDecline(r.id)} className="px-3 py-1.5 bg-ink-800 text-ink-400 rounded-lg text-xs font-medium transition hover:bg-ink-700 active:scale-95">Decline</button>
-                  </div>
-                ))}
+      {tab === 'requests' && (
+        loading ? <LoadingSpinner /> : requests.length === 0 ? (
+          <EmptyState icon={<UserPlus size={40} />} title="No pending requests" message="Friend requests will appear here" />
+        ) : (
+          <div className="space-y-2">
+            {requests.map(r => (
+              <div key={r.id} className="flex items-center gap-3 bg-ink-900 border border-ink-800 rounded-xl p-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: r.sender?.avatar_color || '#3fc59b' }}>
+                  <User size={18} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink-100">{r.sender?.username || 'Unknown'}</p>
+                  <p className="text-xs text-ink-500">wants to be friends</p>
+                </div>
+                <button onClick={() => handleAccept(r.id, r.sender_id)} className="p-2 bg-success-500/20 text-success-400 rounded-lg hover:bg-success-500/30 transition active:scale-95">
+                  <Check size={16} />
+                </button>
+                <button onClick={() => handleDecline(r.id)} className="p-2 bg-error-500/20 text-error-400 rounded-lg hover:bg-error-500/30 transition active:scale-95">
+                  <X size={16} />
+                </button>
               </div>
-            </div>
-          )}
-
-          <div>
-            <h3 className="text-sm font-semibold text-ink-300 mb-2">Your Friends ({friends.length})</h3>
-            {friends.length === 0 ? (
-              <EmptyState icon="👥" title="No Friends Yet" message="Search for players above to send friend requests." />
-            ) : (
-              <div className="space-y-2">
-                {friends.map(f => (
-                  <div key={f.id} className="flex items-center gap-3 bg-ink-900 rounded-xl p-3 border border-ink-800">
-                    <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-ink-700 flex items-center justify-center text-lg">{f.avatar_emoji}</div>
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-ink-900 ${f.is_online ? 'bg-success-500' : 'bg-ink-600'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-ink-200">{f.username}</p>
-                      <p className="text-xs text-ink-500">{f.is_online ? 'Online' : 'Offline'}</p>
-                    </div>
-                    <button onClick={() => handleRemove(f.id)} className="px-3 py-1.5 bg-ink-800 text-ink-400 rounded-lg text-xs font-medium transition hover:bg-error-500/20 hover:text-error-400 active:scale-95">Remove</button>
-                  </div>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
-        </>
+        )
+      )}
+
+      {tab === 'search' && (
+        <div className="space-y-3">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+            <input type="text" value={query} onChange={e => handleSearch(e.target.value)}
+              placeholder="Search by username..."
+              className="w-full bg-ink-900 border border-ink-700 rounded-xl pl-10 pr-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+          </div>
+          {searching ? <LoadingSpinner size="sm" /> :
+           results.length === 0 && query.trim().length >= 2 ? (
+             <EmptyState icon={<Search size={32} />} title="No players found" message={`No users matching "${query}"`} />
+           ) : (
+             <div className="space-y-2">
+               {results.map(u => (
+                 <div key={u.id} className="flex items-center gap-3 bg-ink-900 border border-ink-800 rounded-xl p-3">
+                   <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: u.avatar_color || '#3fc59b' }}>
+                     <User size={18} className="text-white" />
+                   </div>
+                   <div className="flex-1 min-w-0">
+                     <p className="text-sm font-medium text-ink-100">{u.username}</p>
+                     <p className="text-xs text-ink-500">Level {u.level}</p>
+                   </div>
+                   <button onClick={() => handleSend(u.id)} className="px-3 py-1.5 bg-brand-500/20 text-brand-400 rounded-lg text-xs font-medium hover:bg-brand-500/30 transition active:scale-95 flex items-center gap-1">
+                     <UserPlus size={14} /> Add
+                   </button>
+                 </div>
+               ))}
+             </div>
+           )}
+        </div>
       )}
     </ScreenShell>
   )

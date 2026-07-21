@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, X, Play, Compass, Camera, Navigation, Smartphone } from 'lucide-react'
 import type { ChallengeAssignment, SensorAvailability } from '@/types/adventure'
+import { categoryIcons, difficultyIcons } from '@/data/icons'
 import { startCompass, startAccelerometer, requestCamera } from '@/lib/sensors'
 import { getCurrentPosition, watchPosition } from '@/lib/gps'
 import { distanceMeters } from '@/lib/geo'
@@ -27,6 +29,8 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
   const cleanupRef = useRef<(() => void) | null>(null)
 
   const sensor = challenge.sensorType
+  const CatIcon = categoryIcons[challenge.category]
+  const DiffIcon = difficultyIcons[challenge.difficulty]
 
   useEffect(() => {
     return () => {
@@ -38,7 +42,6 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
   const start = async () => {
     setPhase('running')
     setError('')
-
     if (sensor === 'compass' && sensorAvail.compass) {
       cleanupRef.current = startCompass(h => setHeading(h))
     } else if (sensor === 'accelerometer' && sensorAvail.accelerometer) {
@@ -49,19 +52,12 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
       const target = challenge.sensorConfig?.targetRadius as number
       if (target) setTargetDist(target * 10)
       cleanupRef.current = watchPosition(p => {
-        if (startPos.current) {
-          setWalkDist(distanceMeters(startPos.current, { lat: p.lat, lng: p.lng }))
-        }
+        if (startPos.current) setWalkDist(distanceMeters(startPos.current, { lat: p.lat, lng: p.lng }))
       })
     } else if (sensor === 'camera' && sensorAvail.camera) {
       const stream = await requestCamera('environment')
-      if (stream && videoRef.current) {
-        streamRef.current = stream
-        videoRef.current.srcObject = stream
-        setCameraOn(true)
-      } else {
-        setError('Camera unavailable')
-      }
+      if (stream && videoRef.current) { streamRef.current = stream; videoRef.current.srcObject = stream; setCameraOn(true) }
+      else setError('Camera unavailable')
     }
   }
 
@@ -83,7 +79,7 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
   if (phase === 'success') {
     return (
       <div className="text-center py-6 animate-pop">
-        <div className="text-4xl mb-2">✓</div>
+        <Check size={40} className="mx-auto mb-2 text-success-400" />
         <p className="text-success-400 font-semibold">Challenge Complete!</p>
         <p className="text-sm text-ink-400 mt-1">+{challenge.xp} XP · +{challenge.coins} coins</p>
       </div>
@@ -93,7 +89,7 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
   if (phase === 'failed') {
     return (
       <div className="text-center py-6 animate-pop">
-        <div className="text-4xl mb-2">✗</div>
+        <X size={40} className="mx-auto mb-2 text-error-400" />
         <p className="text-error-400 font-semibold">Challenge Failed</p>
         <button onClick={() => setPhase('idle')} className="mt-3 px-4 py-2 bg-ink-800 rounded-lg text-sm text-ink-200 hover:bg-ink-700 transition active:scale-95">Try Again</button>
       </div>
@@ -103,7 +99,7 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs text-brand-400 font-semibold uppercase tracking-wider">{challenge.category} · {challenge.difficulty}</p>
+        <p className="text-xs text-brand-400 font-semibold uppercase tracking-wider flex items-center gap-1.5"><CatIcon size={12} /> {challenge.category} · {challenge.difficulty}</p>
         <h3 className="text-lg font-bold text-ink-100 mt-1">{challenge.title}</h3>
         <p className="text-sm text-ink-400 mt-1">{challenge.description}</p>
         <p className="text-xs text-ink-500 mt-2">+{challenge.xp} XP · +{challenge.coins} coins</p>
@@ -117,8 +113,12 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
       {phase === 'running' && sensor === 'compass' && sensorAvail.compass && (
         <div className="text-center py-4">
-          <div className="text-5xl font-bold text-brand-400">{Math.round(heading)}°</div>
-          <p className="text-sm text-ink-400 mt-2">Current heading</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Compass size={32} className="text-brand-400" />
+            <span className="text-5xl font-bold text-brand-400">{Math.round(heading)}</span>
+            <span className="text-2xl text-ink-400">°</span>
+          </div>
+          <p className="text-sm text-ink-400">Current heading</p>
           {challenge.sensorConfig?.targetHeading != null && (
             <p className="text-xs text-ink-500 mt-1">Target: {Number(challenge.sensorConfig.targetHeading)}° ± {Number(challenge.sensorConfig.tolerance ?? 10)}°</p>
           )}
@@ -127,17 +127,18 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
       {phase === 'running' && sensor === 'accelerometer' && sensorAvail.accelerometer && (
         <div className="text-center py-4">
-          <div className="text-3xl font-bold text-brand-400">
-            X:{tilt.x.toFixed(1)} Y:{tilt.y.toFixed(1)} Z:{tilt.z.toFixed(1)}
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Smartphone size={28} className="text-brand-400" />
+            <span className="text-2xl font-bold text-brand-400">X:{tilt.x.toFixed(1)} Y:{tilt.y.toFixed(1)} Z:{tilt.z.toFixed(1)}</span>
           </div>
-          <p className="text-sm text-ink-400 mt-2">Tilt readings</p>
+          <p className="text-sm text-ink-400">Tilt readings</p>
         </div>
       )}
 
       {phase === 'running' && sensor === 'gps' && sensorAvail.gps && (
         <div className="py-4">
           <div className="flex justify-between text-sm text-ink-400 mb-2">
-            <span>Distance walked</span>
+            <span className="flex items-center gap-1.5"><Navigation size={14} /> Distance walked</span>
             <span>{Math.round(walkDist)}m / {targetDist}m</span>
           </div>
           <div className="h-3 bg-ink-800 rounded-full overflow-hidden">
@@ -151,7 +152,7 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
           {cameraOn ? (
             <video ref={videoRef} autoPlay playsInline className="w-full rounded-xl" style={{ maxHeight: '200px' }} />
           ) : (
-            <p className="text-sm text-ink-500 text-center py-4">{Boolean(error) ? String(error) : 'Starting camera...'}</p>
+            <p className="text-sm text-ink-500 text-center py-4 flex items-center justify-center gap-2"><Camera size={16} /> {Boolean(error) ? String(error) : 'Starting camera...'}</p>
           )}
         </div>
       )}
@@ -161,13 +162,8 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
           <p className="text-sm text-ink-200 font-medium mb-3">{String(challenge.data?.question ?? '')}</p>
           <div className="space-y-2">
             {((challenge.data?.answers as string[]) ?? []).map((ans, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedAnswer(i)}
-                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition active:scale-95 ${
-                  selectedAnswer === i ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-200 hover:bg-ink-700'
-                }`}
-              >
+              <button key={i} onClick={() => setSelectedAnswer(i)}
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition active:scale-95 ${selectedAnswer === i ? 'bg-brand-500 text-white' : 'bg-ink-800 text-ink-200 hover:bg-ink-700'}`}>
                 {ans}
               </button>
             ))}
@@ -176,16 +172,16 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
       )}
 
       {phase === 'idle' ? (
-        <button onClick={start} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95">
-          Start Challenge
+        <button onClick={start} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2">
+          <Play size={18} /> Start Challenge
         </button>
       ) : (
         <div className="flex gap-2">
-          <button onClick={complete} className="flex-1 py-3 bg-success-500 hover:bg-success-600 text-white rounded-xl font-semibold text-sm transition active:scale-95">
-            Mark Complete
+          <button onClick={complete} className="flex-1 py-3 bg-success-500 hover:bg-success-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 flex items-center justify-center gap-2">
+            <Check size={18} /> Mark Complete
           </button>
-          <button onClick={fail} className="px-4 py-3 bg-ink-800 text-ink-400 rounded-xl text-sm transition hover:bg-ink-700 active:scale-95">
-            Skip
+          <button onClick={fail} className="px-4 py-3 bg-ink-800 text-ink-400 rounded-xl text-sm transition hover:bg-ink-700 active:scale-95 flex items-center gap-1">
+            <X size={16} /> Skip
           </button>
         </div>
       )}

@@ -1,71 +1,66 @@
-import { useEffect, useState } from 'react'
+import { Sparkles, Bell, ChevronRight } from 'lucide-react'
 import { NAV_ITEMS } from '@/data/navigation'
-import { useAuth } from '@/lib/auth'
-import { getNotifications } from '@/lib/db'
-import { levelFromXp } from '@/lib/geo'
-import type { ScreenName } from '@/types/adventure'
+import type { ScreenName, UserProfile } from '@/types/adventure'
 
 interface Props {
+  profile: UserProfile | null
+  unreadNotifications: number
   onNavigate: (screen: ScreenName) => void
 }
 
-export default function HomeScreen({ onNavigate }: Props) {
-  const { profile } = useAuth()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    getNotifications().then(notifs => {
-      setUnreadCount(notifs.filter(n => !n.read).length)
-    })
-  }, [])
-
-  const level = profile ? levelFromXp(profile.xp) : 1
-
+export default function HomeScreen({ profile, unreadNotifications, onNavigate }: Props) {
   return (
-    <div className="min-h-screen bg-ink-950 animate-fade-in">
-      <header className="px-4 pt-6 pb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{profile?.avatar_emoji ?? '🧭'}</span>
+    <div className="min-h-screen bg-ink-950">
+      <header className="sticky top-0 z-20 bg-ink-900/90 backdrop-blur-md border-b border-ink-800 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
+            <Sparkles size={18} className="text-brand-400" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-ink-100">Zeviqo</h1>
-            <p className="text-xs text-ink-400">Adventure System</p>
+            <h1 className="text-base font-bold text-ink-100">Zeviqo</h1>
+            <p className="text-xs text-ink-500">Adventure System</p>
           </div>
         </div>
-        <button
-          onClick={() => onNavigate('notifications')}
-          className="relative w-10 h-10 bg-ink-900 rounded-xl flex items-center justify-center text-xl active:scale-95 transition border border-ink-800"
-        >
-          🔔
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-error-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+        <button onClick={() => onNavigate('notifications')} className="relative p-2 text-ink-400 hover:text-ink-100 transition active:scale-95">
+          <Bell size={20} />
+          {unreadNotifications > 0 && (
+            <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
           )}
         </button>
       </header>
 
-      <main className="px-4 pb-24 max-w-md mx-auto">
-        <div className="bg-gradient-to-br from-brand-500/20 to-brand-700/10 rounded-2xl p-5 border border-brand-500/20 mb-5">
-          <h2 className="text-lg font-bold text-ink-100 mb-1">Welcome back, {profile?.username ?? 'Adventurer'}!</h2>
-          <div className="flex gap-4 text-sm text-ink-400">
-            <span>Level {level}</span>
-            <span>{profile?.xp ?? 0} XP</span>
-            <span>🪙 {profile?.coins ?? 0}</span>
-            <span>💎 {profile?.gems ?? 0}</span>
+      <main className="px-4 py-5 pb-24 max-w-md mx-auto">
+        {profile && (
+          <div className="bg-gradient-to-br from-brand-500/20 to-accent-500/10 border border-brand-500/30 rounded-2xl p-4 mb-5">
+            <p className="text-sm text-ink-300">Welcome back,</p>
+            <h2 className="text-xl font-bold text-ink-100">{profile.username}</h2>
+            <div className="flex gap-4 mt-3 text-xs">
+              <span className="text-ink-300">Level <span className="text-brand-400 font-semibold">{profile.level}</span></span>
+              <span className="text-ink-300">{profile.xp} XP</span>
+              <span className="text-accent-400 font-semibold flex items-center gap-1">{profile.coins} coins</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`bg-gradient-to-br ${item.color} rounded-2xl p-4 text-left transition hover:scale-[1.02] active:scale-[0.98]`}
-            >
-              <div className="text-3xl mb-2">{item.icon}</div>
-              <p className="text-sm font-semibold text-white">{item.label}</p>
-            </button>
-          ))}
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon
+            return (
+              <button key={item.id} onClick={() => onNavigate(item.id)}
+                className="group relative overflow-hidden rounded-2xl p-4 bg-ink-900 border border-ink-800 hover:border-ink-700 transition active:scale-95 text-left">
+                <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${item.color}`} />
+                <div className="relative">
+                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} mb-2`}>
+                    <Icon size={20} className="text-white" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-ink-100 flex items-center justify-between">
+                    {item.label}
+                    <ChevronRight size={14} className="text-ink-600 group-hover:text-ink-400 transition" />
+                  </h3>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </main>
     </div>

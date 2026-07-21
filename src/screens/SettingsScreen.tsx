@@ -1,70 +1,62 @@
 import { useState } from 'react'
+import { Settings as SettingsIcon, Bell, Compass, Camera, Navigation, Smartphone, Volume2, Vibrate, Moon, LogOut } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import { useAuth } from '@/lib/auth'
-import { updateProfile } from '@/lib/db'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
+}
 
-export default function SettingsScreen({ onBack }: Props) {
-  const { profile, signOut, refreshProfile } = useAuth()
-  const [notifications, setNotifications] = useState(Boolean((profile?.settings as Record<string, unknown>)?.notifications ?? true))
-  const [gps, setGps] = useState(Boolean((profile?.settings as Record<string, unknown>)?.gps ?? true))
-  const [camera, setCamera] = useState(Boolean((profile?.settings as Record<string, unknown>)?.camera ?? false))
-  const [saving, setSaving] = useState(false)
+export default function SettingsScreen({ onBack, onToast }: Props) {
+  const { signOut } = useAuth()
+  const [toggles, setToggles] = useState({
+    notifications: true, compass: true, camera: true, gps: true, accelerometer: true,
+    sound: true, vibration: true, darkMode: true,
+  })
 
-  const settings = [
-    { label: 'Push Notifications', value: notifications, set: setNotifications },
-    { label: 'GPS Tracking', value: gps, set: setGps },
-    { label: 'Camera Access', value: camera, set: setCamera },
-  ]
-
-  const handleSave = async () => {
-    if (!profile) return
-    setSaving(true)
-    await updateProfile({
-      id: profile.id,
-      settings: { notifications, gps, camera },
-    })
-    setSaving(false)
-    refreshProfile()
+  const toggle = (key: keyof typeof toggles) => {
+    setToggles(t => ({ ...t, [key]: !t[key] }))
+    onToast('info', `${key} ${!toggles[key] ? 'enabled' : 'disabled'}`)
   }
 
+  const settings = [
+    { key: 'notifications' as const, label: 'Push Notifications', icon: Bell },
+    { key: 'compass' as const, label: 'Compass Sensor', icon: Compass },
+    { key: 'camera' as const, label: 'Camera Access', icon: Camera },
+    { key: 'gps' as const, label: 'GPS Tracking', icon: Navigation },
+    { key: 'accelerometer' as const, label: 'Accelerometer', icon: Smartphone },
+    { key: 'sound' as const, label: 'Sound Effects', icon: Volume2 },
+    { key: 'vibration' as const, label: 'Vibration', icon: Vibrate },
+    { key: 'darkMode' as const, label: 'Dark Mode', icon: Moon },
+  ]
+
   return (
-    <ScreenShell title="Settings" icon="⚙️" onBack={onBack}>
-      <div className="space-y-3 mb-4">
-        {settings.map((s, i) => (
-          <div key={i} className="flex items-center justify-between bg-ink-900 rounded-xl p-4 border border-ink-800">
-            <span className="text-sm text-ink-200">{s.label}</span>
-            <button
-              onClick={() => s.set(!s.value)}
-              className={`w-12 h-6 rounded-full transition relative active:scale-95 ${s.value ? 'bg-brand-500' : 'bg-ink-700'}`}
-            >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${s.value ? 'left-6' : 'left-0.5'}`} />
+    <ScreenShell title="Settings" icon={<SettingsIcon size={18} className="text-brand-400" />} onBack={onBack}>
+      <div className="space-y-2">
+        {settings.map(s => {
+          const Icon = s.icon
+          return (
+            <button key={s.key} onClick={() => toggle(s.key)}
+              className="w-full flex items-center gap-3 bg-ink-900 border border-ink-800 rounded-xl p-3 hover:bg-ink-800/50 transition active:scale-[0.98]">
+              <div className="w-9 h-9 rounded-xl bg-ink-800 flex items-center justify-center">
+                <Icon size={18} className="text-ink-300" />
+              </div>
+              <span className="flex-1 text-left text-sm font-medium text-ink-100">{s.label}</span>
+              <div className={`w-11 h-6 rounded-full transition relative ${toggles[s.key] ? 'bg-brand-500' : 'bg-ink-700'}`}>
+                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${toggles[s.key] ? 'left-[22px]' : 'left-0.5'}`} />
+              </div>
             </button>
-          </div>
-        ))}
+          )
+        })}
+
+        <div className="pt-4">
+          <button onClick={async () => { await signOut(); onToast('info', 'Signed out') }}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-error-500/10 border border-error-500/30 text-error-400 rounded-xl font-semibold text-sm transition hover:bg-error-500/20 active:scale-95">
+            <LogOut size={18} /> Sign Out
+          </button>
+        </div>
       </div>
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 mb-4"
-      >
-        {saving ? 'Saving...' : 'Save Settings'}
-      </button>
-
-      <div className="bg-ink-900 rounded-xl p-4 border border-ink-800 mb-4">
-        <h3 className="text-sm font-semibold text-ink-200 mb-2">About</h3>
-        <p className="text-xs text-ink-500">Zeviqo Adventure System v1.0.0</p>
-        <p className="text-xs text-ink-500 mt-1">Procedural adventure generator with 71 challenge templates across 16 categories.</p>
-      </div>
-
-      <button
-        onClick={signOut}
-        className="w-full py-3 bg-error-500/10 border border-error-500/30 text-error-400 rounded-xl font-semibold text-sm transition active:scale-95 hover:bg-error-500/20"
-      >
-        Sign Out
-      </button>
     </ScreenShell>
   )
 }

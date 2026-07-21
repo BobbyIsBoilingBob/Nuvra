@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Check, X, Info, Sparkles } from 'lucide-react'
 
 export interface ToastData {
   id: string
@@ -12,6 +13,8 @@ interface Props {
   onDismiss: (id: string) => void
 }
 
+const icons = { success: Check, error: X, info: Info, reward: Sparkles }
+
 export default function ToastContainer({ toasts, onDismiss }: Props) {
   useEffect(() => {
     const timers = toasts.map(t => setTimeout(() => onDismiss(t.id), 3500))
@@ -22,21 +25,27 @@ export default function ToastContainer({ toasts, onDismiss }: Props) {
 
   return (
     <div className="fixed top-4 left-0 right-0 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
-      {toasts.map(t => (
-        <div
-          key={t.id}
-          className={`pointer-events-auto w-full max-w-sm rounded-xl px-4 py-3 shadow-lg border animate-slide-up ${
-            t.type === 'success' ? 'bg-success-500/20 border-success-500/40 text-success-400' :
-            t.type === 'error' ? 'bg-error-500/20 border-error-500/40 text-error-400' :
-            t.type === 'reward' ? 'bg-accent-500/20 border-accent-500/40 text-accent-400' :
-            'bg-ink-800 border-ink-700 text-ink-200'
-          }`}
-          onClick={() => onDismiss(t.id)}
-        >
-          <p className="text-sm font-semibold">{t.title}</p>
-          {t.message && <p className="text-xs mt-0.5 opacity-80">{t.message}</p>}
-        </div>
-      ))}
+      {toasts.map(t => {
+        const Icon = icons[t.type]
+        return (
+          <div
+            key={t.id}
+            className={`pointer-events-auto w-full max-w-sm rounded-xl px-4 py-3 shadow-lg border animate-slide-up flex items-start gap-3 ${
+              t.type === 'success' ? 'bg-success-500/20 border-success-500/40 text-success-400' :
+              t.type === 'error' ? 'bg-error-500/20 border-error-500/40 text-error-400' :
+              t.type === 'reward' ? 'bg-accent-500/20 border-accent-500/40 text-accent-400' :
+              'bg-ink-800 border-ink-700 text-ink-200'
+            }`}
+            onClick={() => onDismiss(t.id)}
+          >
+            <Icon size={18} className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold">{t.title}</p>
+              {t.message && <p className="text-xs mt-0.5 opacity-80">{t.message}</p>}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

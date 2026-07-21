@@ -76,11 +76,7 @@ export function generateRoute(center: GeoPoint, targetDistanceKm: number, numChe
   return { center, checkpoints, path, totalDistanceKm: totalDistKm, estimatedDurationMin: estDurationMin }
 }
 
-function assignChallenges(
-  checkpoints: Checkpoint[],
-  prefs: AdventurePreferences,
-  sensorAvail: SensorAvailability,
-): Checkpoint[] {
+function assignChallenges(checkpoints: Checkpoint[], prefs: AdventurePreferences, sensorAvail: SensorAvailability): Checkpoint[] {
   const pool = challengesForGeneration(prefs.difficulty, prefs.categories, sensorAvail)
   const fallback = challengesForGeneration(prefs.difficulty, [], sensorAvail)
   const source = pool.length > 0 ? pool : fallback
@@ -96,38 +92,25 @@ function assignChallenges(
     } else {
       template = source[Math.floor(Math.random() * source.length)]
     }
-
     const assignment: ChallengeAssignment = {
-      id: template.id,
-      title: template.title,
-      description: template.description,
-      category: template.category,
-      difficulty: template.difficulty,
-      sensorType: template.sensorType,
-      sensorConfig: template.sensorConfig,
-      data: template.data,
-      xp: template.xp,
-      coins: template.coins,
+      id: template.id, title: template.title, description: template.description,
+      category: template.category, difficulty: template.difficulty,
+      sensorType: template.sensorType, sensorConfig: template.sensorConfig,
+      data: template.data, xp: template.xp, coins: template.coins,
     }
     return { ...cp, challenge: assignment }
   })
 }
 
-export function generateAdventure(
-  opts: {
-    center: GeoPoint
-    locationName: string
-    locationSource: 'gps' | 'manual' | 'suggested'
-    preferences: AdventurePreferences
-    sensorAvail: SensorAvailability
-  },
-): Adventure {
+export function generateAdventure(opts: {
+  center: GeoPoint; locationName: string; locationSource: 'gps' | 'manual' | 'suggested'
+  preferences: AdventurePreferences; sensorAvail: SensorAvailability
+}): Adventure {
   const { center, locationName, locationSource, preferences, sensorAvail } = opts
   const targetDist = resolveTargetDistance(preferences)
   const numCp = resolveCheckpointCount(preferences.durationMin)
   const route = generateRoute(center, targetDist, numCp)
   const withChallenges = assignChallenges(route.checkpoints, preferences, sensorAvail)
-
   return {
     id: `adv-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     title: titleFor(locationName),
@@ -135,61 +118,38 @@ export function generateAdventure(
     difficulty: preferences.difficulty,
     durationMin: Math.round(route.estimatedDurationMin),
     distanceKm: Math.round(route.totalDistanceKm * 10) / 10,
-    locationName,
-    locationSource,
-    center,
-    checkpoints: withChallenges,
-    path: route.path,
-    preferences,
-    createdAt: new Date().toISOString(),
+    locationName, locationSource, center,
+    checkpoints: withChallenges, path: route.path,
+    preferences, createdAt: new Date().toISOString(),
   }
 }
 
-const SUGGESTED_LOCATIONS: { name: string; lat: number; lng: number; travelMin: number; travelKm: number }[] = [
-  { name: 'Riverside Park', lat: 0, lng: 0, travelMin: 15, travelKm: 2 },
-  { name: 'Hilltop Lookout', lat: 0, lng: 0, travelMin: 20, travelKm: 4 },
-  { name: 'Old Town Square', lat: 0, lng: 0, travelMin: 25, travelKm: 5 },
-  { name: 'Lakeside Trail', lat: 0, lng: 0, travelMin: 30, travelKm: 7 },
-  { name: 'Forest Edge', lat: 0, lng: 0, travelMin: 35, travelKm: 9 },
-  { name: 'Coastal Path', lat: 0, lng: 0, travelMin: 45, travelKm: 12 },
-  { name: 'Botanic Gardens', lat: 0, lng: 0, travelMin: 50, travelKm: 15 },
-  { name: 'Canyon Viewpoint', lat: 0, lng: 0, travelMin: 75, travelKm: 35 },
-  { name: 'Mountain Pass', lat: 0, lng: 0, travelMin: 90, travelKm: 50 },
-  { name: 'Distant Summit', lat: 0, lng: 0, travelMin: 110, travelKm: 80 },
+const SUGGESTED_LOCATIONS: { name: string; travelMin: number; travelKm: number }[] = [
+  { name: 'Riverside Park', travelMin: 15, travelKm: 2 },
+  { name: 'Hilltop Lookout', travelMin: 20, travelKm: 4 },
+  { name: 'Old Town Square', travelMin: 25, travelKm: 5 },
+  { name: 'Lakeside Trail', travelMin: 30, travelKm: 7 },
+  { name: 'Forest Edge', travelMin: 35, travelKm: 9 },
+  { name: 'Coastal Path', travelMin: 45, travelKm: 12 },
+  { name: 'Botanic Gardens', travelMin: 50, travelKm: 15 },
+  { name: 'Canyon Viewpoint', travelMin: 75, travelKm: 35 },
+  { name: 'Mountain Pass', travelMin: 90, travelKm: 50 },
+  { name: 'Distant Summit', travelMin: 110, travelKm: 80 },
 ]
 
-export function generateSuggestedAdventures(
-  center: GeoPoint,
-  sensorAvail: SensorAvailability,
-): SuggestedAdventure[] {
+export function generateSuggestedAdventures(center: GeoPoint, sensorAvail: SensorAvailability): SuggestedAdventure[] {
   const result: SuggestedAdventure[] = []
   const difficulties: Difficulty[] = ['easy', 'medium', 'hard', 'extreme']
   const durations = [20, 30, 45, 60, 90, 120]
-
   for (let i = 0; i < 10; i++) {
     const loc = SUGGESTED_LOCATIONS[i]
     const isNearby = i < 7
     const angle = (i * 36) % 360
     const offset = destinationPoint(center, angle, loc.travelKm * 1000)
-    const prefs: AdventurePreferences = {
-      difficulty: difficulties[i % 4],
-      durationMin: durations[i % durations.length],
-      categories: [],
-    }
-    const adv = generateAdventure({
-      center: offset,
-      locationName: loc.name,
-      locationSource: 'suggested',
-      preferences: prefs,
-      sensorAvail,
-    })
+    const prefs: AdventurePreferences = { difficulty: difficulties[i % 4], durationMin: durations[i % durations.length], categories: [] }
+    const adv = generateAdventure({ center: offset, locationName: loc.name, locationSource: 'suggested', preferences: prefs, sensorAvail })
     adv.isSuggested = true
-    result.push({
-      adventure: adv,
-      travelTimeMin: loc.travelMin,
-      travelDistanceKm: loc.travelKm,
-      isNearby,
-    })
+    result.push({ adventure: adv, travelTimeMin: loc.travelMin, travelDistanceKm: loc.travelKm, isNearby })
   }
   return result
 }

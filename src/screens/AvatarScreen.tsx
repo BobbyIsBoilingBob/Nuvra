@@ -1,88 +1,62 @@
 import { useState } from 'react'
+import { Palette, Check } from 'lucide-react'
 import ScreenShell from '@/components/ScreenShell'
 import { useAuth } from '@/lib/auth'
 import { updateProfile } from '@/lib/db'
 
-interface Props { onBack: () => void }
+interface Props {
+  onBack: () => void
+  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
+}
 
-const AVATARS = ['🧭', '🏃', '🚶', '🧗', '📸', '🌿', '🗺', '🎒', '🥾', '🏕', '🌲', '🏔']
-const COLORS = [
-  { id: '#1ba87d', label: 'Green' },
-  { id: '#f97316', label: 'Orange' },
-  { id: '#3b82f6', label: 'Blue' },
-  { id: '#a855f7', label: 'Purple' },
-  { id: '#14b8a6', label: 'Teal' },
-  { id: '#f43f5e', label: 'Rose' },
-  { id: '#eab308', label: 'Yellow' },
-  { id: '#64748b', label: 'Slate' },
+const AVATAR_COLORS = [
+  '#3fc59b', '#3b82f6', '#f97316', '#ef4444', '#a855f7',
+  '#ec4899', '#14b8a6', '#eab308', '#6366f1', '#84cc16',
+  '#06b6d4', '#f43f5e',
 ]
 
-export default function AvatarScreen({ onBack }: Props) {
+export default function AvatarScreen({ onBack, onToast }: Props) {
   const { profile, refreshProfile } = useAuth()
-  const [avatar, setAvatar] = useState(profile?.avatar_emoji ?? '🧭')
-  const [color, setColor] = useState(profile?.avatar_color ?? '#1ba87d')
+  const [color, setColor] = useState(profile?.avatar_color || '#3fc59b')
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   const handleSave = async () => {
     if (!profile) return
     setSaving(true)
-    await updateProfile({ id: profile.id, avatar_emoji: avatar, avatar_color: color })
+    const ok = await updateProfile({ id: profile.id, avatar_color: color })
     setSaving(false)
-    setSaved(true)
-    refreshProfile()
-    setTimeout(() => setSaved(false), 2000)
+    if (ok) { await refreshProfile(); onToast('success', 'Avatar updated!') }
+    else onToast('error', 'Update failed')
   }
 
   return (
-    <ScreenShell title="Avatar / Customise" icon="🎨" onBack={onBack}>
-      <div className="text-center mb-6">
-        <div className="w-28 h-28 rounded-full mx-auto mb-3 flex items-center justify-center text-5xl"
-          style={{ background: color }}>
-          {avatar}
+    <ScreenShell title="Avatar" icon={<Palette size={18} className="text-brand-400" />} onBack={onBack}>
+      <div className="space-y-5">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-3 transition" style={{ backgroundColor: color }}>
+            <Palette size={40} className="text-white" />
+          </div>
+          <p className="text-sm text-ink-300">{profile?.username}</p>
         </div>
-        <p className="text-sm text-ink-400">Customise your adventurer avatar</p>
-      </div>
 
-      <div className="mb-5">
-        <h3 className="text-sm font-semibold text-ink-300 mb-2">Avatar</h3>
-        <div className="flex flex-wrap gap-2">
-          {AVATARS.map(a => (
-            <button
-              key={a}
-              onClick={() => setAvatar(a)}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition active:scale-95 ${
-                avatar === a ? 'bg-brand-500/20 border-2 border-brand-500' : 'bg-ink-900 border border-ink-800'
-              }`}
-            >
-              {a}
-            </button>
-          ))}
+        <div>
+          <h3 className="text-sm font-semibold text-ink-200 mb-3">Avatar Color</h3>
+          <div className="grid grid-cols-6 gap-2">
+            {AVATAR_COLORS.map(c => (
+              <button key={c} onClick={() => setColor(c)}
+                className={`aspect-square rounded-xl transition active:scale-95 flex items-center justify-center ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-950' : ''}`}
+                style={{ backgroundColor: c }}>
+                {color === c && <Check size={18} className="text-white" />}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="mb-5">
-        <h3 className="text-sm font-semibold text-ink-300 mb-2">Background Colour</h3>
-        <div className="flex flex-wrap gap-2">
-          {COLORS.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setColor(c.id)}
-              className={`w-10 h-10 rounded-full transition active:scale-95 ${color === c.id ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-950' : ''}`}
-              style={{ background: c.id }}
-              title={c.label}
-            />
-          ))}
-        </div>
+        <button onClick={handleSave} disabled={saving}
+          className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+          {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Check size={18} /> Save Avatar</>}
+        </button>
       </div>
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50"
-      >
-        {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Avatar'}
-      </button>
     </ScreenShell>
   )
 }

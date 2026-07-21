@@ -23,21 +23,15 @@ const reward = (d: Difficulty): { xp: number; coins: number } => {
 }
 
 const mk = (
-  id: string,
-  title: string,
-  description: string,
-  category: ChallengeCategory,
-  difficulty: Difficulty,
-  sensorType: SensorType = 'none',
-  extra: Partial<ChallengeTemplate> = {},
+  id: string, title: string, description: string,
+  category: ChallengeCategory, difficulty: Difficulty,
+  sensorType: SensorType = 'none', extra: Partial<ChallengeTemplate> = {},
 ): ChallengeTemplate => ({
   id, title, description, category, difficulty, sensorType,
-  ...reward(difficulty),
-  ...extra,
+  ...reward(difficulty), ...extra,
 })
 
 export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [
-  // EASY (17)
   mk('obs-e1', 'Spot the Colour', 'Find 3 objects matching the colour of the sky today.', 'observation', 'easy'),
   mk('obs-e2', 'Cloud Shapes', 'Identify 3 different shapes in the clouds above.', 'observation', 'easy'),
   mk('obs-e3', 'Texture Hunt', 'Touch 4 different natural textures (bark, leaf, stone, grass).', 'observation', 'easy'),
@@ -56,7 +50,6 @@ export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [
   mk('explore-e1', 'New Path', 'Take a route you have never walked before.', 'exploration', 'easy'),
   mk('reaction-e1', 'Quick Snap', 'When you see a dog, snap a photo within 5 seconds.', 'reaction', 'easy'),
 
-  // MEDIUM (22)
   mk('obs-m1', 'Pattern Seeker', 'Find 3 repeating patterns in architecture or nature.', 'observation', 'medium'),
   mk('obs-m2', 'Count Windows', 'Count the total windows on a building you pass.', 'observation', 'medium'),
   mk('obs-m3', 'Wildlife Spotting', 'Spot 3 different types of animals or insects.', 'observation', 'medium'),
@@ -80,7 +73,6 @@ export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [
   mk('team-m1', 'Sync Step', 'Walk in sync with a partner for 100 steps.', 'team', 'medium'),
   mk('explore-m1', 'Hidden Alley', 'Find a path or alley you have never noticed before.', 'exploration', 'medium'),
 
-  // HARD (19)
   mk('obs-h1', 'Architectural Era', 'Identify 3 buildings from different architectural periods.', 'observation', 'hard'),
   mk('obs-h2', 'Material Survey', 'Catalogue 5 different building materials used nearby.', 'observation', 'hard'),
   mk('photo-h1', 'Panorama', 'Take a 180-degree panorama photo from a high point.', 'photography', 'hard'),
@@ -101,7 +93,6 @@ export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [
   mk('balance-h1', 'Balance Beam', 'Walk a narrow path or curb for 20 metres without stepping off.', 'balance', 'hard', 'accelerometer', { sensorConfig: { threshold: 1.5 } }),
   mk('reaction-h1', 'Speed Snap', 'Photograph a moving object (bird, cyclist) within 3 seconds.', 'reaction', 'hard'),
 
-  // EXTREME (13)
   mk('obs-x1', 'Night Observer', 'At dusk, identify 5 constellations or night phenomena.', 'observation', 'extreme'),
   mk('photo-x1', 'Astrophotography', 'Capture a photo of the night sky with minimal light pollution.', 'photography', 'extreme'),
   mk('fit-x1', 'Endurance March', 'Walk 5 km without stopping at a fast pace.', 'fitness', 'extreme'),
@@ -110,7 +101,7 @@ export const CHALLENGE_LIBRARY: ChallengeTemplate[] = [
   mk('nav-x1', 'Dead Reckoning', 'Navigate 1 km using only compass and stride count — no GPS.', 'navigation', 'extreme', 'compass', { sensorConfig: { targetHeading: 180, distance: 1000 } }),
   mk('nav-x2', 'Night Navigation', 'Navigate a route after dark using only a compass.', 'navigation', 'extreme', 'compass'),
   mk('lm-x1', 'Summit Marker', 'Reach the highest point visible from your start location.', 'landmarks', 'extreme'),
-  mk('nature-x1', 'Biome Transition', 'Walk from one biome to another (e.g. forest to field) and document the change.', 'nature', 'extreme'),
+  mk('nature-x1', 'Biome Transition', 'Walk from one biome to another and document the change.', 'nature', 'extreme'),
   mk('balance-x1', 'Level Walk', 'Walk 50 metres on uneven terrain holding a balanced object.', 'balance', 'extreme', 'accelerometer', { sensorConfig: { threshold: 2.0, duration: 50 } }),
   mk('balance-x2', 'Tightrope Challenge', 'Walk a fallen log or narrow beam for 30 metres.', 'balance', 'extreme', 'gyroscope', { sensorConfig: { threshold: 1.0 } }),
   mk('reaction-x1', 'Lightning Strike', 'Photograph lightning or a sudden weather event.', 'reaction', 'extreme'),
@@ -133,23 +124,23 @@ export const challengesForGeneration = (
   return pool
 }
 
-export const ALL_CATEGORIES: { id: ChallengeCategory; label: string; icon: string }[] = [
-  { id: 'observation', label: 'Observation', icon: '👁' },
-  { id: 'photography', label: 'Photography', icon: '📷' },
-  { id: 'fitness', label: 'Fitness', icon: '💪' },
-  { id: 'puzzle', label: 'Puzzle', icon: '🧩' },
-  { id: 'memory', label: 'Memory', icon: '🧠' },
-  { id: 'navigation', label: 'Navigation', icon: '🧭' },
-  { id: 'compass', label: 'Compass', icon: '🧭' },
-  { id: 'landmarks', label: 'Landmarks', icon: '🏛' },
-  { id: 'nature', label: 'Nature', icon: '🌿' },
-  { id: 'collection', label: 'Collection', icon: '🎒' },
-  { id: 'trivia', label: 'Trivia', icon: '❓' },
-  { id: 'timed', label: 'Timed', icon: '⏱' },
-  { id: 'team', label: 'Team', icon: '👥' },
-  { id: 'exploration', label: 'Exploration', icon: '🗺' },
-  { id: 'balance', label: 'Balance', icon: '⚖️' },
-  { id: 'reaction', label: 'Reaction', icon: '⚡' },
+export const ALL_CATEGORIES: { id: ChallengeCategory; label: string }[] = [
+  { id: 'observation', label: 'Observation' },
+  { id: 'photography', label: 'Photography' },
+  { id: 'fitness', label: 'Fitness' },
+  { id: 'puzzle', label: 'Puzzle' },
+  { id: 'memory', label: 'Memory' },
+  { id: 'navigation', label: 'Navigation' },
+  { id: 'compass', label: 'Compass' },
+  { id: 'landmarks', label: 'Landmarks' },
+  { id: 'nature', label: 'Nature' },
+  { id: 'collection', label: 'Collection' },
+  { id: 'trivia', label: 'Trivia' },
+  { id: 'timed', label: 'Timed' },
+  { id: 'team', label: 'Team' },
+  { id: 'exploration', label: 'Exploration' },
+  { id: 'balance', label: 'Balance' },
+  { id: 'reaction', label: 'Reaction' },
 ]
 
 export const TOTAL_CHALLENGES = CHALLENGE_LIBRARY.length

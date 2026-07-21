@@ -1,88 +1,69 @@
 import { useState } from 'react'
+import { Mail, Lock, LogIn, Compass } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
 interface Props {
-  onAuthed: () => void
-  onSwitchToSignup: () => void
+  onNavigate: (screen: 'signup') => void
+  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
 }
 
-export default function LoginScreen({ onAuthed, onSwitchToSignup }: Props) {
+export default function LoginScreen({ onNavigate, onToast }: Props) {
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    if (!email.trim() || !password) {
-      setError('Please enter your email and password.')
-      return
-    }
     setLoading(true)
-    const { error } = await signIn(email.trim(), password)
+    const { error } = await signIn(email, password)
     setLoading(false)
-    if (error) {
-      setError(error)
-    } else {
-      onAuthed()
-    }
+    if (error) onToast('error', 'Login failed', error)
+    else onToast('success', 'Welcome back!')
   }
 
   return (
-    <div className="min-h-screen bg-ink-950 flex flex-col items-center justify-center px-6 animate-fade-in">
-      <div className="text-center mb-8">
-        <div className="text-5xl mb-3">🧭</div>
-        <h1 className="text-2xl font-bold text-ink-100">Zeviqo</h1>
-        <p className="text-sm text-ink-400 mt-1">Adventure System</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div>
-          <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            className="w-full mt-1.5 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Your password"
-            autoComplete="current-password"
-            className="w-full mt-1.5 bg-ink-900 border border-ink-700 rounded-xl px-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
-          />
-        </div>
-
-        {error && (
-          <div className="bg-error-500/10 border border-error-500/30 rounded-xl p-3">
-            <p className="text-sm text-error-400">{error}</p>
+    <div className="min-h-screen bg-ink-950 flex flex-col items-center justify-center px-6 py-10">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500/20 border border-brand-500/30 mb-3">
+            <Compass size={32} className="text-brand-400" />
           </div>
-        )}
+          <h1 className="text-2xl font-bold text-ink-100">Zeviqo</h1>
+          <p className="text-sm text-ink-400 mt-1">Adventure awaits</p>
+        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50 active:scale-95"
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Email</label>
+            <div className="relative mt-1.5">
+              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                placeholder="you@example.com"
+                className="w-full bg-ink-900 border border-ink-700 rounded-xl pl-10 pr-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+            </div>
+          </div>
 
-      <p className="text-sm text-ink-500 mt-6">
-        Don't have an account?{' '}
-        <button onClick={onSwitchToSignup} className="text-brand-400 hover:text-brand-300 transition font-medium">
-          Sign up
-        </button>
-      </p>
+          <div>
+            <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Password</label>
+            <div className="relative mt-1.5">
+              <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                placeholder="••••••••"
+                className="w-full bg-ink-900 border border-ink-700 rounded-xl pl-10 pr-3 py-2.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading}
+            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50 active:scale-95 disabled:active:scale-100 flex items-center justify-center gap-2">
+            {loading ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</>) : (<><LogIn size={18} /> Sign In</>)}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-ink-400 mt-6">
+          No account? <button onClick={() => onNavigate('signup')} className="text-brand-400 font-medium hover:underline">Sign up</button>
+        </p>
+      </div>
     </div>
   )
 }

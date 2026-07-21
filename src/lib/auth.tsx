@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -82,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     if (error) return { error: error.message }
     if (data.user) {
-      // Insert profile row (trigger should also handle this, but ensure it exists)
       await supabase.from('profiles').upsert({
         id: data.user.id,
         username,
