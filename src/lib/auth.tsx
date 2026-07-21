@@ -4,14 +4,10 @@ import { supabase } from './supabase'
 import type { UserProfile } from '@/types/adventure'
 
 interface AuthContextValue {
-  session: Session | null
-  user: User | null
-  profile: UserProfile | null
-  loading: boolean
+  session: Session | null; user: User | null; profile: UserProfile | null; loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>
-  signOut: () => Promise<void>
-  refreshProfile: () => Promise<void>
+  signOut: () => Promise<void>; refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -24,12 +20,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = useCallback(async (uid: string) => {
     if (!supabase) return
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', uid)
-      .maybeSingle()
-    if (!error && data) setProfile(data as UserProfile)
+    const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+    if (data) setProfile(data as UserProfile)
   }, [])
 
   const refreshProfile = useCallback(async () => {
@@ -37,31 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile])
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
-
+    if (!supabase) { setLoading(false); return }
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        loadProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
+      setSession(session); setUser(session?.user ?? null)
+      if (session?.user) loadProfile(session.user.id).finally(() => setLoading(false))
+      else setLoading(false)
     })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        (async () => { await loadProfile(session.user.id) })()
-      } else {
-        setProfile(null)
-      }
+      setSession(session); setUser(session?.user ?? null)
+      if (session?.user) { (async () => { await loadProfile(session.user.id) })() } else setProfile(null)
     })
-
     return () => subscription.unsubscribe()
   }, [loadProfile])
 
@@ -73,27 +50,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, username: string) => {
     if (!supabase) return { error: 'Database not configured' }
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: username, username } },
-    })
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } })
     if (error) return { error: error.message }
-    if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        username,
-      })
-    }
+    if (data.user) await supabase.from('profiles').upsert({ id: data.user.id, username })
     return { error: null }
   }
 
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
-    setProfile(null)
-    setSession(null)
-    setUser(null)
+    setProfile(null); setSession(null); setUser(null)
   }
 
   return (

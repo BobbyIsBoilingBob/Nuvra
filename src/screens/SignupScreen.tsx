@@ -1,95 +1,60 @@
 import { useState } from 'react'
-import { Mail, Lock, User, UserPlus, Compass } from 'lucide-react'
+import { Compass, Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { useToasts, ToastContainer } from '@/components/Toast'
 
-interface Props {
-  onNavigate: (screen: 'login') => void
-  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
-}
+interface Props { onLogin: () => void }
 
-export default function SignupScreen({ onNavigate, onToast }: Props) {
+export default function SignupScreen({ onLogin }: Props) {
   const { signUp } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [username, setUsername] = useState('')
+  const [name, setName] = useState(''), [email, setEmail] = useState(''), [password, setPassword] = useState(''), [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { toasts, push, dismiss } = useToasts()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!name || !email || !password) { push('error', 'Fill in all fields'); return }
+    if (password.length < 6) { push('error', 'Password must be 6+ characters'); return }
     setLoading(true)
-    const { error } = await signUp(email, password, username)
+    const { error } = await signUp(email, password, name)
     setLoading(false)
-    if (error) onToast('error', 'Signup failed', error)
-    else onToast('success', 'Account created!', 'Welcome to Zeviqo')
+    if (error) push('error', 'Sign up failed', error)
   }
 
   return (
-    <div className="min-h-screen bg-ink-950 flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm animate-slide-up">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-brand-500/20 border border-brand-500/30 mb-4">
-            <Compass size={36} className="text-brand-400" />
+    <>
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm animate-slide-up">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-accent-500 to-accent-600 shadow-glow-accent mb-4 animate-float">
+              <Compass size={40} className="text-white" />
+            </div>
+            <h1 className="text-3xl font-extrabold gradient-text">Join Zeviqo</h1>
+            <p className="text-sm text-ink-400 mt-1.5">Start your adventure today</p>
           </div>
-          <h1 className="text-3xl font-bold text-ink-100">Create Account</h1>
-          <p className="text-sm text-ink-400 mt-1">Start your adventure</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Username</label>
-            <div className="relative mt-1.5">
+          <form onSubmit={submit} className="space-y-3">
+            <div className="relative">
               <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500" />
-              <input
-                type="text" value={username} onChange={e => setUsername(e.target.value)} required
-                placeholder="explorer123"
-                className="w-full bg-ink-900 border border-ink-700 rounded-xl pl-11 pr-3 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
-              />
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Display name" className="w-full bg-surface-100 border border-white/[0.06] rounded-xl pl-11 pr-4 py-3.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Email</label>
-            <div className="relative mt-1.5">
+            <div className="relative">
               <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500" />
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                placeholder="you@example.com"
-                className="w-full bg-ink-900 border border-ink-700 rounded-xl pl-11 pr-3 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full bg-surface-100 border border-white/[0.06] rounded-xl pl-11 pr-4 py-3.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Password</label>
-            <div className="relative mt-1.5">
+            <div className="relative">
               <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500" />
-              <input
-                type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8}
-                placeholder="At least 8 characters"
-                className="w-full bg-ink-900 border border-ink-700 rounded-xl pl-11 pr-3 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition"
-              />
+              <input type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (6+ chars)" className="w-full bg-surface-100 border border-white/[0.06] rounded-xl pl-11 pr-11 py-3.5 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
+              <button type="button" onClick={() => setShow(!show)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300">{show ? <EyeOff size={18} /> : <Eye size={18} />}</button>
             </div>
-          </div>
-
-          <button
-            type="submit" disabled={loading}
-            className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition disabled:opacity-50 active:scale-95 disabled:active:scale-100 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
-          >
-            {loading ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating account...</>
-            ) : (
-              <><UserPlus size={18} /> Create Account</>
-            )}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-ink-400 mt-6">
-          Already have an account?{' '}
-          <button onClick={() => onNavigate('login')} className="text-brand-400 font-medium hover:underline">
-            Sign in
-          </button>
-        </p>
+            <button type="submit" disabled={loading} className="w-full py-3.5 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-400 hover:to-accent-500 text-white rounded-xl font-bold text-sm btn-press shadow-glow-accent disabled:opacity-50 flex items-center justify-center gap-2">
+              {loading ? <LoadingSpinner size="sm" /> : <>Create Account <ArrowRight size={18} /></>}
+            </button>
+          </form>
+          <p className="text-center text-sm text-ink-400 mt-6">Already have an account? <button onClick={onLogin} className="text-brand-400 font-semibold hover:text-brand-300">Sign in</button></p>
+        </div>
       </div>
-    </div>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    </>
   )
 }

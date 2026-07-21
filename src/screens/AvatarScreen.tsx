@@ -1,66 +1,52 @@
 import { useState } from 'react'
 import { Palette, Check } from 'lucide-react'
-import ScreenShell from '@/components/ScreenShell'
 import { useAuth } from '@/lib/auth'
 import { updateProfile } from '@/lib/db'
+import ScreenShell from '@/components/ScreenShell'
+import { useToasts, ToastContainer } from '@/components/Toast'
 
-interface Props {
-  onBack: () => void
-  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
-}
-
-const AVATAR_COLORS = [
-  '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7',
-  '#ec4899', '#14b8a6', '#eab308', '#6366f1', '#84cc16',
-  '#06b6d4', '#f43f5e',
+const COLORS = [
+  { id: 'emerald', bg: 'from-emerald-500 to-teal-600' }, { id: 'blue', bg: 'from-blue-500 to-indigo-600' },
+  { id: 'amber', bg: 'from-amber-500 to-orange-600' }, { id: 'rose', bg: 'from-rose-500 to-pink-600' },
+  { id: 'purple', bg: 'from-purple-500 to-violet-600' }, { id: 'cyan', bg: 'from-cyan-500 to-blue-600' },
+  { id: 'lime', bg: 'from-lime-500 to-green-600' }, { id: 'red', bg: 'from-red-500 to-rose-600' },
 ]
 
-export default function AvatarScreen({ onBack, onToast }: Props) {
+export default function AvatarScreen() {
   const { profile, refreshProfile } = useAuth()
-  const [color, setColor] = useState(profile?.avatar_color || '#10b981')
-  const [saving, setSaving] = useState(false)
+  const [selected, setSelected] = useState(profile?.avatar_color || 'emerald')
+  const { toasts, push, dismiss } = useToasts()
 
-  const handleSave = async () => {
+  const apply = async (color: string) => {
+    setSelected(color)
     if (!profile) return
-    setSaving(true)
-    const ok = await updateProfile({ id: profile.id, avatar_color: color })
-    setSaving(false)
-    if (ok) { await refreshProfile(); onToast('success', 'Avatar updated!') }
-    else onToast('error', 'Update failed')
+    await updateProfile({ id: profile.id, avatar_color: color })
+    push('success', 'Avatar updated!')
+    refreshProfile()
   }
 
   return (
-    <ScreenShell title="Avatar" icon={<Palette size={18} />} onBack={onBack}>
-      <div className="space-y-5">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-3 transition" style={{ backgroundColor: color }}>
-            <Palette size={40} className="text-white" />
+    <>
+      <ScreenShell title="Avatar" subtitle="Customize your look">
+        <div className="space-y-6">
+          <div className="text-center mb-2 animate-slide-up">
+            <div className={`inline-flex items-center justify-center w-28 h-28 rounded-full bg-gradient-to-br ${COLORS.find(c => c.id === selected)?.bg || COLORS[0].bg} text-white text-4xl font-extrabold shadow-lg mb-3`}>{profile?.username.charAt(0).toUpperCase() || 'A'}</div>
+            <p className="text-sm font-bold text-ink-100">{profile?.username}</p>
+            <p className="text-xs text-ink-500 mt-0.5">Level {profile?.level ?? 1}</p>
           </div>
-          <p className="text-sm text-ink-300">{profile?.username}</p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold text-ink-200 mb-3">Avatar Color</h3>
-          <div className="grid grid-cols-6 gap-2">
-            {AVATAR_COLORS.map(c => (
-              <button
-                key={c} onClick={() => setColor(c)}
-                className={`aspect-square rounded-xl transition active:scale-95 flex items-center justify-center ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-950' : ''}`}
-                style={{ backgroundColor: c }}
-              >
-                {color === c && <Check size={18} className="text-white" />}
-              </button>
-            ))}
+          <div>
+            <h3 className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Palette size={12} /> Choose Color</h3>
+            <div className="grid grid-cols-4 gap-3">
+              {COLORS.map((c, i) => (
+                <button key={c.id} onClick={() => apply(c.id)} className={`aspect-square rounded-2xl bg-gradient-to-br ${c.bg} flex items-center justify-center btn-press stagger ${selected === c.id ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-950' : ''}`} style={{ animationDelay: `${i * 40}ms` }}>
+                  {selected === c.id && <Check size={24} className="text-white" />}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-
-        <button
-          onClick={handleSave} disabled={saving}
-          className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
-        >
-          {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Check size={18} /> Save Avatar</>}
-        </button>
-      </div>
-    </ScreenShell>
+      </ScreenShell>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    </>
   )
 }

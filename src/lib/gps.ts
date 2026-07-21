@@ -13,18 +13,15 @@ export function getCurrentPosition(): Promise<GpsPosition | null> {
 
 export function watchPosition(onUpdate: (pos: GpsPosition) => void): () => void {
   if (!('geolocation' in navigator)) return () => {}
-  let lastPos: GpsPosition | null = null
+  let last: GpsPosition | null = null
   const id = navigator.geolocation.watchPosition(
     pos => {
-      const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, timestamp: pos.timestamp }
-      if (lastPos) {
-        const dLat = newPos.lat - lastPos.lat
-        const dLng = newPos.lng - lastPos.lng
-        const dist = Math.sqrt(dLat * dLat + dLng * dLng)
-        if (dist < 0.00001 && newPos.accuracy > lastPos.accuracy) return
+      const np = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, timestamp: pos.timestamp }
+      if (last) {
+        const dLat = np.lat - last.lat, dLng = np.lng - last.lng
+        if (Math.sqrt(dLat * dLat + dLng * dLng) < 0.00001 && np.accuracy > last.accuracy) return
       }
-      lastPos = newPos
-      onUpdate(newPos)
+      last = np; onUpdate(np)
     },
     () => {},
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },

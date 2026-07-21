@@ -1,57 +1,46 @@
 import { useState } from 'react'
-import { Swords, ChevronDown, ChevronUp, Star, Coins } from 'lucide-react'
-import ScreenShell from '@/components/ScreenShell'
-import type { ChallengeCategory, Difficulty } from '@/types/adventure'
+import { ChevronDown, ChevronUp, Star, Coins } from 'lucide-react'
 import { ALL_CATEGORIES, CHALLENGE_LIBRARY } from '@/data/challenges'
 import { categoryIcons, difficultyIcons } from '@/data/icons'
+import type { ChallengeCategory, Difficulty } from '@/types/adventure'
+import ScreenShell from '@/components/ScreenShell'
 
-interface Props {
-  onBack: () => void
+const diffColors: Record<Difficulty, string> = {
+  easy: 'text-success-400 bg-success-500/10', medium: 'text-amber-400 bg-amber-500/10', hard: 'text-error-400 bg-error-500/10', extreme: 'text-purple-400 bg-purple-500/10',
 }
 
-export default function ChallengesScreen({ onBack }: Props) {
-  const [expanded, setExpanded] = useState<ChallengeCategory | null>('observation')
+export default function ChallengesScreen() {
+  const [expanded, setExpanded] = useState<ChallengeCategory | null>(null)
 
   return (
-    <ScreenShell title="Challenges" icon={<Swords size={18} />} onBack={onBack}>
-      <p className="text-sm text-ink-400 mb-4">{CHALLENGE_LIBRARY.length} challenges across {ALL_CATEGORIES.length} categories</p>
-      <div className="space-y-2">
-        {ALL_CATEGORIES.map(cat => {
+    <ScreenShell title="Challenges" subtitle={`${CHALLENGE_LIBRARY.length} unique challenges`}>
+      <div className="space-y-3">
+        {ALL_CATEGORIES.map((cat, i) => {
           const Icon = categoryIcons[cat.id]
           const challenges = CHALLENGE_LIBRARY.filter(c => c.category === cat.id)
           const isOpen = expanded === cat.id
           return (
-            <div key={cat.id} className="bg-ink-900 border border-ink-800 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setExpanded(isOpen ? null : cat.id)}
-                className="w-full flex items-center gap-3 p-3.5 hover:bg-ink-800/50 transition active:scale-[0.98]"
-              >
-                <div className="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center">
-                  <Icon size={18} className="text-brand-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-ink-100">{cat.label}</p>
-                  <p className="text-xs text-ink-500">{challenges.length} challenges</p>
-                </div>
-                {isOpen ? <ChevronUp size={18} className="text-ink-500" /> : <ChevronDown size={18} className="text-ink-500" />}
+            <div key={cat.id} className="bg-surface-100 border border-white/[0.04] rounded-2xl overflow-hidden stagger" style={{ animationDelay: `${i * 30}ms` }}>
+              <button onClick={() => setExpanded(isOpen ? null : cat.id)} className="w-full p-4 flex items-center gap-3 btn-press">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center"><Icon size={20} className="text-white" /></div>
+                <div className="flex-1 text-left"><p className="text-sm font-bold text-ink-100">{cat.label}</p><p className="text-xs text-ink-500">{challenges.length} challenges</p></div>
+                {isOpen ? <ChevronUp size={18} className="text-ink-400" /> : <ChevronDown size={18} className="text-ink-400" />}
               </button>
               {isOpen && (
-                <div className="px-3.5 pb-3.5 space-y-2 animate-fade-in">
-                  {challenges.map(c => {
-                    const DiffIcon = difficultyIcons[c.difficulty as Difficulty]
+                <div className="px-4 pb-4 space-y-2 animate-fade-in">
+                  {challenges.map((ch, j) => {
+                    const DiffIcon = difficultyIcons[ch.difficulty]
                     return (
-                      <div key={c.id} className="flex items-start gap-2.5 bg-ink-950 border border-ink-800 rounded-lg p-3">
-                        <DiffIcon size={14} className="text-accent-400 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-ink-100">{c.title}</p>
-                          <p className="text-xs text-ink-500 mt-0.5">{c.description}</p>
-                          <p className="text-xs text-ink-600 mt-1 flex items-center gap-2">
-                            <span className="uppercase">{c.difficulty}</span>
-                            <span>·</span>
-                            <span className="flex items-center gap-0.5"><Star size={10} className="text-brand-400" /> {c.xp} XP</span>
-                            <span>·</span>
-                            <span className="flex items-center gap-0.5"><Coins size={10} className="text-accent-400" /> {c.coins}</span>
-                          </p>
+                      <div key={j} className="bg-surface-200 rounded-xl p-3 border border-white/[0.03]">
+                        <div className="flex items-start justify-between mb-1.5">
+                          <p className="text-sm font-semibold text-ink-100 flex-1 pr-2">{ch.title}</p>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${diffColors[ch.difficulty]}`}><DiffIcon size={10} /> {ch.difficulty}</span>
+                        </div>
+                        <p className="text-xs text-ink-400 leading-relaxed mb-2">{ch.description}</p>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1 text-brand-400"><Star size={11} /> {ch.xp} XP</span>
+                          <span className="flex items-center gap-1 text-accent-400"><Coins size={11} /> {ch.coins}</span>
+                          {ch.sensorType !== 'none' && <span className="text-ink-500 capitalize">{ch.sensorType}</span>}
                         </div>
                       </div>
                     )

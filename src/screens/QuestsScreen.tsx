@@ -1,78 +1,76 @@
 import { useEffect, useState } from 'react'
-import { ScrollText, Star, Coins, Check, Lock } from 'lucide-react'
+import { Target, Calendar, CircleCheck as CheckCircle2, Circle } from 'lucide-react'
+import { useAuth } from '@/lib/auth'
+import { getQuestProgress, claimQuestReward, DAILY_QUESTS, WEEKLY_QUESTS } from '@/lib/db'
+import type { QuestProgress as QP } from '@/types/adventure'
 import ScreenShell from '@/components/ScreenShell'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { DAILY_QUESTS, WEEKLY_QUESTS, getQuestProgress, claimQuestReward } from '@/lib/db'
-import type { QuestProgress } from '@/types/adventure'
+import EmptyState from '@/components/EmptyState'
+import { useToasts, ToastContainer } from '@/components/Toast'
 
-interface Props {
-  onBack: () => void
-  onToast: (type: 'success' | 'error' | 'info' | 'reward', title: string, message?: string) => void
-}
-
-export default function QuestsScreen({ onBack, onToast }: Props) {
-  const [progress, setProgress] = useState<QuestProgress[]>([])
+export default function QuestsScreen() {
+  const { refreshProfile } = useAuth()
+  const [progress, setProgress] = useState<QP[]>([])
   const [loading, setLoading] = useState(true)
+  const { toasts, push, dismiss } = useToasts()
 
   useEffect(() => {
-    getQuestProgress().then(p => { setProgress(p); setLoading(false) })
+    (async () => {
+      const q = await getQuestProgress()
+      setProgress(q || []); setLoading(false)
+    })()
   }, [])
 
-  const getProgress = (key: string) => progress.find(p => p.quest_id === key)
-  const claim = async (quest: typeof DAILY_QUESTS[number]) => {
-    const { error } = await claimQuestReward(quest.key, quest.xp, quest.coins)
-    onToast(error ? 'error' : 'reward', error ? 'Failed' : 'Quest claimed!', error ?? `+${quest.xp} XP · +${quest.coins} coins`)
-    if (!error) { const p = await getQuestProgress(); setProgress(p) }
+  const getProg = (key: string) => progress.find(p => p.quest_id === key)
+  const handleClaim = async (qid: string, xp: number, coins: number) => {
+    const { error } = await claimQuestReward(qid, xp, coins)
+    if (error) { push('error', 'Failed', error); return }
+    setProgress(prev => prev.map(x => x.quest_id === qid ? { ...x, claimed: true } : x))
+    push('reward', `+${xp} XP, +${coins} coins!`)
+    refreshProfile()
   }
 
-  const renderQuest = (q: typeof DAILY_QUESTS[number]) => {
-    const prog = getProgress(q.key)
-    const current = prog?.progress ?? 0
-    const claimed = prog?.claimed ?? false
-    const complete = current >= q.target
+  const renderQuest = (q: typeof DAILY_QUESTS[0], i: number) => {
+    const p = getProg(q.key)
+    const prog = p?.progress ?? 0
+    const claimed = p?.claimed ?? false
+    const pct = Math.min(100, (prog / q.target) * 100)
+    const done = prog >= q.target
     return (
-      <div key={q.key} className="bg-ink-900 border border-ink-800 rounded-xl p-3.5 animate-fade-in">
+      <div key={q.key} className="bg-surface-100 border border-white/[0.04] rounded-xl p-3.5 stagger" style={{ animationDelay: `${i * 40}ms` }}>
         <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="text-sm font-semibold text-ink-100">{q.title}</p>
-            <p className="text-xs text-ink-500 mt-0.5">{q.desc}</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs flex-shrink-0">
-            <span className="flex items-center gap-0.5 text-brand-400"><Star size={12} /> {q.xp}</span>
-            <span className="flex items-center gap-0.5 text-accent-400"><Coins size={12} /> {q.coins}</span>
-          </div>
+          <div className="flex-1"><p className="text-sm font-semibold text-ink-100">{q.title}</p><p className="text-xs text-ink-500 mt-0.5">{q.desc}</p></div>
+          {done && !claimed ? <button onClick={() => handleClaim(q.key, q.xp, q.coins)} className="px-3 py-1.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-lg text-xs font-bold btn-press">Claim</button>
+            : claimed ? <CheckCircle2 size={18} className="text-success-400" /> : <Circle size={18} className="text-ink-600" />}
         </div>
-        <div className="h-2.5 bg-ink-800 rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (current / q.target) * 100)}%` }} />
+        <div className="flex items-center gap-3 mt-2">
+          <div className="flex-1 h-2 bg-surface-300 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all duration-500 ${done ? 'bg-gradient-to-r from-success-500 to-success-600' : 'bg-gradient-to-r from-brand-500 to-brand-400'}`} style={{ width: `${pct}%` }} /></div>
+          <span className="text-xs text-ink-400 tabular-nums">{prog}/{q.target}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-ink-500 tabular-nums">{current} / {q.target}</span>
-          {claimed ? (
-            <span className="text-xs text-success-400 flex items-center gap-1"><Check size={12} /> Claimed</span>
-          ) : complete ? (
-            <button onClick={() => claim(q)} className="px-3.5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-medium transition active:scale-95">Claim</button>
-          ) : (
-            <span className="text-xs text-ink-600 flex items-center gap-1"><Lock size={12} /> In progress</span>
-          )}
+        <div className="flex items-center gap-3 mt-2 text-xs text-ink-500">
+          <span className="text-brand-400">+{q.xp} XP</span><span className="text-accent-400">+{q.coins} coins</span>
         </div>
       </div>
     )
   }
 
   return (
-    <ScreenShell title="Quests" icon={<ScrollText size={18} />} onBack={onBack}>
-      {loading ? <LoadingSpinner /> : (
-        <div className="space-y-5">
-          <div>
-            <h3 className="text-sm font-semibold text-ink-200 mb-3">Daily Quests</h3>
-            <div className="space-y-2">{DAILY_QUESTS.map(renderQuest)}</div>
+    <>
+      <ScreenShell title="Quests" subtitle="Daily & weekly missions">
+        {loading ? <div className="flex justify-center py-20"><LoadingSpinner /></div> : (
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Calendar size={12} /> Daily Quests</h3>
+              <div className="space-y-2.5">{DAILY_QUESTS.map(renderQuest)}</div>
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Target size={12} /> Weekly Quests</h3>
+              <div className="space-y-2.5">{WEEKLY_QUESTS.map(renderQuest)}</div>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-ink-200 mb-3">Weekly Quests</h3>
-            <div className="space-y-2">{WEEKLY_QUESTS.map(renderQuest)}</div>
-          </div>
-        </div>
-      )}
-    </ScreenShell>
+        )}
+      </ScreenShell>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    </>
   )
 }

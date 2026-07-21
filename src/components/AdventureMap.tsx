@@ -5,10 +5,10 @@ import type { Adventure, GeoPoint, GpsPosition, ChallengeCategory } from '@/type
 import { boundingBox } from '@/lib/geo'
 
 const diffColors: Record<string, string> = {
-  easy: '#22c55e', medium: '#f59e0b', hard: '#ef4444', extreme: '#a855f7',
+  easy: '#10b981', medium: '#f59e0b', hard: '#ef4444', extreme: '#a855f7',
 }
 
-const categorySvg: Record<ChallengeCategory | 'none', string> = {
+const catSvg: Record<ChallengeCategory | 'none', string> = {
   observation: '<circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>',
   photography: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/>',
   fitness: '<path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/>',
@@ -33,91 +33,47 @@ function FitBounds({ path }: { path: GeoPoint[] }) {
   useEffect(() => {
     if (path.length === 0) return
     const bb = boundingBox(path)
-    const bounds = L.latLngBounds([bb.south, bb.west], [bb.north, bb.east])
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 })
+    map.fitBounds(L.latLngBounds([bb.south, bb.west], [bb.north, bb.east]), { padding: [50, 50], maxZoom: 17 })
   }, [map, path])
   return null
 }
 
-function makeCheckpointIcon(category: ChallengeCategory | 'none', color: string, index: number, isCompleted: boolean): L.DivIcon {
-  const svgPath = categorySvg[category] || categorySvg.none
-  const opacity = isCompleted ? '0.5' : '1'
-  const checkOverlay = isCompleted ? '<circle cx="18" cy="18" r="6" fill="#22c55e" stroke="white" stroke-width="1.5"/><path d="M15.5 18l2 2 3-3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' : ''
-  const html = `
-    <div class="cp-marker" style="position:relative;">
-      <div style="width:36px;height:36px;background:${color};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,0.5);opacity:${opacity};">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg>
-      </div>
-      <div style="position:absolute;top:-2px;left:-2px;width:14px;height:14px;background:#0f172a;border:1.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:white;">${index + 1}</div>
-      ${checkOverlay}
-    </div>`
-  return L.divIcon({ className: '', html, iconSize: [36, 36], iconAnchor: [18, 18] })
-}
-
-function makePlayerIcon(): L.DivIcon {
+function cpIcon(cat: ChallengeCategory | 'none', color: string, idx: number, done: boolean): L.DivIcon {
+  const svg = catSvg[cat] || catSvg.none
+  const op = done ? '0.4' : '1'
+  const check = done ? '<circle cx="18" cy="18" r="7" fill="#10b981" stroke="white" stroke-width="2"/><path d="M15 18l2 2 3-3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' : ''
   return L.divIcon({
-    className: '',
-    html: '<div class="player-pulse" style="width:16px;height:16px;background:#34d399;border:2.5px solid white;border-radius:50%;box-shadow:0 0 12px #34d399;"></div>',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    className: '', iconSize: [38, 38], iconAnchor: [19, 19],
+    html: `<div class="cp-marker" style="position:relative"><div style="width:38px;height:38px;background:${color};border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.35);opacity:${op}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${svg}</svg></div><div style="position:absolute;top:-3px;left:-3px;width:15px;height:15px;background:#0a0e1a;border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;font-family:sans-serif">${idx + 1}</div>${check}</div>`,
   })
 }
 
-interface Props {
-  adventure: Adventure
-  playerPos?: GpsPosition | null
-  completedIndices?: Set<number>
+function playerIcon(): L.DivIcon {
+  return L.divIcon({ className: '', html: '<div class="player-pulse" style="width:18px;height:18px;background:#34d399;border:3px solid white;border-radius:50%;box-shadow:0 0 16px #34d399"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
 }
+
+interface Props { adventure: Adventure; playerPos?: GpsPosition | null; completedIndices?: Set<number> }
 
 export default function AdventureMap({ adventure, playerPos, completedIndices }: Props) {
   const { path, checkpoints, difficulty } = adventure
-  const color = diffColors[difficulty] ?? '#34d399'
-  const completed = completedIndices ?? new Set<number>()
-
-  const pathPositions = useMemo(() => path.map(p => [p.lat, p.lng] as [number, number]), [path])
+  const color = diffColors[difficulty] ?? '#10b981'
+  const done = completedIndices ?? new Set<number>()
+  const positions = useMemo(() => path.map(p => [p.lat, p.lng] as [number, number]), [path])
 
   return (
-    <MapContainer
-      center={[adventure.center.lat, adventure.center.lng]}
-      zoom={14}
-      style={{ height: '300px', width: '100%', borderRadius: '16px', overflow: 'hidden' }}
-      scrollWheelZoom={false}
-      zoomControl={true}
-      attributionControl={true}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png"
-      />
-      <Polyline
-        positions={pathPositions}
-        pathOptions={{ color, weight: 5, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }}
-      />
-      <Polyline
-        positions={pathPositions}
-        pathOptions={{ color: '#ffffff', weight: 2, opacity: 0.4, lineJoin: 'round', lineCap: 'round' }}
-      />
+    <MapContainer center={[adventure.center.lat, adventure.center.lng]} zoom={14} style={{ height: '300px', width: '100%', borderRadius: '16px', overflow: 'hidden' }} scrollWheelZoom={false} zoomControl>
+      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png" />
+      <Polyline positions={positions} pathOptions={{ color, weight: 6, opacity: 0.3, lineJoin: 'round', lineCap: 'round' }} />
+      <Polyline positions={positions} pathOptions={{ color, weight: 4, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }} />
       {checkpoints.map((cp, i) => {
         const cat = cp.challenge?.category ?? 'none'
         const c = cp.challenge ? diffColors[cp.challenge.difficulty] ?? color : color
-        return (
-          <Marker
-            key={i}
-            position={[cp.position.lat, cp.position.lng]}
-            icon={makeCheckpointIcon(cat, c, i, completed.has(i))}
-          />
-        )
+        return <Marker key={i} position={[cp.position.lat, cp.position.lng]} icon={cpIcon(cat, c, i, done.has(i))} />
       })}
-      {playerPos && (
-        <>
-          <Marker position={[playerPos.lat, playerPos.lng]} icon={makePlayerIcon()} />
-          <CircleMarker
-            center={[playerPos.lat, playerPos.lng]}
-            radius={Math.max(5, Math.min(20, playerPos.accuracy / 2))}
-            pathOptions={{ color: '#34d399', fillColor: '#34d399', fillOpacity: 0.1, weight: 1 }}
-          />
-        </>
-      )}
+      {playerPos && <>
+        <Marker position={[playerPos.lat, playerPos.lng]} icon={playerIcon()} />
+        <CircleMarker center={[playerPos.lat, playerPos.lng]} radius={Math.max(5, Math.min(25, playerPos.accuracy / 2))} pathOptions={{ color: '#34d399', fillColor: '#34d399', fillOpacity: 0.08, weight: 1.5 }} />
+      </>}
       <FitBounds path={path} />
     </MapContainer>
   )

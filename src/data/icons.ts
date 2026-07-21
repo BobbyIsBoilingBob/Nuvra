@@ -1,22 +1,19 @@
 import {
-  Home, User, Users, Globe, PartyPopper, Trophy, Swords, ScrollText,
-  History, Gift, Backpack, Palette, Leaf, ShoppingBag, Settings as SettingsIcon,
-  PenTool, Bot, Map, Bell, Compass, Camera, Eye, Dumbbell, Puzzle, Brain,
-  Navigation, Landmark, Flower2, Package, HelpCircle, Clock, UserPlus,
-  Search, Check, X, Plus, ArrowLeft, ArrowRight, ChevronRight, Star,
-  Flame, Zap, Gem, Crown, Medal, Target, Footprints, Mountain, Sparkles,
-  Coins, Award, TrendingUp, MapPin, Clock3, Route, Flag, CircleCheck,
-  TriangleAlert, Info, ShieldCheck, LogOut, Mail, Lock, UserCircle2,
-  type LucideIcon,
+  Home, User, Users, Globe, PartyPopper, Trophy, Swords, ScrollText, History, Gift, Backpack,
+  Palette, Leaf, ShoppingBag, Settings as SettingsIcon, PenTool, Bot, Map, Bell, Compass,
+  Camera, Eye, Dumbbell, Puzzle, Brain, Navigation, Landmark, Flower2, Package, HelpCircle,
+  Clock, UserPlus, Search, Check, X, Plus, ArrowLeft, ChevronRight, Star, Flame, Zap, Gem,
+  Crown, Medal, Target, Footprints, Mountain, Sparkles, Coins, Award, TrendingUp, MapPin,
+  Route, Flag, CircleCheck, Info, ShieldCheck, LogOut, Mail, Lock, UserCircle2, type LucideIcon,
 } from 'lucide-react'
 import type { ScreenName, ChallengeCategory, Difficulty } from '@/types/adventure'
 
 export const screenIcons: Record<string, LucideIcon> = {
   home: Home, profile: User, community: Globe, friends: Users, party: PartyPopper,
   leaderboard: Trophy, challenges: Swords, quests: ScrollText, history: History,
-  rewards: Gift, inventory: Backpack, avatar: Palette, seasonal: Leaf,
-  shop: ShoppingBag, settings: SettingsIcon, creator: PenTool, generator: Bot,
-  preview: Map, map: Map, notifications: Bell, login: LogOut, signup: UserPlus,
+  rewards: Gift, inventory: Backpack, avatar: Palette, seasonal: Leaf, shop: ShoppingBag,
+  settings: SettingsIcon, creator: PenTool, generator: Bot, preview: Map, map: Map,
+  notifications: Bell, login: LogOut, signup: UserPlus,
 }
 
 export const categoryIcons: Record<ChallengeCategory, LucideIcon> = {
@@ -31,18 +28,6 @@ export const difficultyIcons: Record<Difficulty, LucideIcon> = {
 }
 
 export const achievementIcons: Record<string, LucideIcon> = {
-  target: Target, footprints: Footprints, map: Map, trophy: Trophy,
-  mountain: Mountain, medal: Medal, sword: Swords, star: Star,
-  crown: Crown, flame: Flame, zap: Zap, gem: Gem,
-}
-
-export const uiIcons = {
-  Home, User, Users, Globe, PartyPopper, Trophy, Swords, ScrollText,
-  History, Gift, Backpack, Palette, Leaf, ShoppingBag, SettingsIcon,
-  PenTool, Bot, Map, Bell, Compass, Camera, Eye, Dumbbell, Puzzle, Brain,
-  Navigation, Landmark, Flower2, Package, HelpCircle, Clock, UserPlus,
-  Search, Check, X, Plus, ArrowLeft, ArrowRight, ChevronRight, Star,
-  Flame, Zap, Gem, Crown, Medal, Target, Footprints, Mountain, Sparkles,
-  Coins, Award, TrendingUp, MapPin, Clock3, Route, Flag, CircleCheck,
-  TriangleAlert, Info, ShieldCheck, LogOut, Mail, Lock, UserCircle2,
+  target: Target, footprints: Footprints, map: Map, trophy: Trophy, mountain: Mountain,
+  medal: Medal, sword: Swords, star: Star, crown: Crown, flame: Flame, zap: Zap, gem: Gem,
 }

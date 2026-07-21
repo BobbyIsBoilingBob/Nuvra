@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
-import { AuthProvider, useAuth } from '@/lib/auth'
-import ToastContainer, { type ToastData } from '@/components/Toast'
+import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '@/lib/auth'
+import type { ScreenName, Adventure } from '@/types/adventure'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import type { Adventure, ScreenName } from '@/types/adventure'
-import { getNotifications } from '@/lib/db'
-
 import LoginScreen from '@/screens/LoginScreen'
 import SignupScreen from '@/screens/SignupScreen'
 import HomeScreen from '@/screens/HomeScreen'
@@ -28,93 +25,55 @@ import SettingsScreen from '@/screens/SettingsScreen'
 import CreatorScreen from '@/screens/CreatorScreen'
 import NotificationsScreen from '@/screens/NotificationsScreen'
 
-function AppInner() {
+export default function App() {
   const { session, loading } = useAuth()
   const [screen, setScreen] = useState<ScreenName>('home')
   const [previewAdventure, setPreviewAdventure] = useState<Adventure | null>(null)
-  const [toasts, setToasts] = useState<ToastData[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [activeAdventure, setActiveAdventure] = useState<Adventure | null>(null)
 
-  const addToast = useCallback((type: ToastData['type'], title: string, message?: string) => {
-    const id = Math.random().toString(36).slice(2)
-    setToasts(prev => [...prev, { id, type, title, message }])
+  const navigate = useCallback((s: string) => {
+    setScreen(s as ScreenName)
+    window.scrollTo(0, 0)
   }, [])
-
-  const dismissToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
-
-  const navigate = (s: ScreenName) => setScreen(s)
-  const goHome = () => setScreen('home')
-
-  const handlePreview = (a: Adventure) => { setPreviewAdventure(a); setScreen('preview') }
-  const handleStartAdventure = () => { if (previewAdventure) setScreen('map') }
 
   useEffect(() => {
-    if (session) {
-      getNotifications().then(n => setUnreadCount(n.filter(x => !x.read).length))
+    const handler = () => {
+      const hash = window.location.hash.replace('#/', '')
+      if (hash === 'signup' || hash === 'login') setScreen(hash as ScreenName)
     }
-  }, [session, screen])
+    handler()
+    window.addEventListener('hashchange', handler)
+    return () => window.removeEventListener('hashchange', handler)
+  }, [])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-ink-950 flex items-center justify-center">
-        <LoadingSpinner size="lg" label="Loading Zeviqo..." />
-      </div>
-    )
-  }
+  if (loading) return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="lg" /></div>
 
   if (!session) {
-    return (
-      <>
-        {screen === 'signup' ? (
-          <SignupScreen onNavigate={navigate} onToast={addToast} />
-        ) : (
-          <LoginScreen onNavigate={navigate} onToast={addToast} />
-        )}
-        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      </>
-    )
+    return screen === 'signup' ? <SignupScreen onLogin={() => setScreen('login')} /> : <LoginScreen onSignup={() => setScreen('signup')} />
   }
 
-  const renderScreen = () => {
-    switch (screen) {
-      case 'home': return <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
-      case 'generator': return <AIGeneratorScreen onBack={goHome} onPreview={handlePreview} onToast={addToast} />
-      case 'preview': return previewAdventure ? <PreviewScreen adventure={previewAdventure} onBack={goHome} onStart={handleStartAdventure} onToast={addToast} /> : <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
-      case 'map': return previewAdventure ? <MapScreen adventure={previewAdventure} onBack={() => setScreen('preview')} onComplete={goHome} onToast={addToast} /> : <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
-      case 'profile': return <ProfileScreen onBack={goHome} onNavigate={navigate} onToast={addToast} />
-      case 'community': return <CommunityScreen onBack={goHome} />
-      case 'friends': return <FriendsScreen onBack={goHome} onToast={addToast} />
-      case 'party': return <PartyScreen onBack={goHome} onToast={addToast} />
-      case 'leaderboard': return <LeaderboardScreen onBack={goHome} />
-      case 'challenges': return <ChallengesScreen onBack={goHome} />
-      case 'quests': return <QuestsScreen onBack={goHome} onToast={addToast} />
-      case 'history': return <HistoryScreen onBack={goHome} />
-      case 'rewards': return <RewardsScreen onBack={goHome} onToast={addToast} />
-      case 'inventory': return <InventoryScreen onBack={goHome} />
-      case 'avatar': return <AvatarScreen onBack={goHome} onToast={addToast} />
-      case 'seasonal': return <SeasonalScreen onBack={goHome} />
-      case 'shop': return <ShopScreen onBack={goHome} onToast={addToast} />
-      case 'settings': return <SettingsScreen onBack={goHome} onToast={addToast} />
-      case 'creator': return <CreatorScreen onBack={goHome} onToast={addToast} />
-      case 'notifications': return <NotificationsScreen onBack={goHome} />
-      default: return <HomeScreen unreadNotifications={unreadCount} onNavigate={navigate} />
-    }
+  if (activeAdventure) return <MapScreen adventure={activeAdventure} onExit={() => { setActiveAdventure(null); setScreen('home') }} />
+  if (previewAdventure) return <PreviewScreen adventure={previewAdventure} onStart={() => { setActiveAdventure(previewAdventure); setPreviewAdventure(null) }} onBack={() => setPreviewAdventure(null)} />
+
+  switch (screen) {
+    case 'home': return <HomeScreen onNavigate={navigate} />
+    case 'generator': return <AIGeneratorScreen onPreview={setPreviewAdventure} />
+    case 'creator': return <CreatorScreen onPreview={setPreviewAdventure} />
+    case 'profile': return <ProfileScreen onNavigate={navigate} />
+    case 'community': return <CommunityScreen />
+    case 'friends': return <FriendsScreen />
+    case 'party': return <PartyScreen />
+    case 'leaderboard': return <LeaderboardScreen />
+    case 'challenges': return <ChallengesScreen />
+    case 'quests': return <QuestsScreen />
+    case 'history': return <HistoryScreen onNavigate={navigate} />
+    case 'rewards': return <RewardsScreen />
+    case 'inventory': return <InventoryScreen />
+    case 'avatar': return <AvatarScreen />
+    case 'seasonal': return <SeasonalScreen />
+    case 'shop': return <ShopScreen />
+    case 'settings': return <SettingsScreen />
+    case 'notifications': return <NotificationsScreen />
+    default: return <HomeScreen onNavigate={navigate} />
   }
-
-  return (
-    <>
-      {renderScreen()}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-    </>
-  )
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
-  )
 }
