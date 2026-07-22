@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type { UserProfile } from '@/types/adventure'
+import { mockProfile } from '@/data/mockData'
 
 interface AuthContextValue {
   session: Session | null; user: User | null; profile: UserProfile | null; loading: boolean
@@ -19,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const loadProfile = useCallback(async (uid: string) => {
-    if (!supabase) return
+    if (!supabase) { setProfile(mockProfile); return }
     const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
     if (data) setProfile(data as UserProfile)
   }, [])
@@ -29,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile])
 
   useEffect(() => {
-    if (!supabase) { setLoading(false); return }
+    if (!supabase) { setProfile(mockProfile); setLoading(false); return }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session); setUser(session?.user ?? null)
       if (session?.user) loadProfile(session.user.id).finally(() => setLoading(false))
@@ -43,13 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile])
 
   const signIn = async (email: string, password: string) => {
-    if (!supabase) return { error: 'Database not configured' }
+    if (!supabase) { setProfile(mockProfile); return { error: null } }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }
 
   const signUp = async (email: string, password: string, username: string) => {
-    if (!supabase) return { error: 'Database not configured' }
+    if (!supabase) { setProfile(mockProfile); return { error: null } }
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } })
     if (error) return { error: error.message }
     if (data.user) await supabase.from('profiles').upsert({ id: data.user.id, username })
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    if (!supabase) return
+    if (!supabase) { setProfile(null); return }
     await supabase.auth.signOut()
     setProfile(null); setSession(null); setUser(null)
   }

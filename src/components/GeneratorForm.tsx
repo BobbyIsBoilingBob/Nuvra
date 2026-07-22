@@ -1,114 +1,108 @@
 import { useState, useCallback } from 'react'
-import { MapPin, Sparkles, Compass, Camera, Smartphone, Navigation } from 'lucide-react'
-import type { AdventurePreferences, ChallengeCategory, Difficulty, GpsStatus, SensorAvailability } from '@/types/adventure'
-import { ALL_CATEGORIES } from '@/data/challenges'
-import { categoryIcons } from '@/data/icons'
-import { detectSensors } from '@/lib/sensors'
-import { getCurrentPosition } from '@/lib/gps'
-import { geocodeLocation } from '@/lib/geocode'
+import { MapPin, Navigation, Sparkles, Clock, Mountain, Zap } from 'lucide-react'
+import type { AdventurePreferences, Difficulty, ChallengeCategory, GpsStatus } from '@/types/adventure'
+import { getCurrentPosition } from '@/lib/sensors'
+import { challengeCategories } from '@/data/challenges'
+import { difficultyIcons } from '@/data/icons'
 
 interface Props {
   onGenerate: (prefs: AdventurePreferences, center: { lat: number; lng: number } | null, locationName: string) => void
-  gpsStatus: GpsStatus; setGpsStatus: (s: GpsStatus) => void
+  gpsStatus: GpsStatus
+  setGpsStatus: (s: GpsStatus) => void
 }
 
-const DIFFS: { id: Difficulty; label: string; active: string }[] = [
-  { id: 'easy', label: 'Easy', active: 'from-emerald-500 to-emerald-600' },
-  { id: 'medium', label: 'Medium', active: 'from-amber-500 to-orange-500' },
-  { id: 'hard', label: 'Hard', active: 'from-red-500 to-rose-600' },
-  { id: 'extreme', label: 'Extreme', active: 'from-purple-500 to-violet-600' },
+const difficulties: { id: Difficulty; label: string }[] = [
+  { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' },
+  { id: 'hard', label: 'Hard' }, { id: 'extreme', label: 'Extreme' },
 ]
-const DURATIONS = [20, 30, 45, 60, 90, 120, 240]
-const DUR_LABELS: Record<number, string> = { 20: '20 min', 30: '30 min', 45: '45 min', 60: '1 hr', 90: '1.5 hr', 120: '2 hr', 240: '4 hr' }
+
+const durations = [15, 30, 45, 60, 90]
+const checkpointCounts = [3, 4, 5, 6]
 
 export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: Props) {
-  const [location, setLocation] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
-  const [duration, setDuration] = useState(45)
-  const [maxKm, setMaxKm] = useState(''), [minKm, setMinKm] = useState(''), [approxKm, setApproxKm] = useState('')
-  const [cats, setCats] = useState<ChallengeCategory[]>([])
-  const [generating, setGenerating] = useState(false)
-  const [sensorAvail] = useState<SensorAvailability>(detectSensors)
+  const [duration, setDuration] = useState(30)
+  const [cpCount, setCpCount] = useState(4)
+  const [categories, setCategories] = useState<ChallengeCategory[]>([])
+  const [locationName, setLocationName] = useState('')
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null)
 
-  const toggleCat = useCallback((c: ChallengeCategory) => setCats(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]), [])
-
-  const useGps = async () => {
+  const handleGetLocation = useCallback(async () => {
     setGpsStatus('locating')
     const pos = await getCurrentPosition()
-    if (pos) { setLocation(`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`); setGpsStatus('located') } else setGpsStatus('denied')
+    if (pos) { setCenter({ lat: pos.lat, lng: pos.lng }); setGpsStatus('located'); setLocationName('Current Location') }
+    else setGpsStatus('error')
+  }, [setGpsStatus])
+
+  const toggleCategory = (cat: ChallengeCategory) => {
+    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
   }
 
-  const handleGenerate = async () => {
-    setGenerating(true)
-    try {
-      let center: { lat: number; lng: number } | null = null
-      let name = location || 'Your Location'
-      if (location.trim()) {
-        const r = await geocodeLocation(location)
-        if (r) { center = r.point; name = r.label }
-      }
-      if (!center) {
-        const pos = await getCurrentPosition()
-        if (pos) { center = { lat: pos.lat, lng: pos.lng }; name = 'Your GPS Location'; setGpsStatus('located') }
-      }
-      onGenerate({ location: location || undefined, maxDistanceKm: maxKm ? parseFloat(maxKm) : undefined, minDistanceKm: minKm ? parseFloat(minKm) : undefined, approxDistanceKm: approxKm ? parseFloat(approxKm) : undefined, difficulty, durationMin: duration, categories: cats }, center, name)
-    } finally { setGenerating(false) }
+  const handleSubmit = () => {
+    onGenerate({ difficulty, durationMin: duration, checkpointCount: cpCount, categories }, center, locationName || 'Custom Adventure')
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div>
-        <label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Location</label>
-        <div className="flex gap-2 mt-2">
-          <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Brisbane, Noosa, Central Park..."
-            className="flex-1 bg-surface-100 border border-white/[0.06] rounded-xl px-3.5 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
-          <button onClick={useGps} className="px-3.5 py-3 bg-surface-200 border border-white/[0.06] rounded-xl text-sm text-brand-400 hover:bg-surface-300 btn-press whitespace-nowrap flex items-center gap-1.5">
-            <MapPin size={16} /> GPS
-          </button>
-        </div>
-        <p className="text-xs text-ink-500 mt-2">{gpsStatus === 'locating' ? 'Getting your location...' : gpsStatus === 'located' ? 'GPS location found!' : gpsStatus === 'denied' ? 'GPS denied — enter a location above' : 'Leave blank to use your GPS location.'}</p>
+        <p className="section-label flex items-center gap-1.5"><Navigation size={12} /> Location</p>
+        <button onClick={handleGetLocation}
+          className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition btn-press ${gpsStatus === 'located' ? 'bg-brand-50 border-brand-500 text-brand-700' : gpsStatus === 'error' ? 'bg-error-50 border-error-400 text-error-700' : 'bg-white border-surface-300 text-ink-700 hover:border-brand-400'}`}>
+          <MapPin size={18} className="flex-shrink-0" />
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold">{gpsStatus === 'located' ? 'Location Found' : gpsStatus === 'locating' ? 'Finding GPS...' : gpsStatus === 'error' ? 'GPS Unavailable' : 'Use My Location'}</p>
+            {center && <p className="text-xs text-ink-400">{center.lat.toFixed(4)}, {center.lng.toFixed(4)}</p>}
+          </div>
+        </button>
       </div>
+
       <div>
-        <label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Difficulty</label>
-        <div className="flex gap-2 mt-2">
-          {DIFFS.map(d => (
-            <button key={d.id} onClick={() => setDifficulty(d.id)} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold btn-press ${difficulty === d.id ? `bg-gradient-to-r ${d.active} text-white shadow-lg` : 'bg-surface-100 border border-white/[0.06] text-ink-400 hover:text-ink-200'}`}>{d.label}</button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Adventure Length</label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {DURATIONS.map(d => (
-            <button key={d} onClick={() => setDuration(d)} className={`px-3.5 py-2.5 rounded-xl text-sm font-medium btn-press ${duration === d ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-glow-brand' : 'bg-surface-100 border border-white/[0.06] text-ink-400 hover:text-ink-200'}`}>{DUR_LABELS[d]}</button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Distance (optional)</label>
-        <div className="flex gap-2 mt-2">
-          <input type="number" value={maxKm} onChange={e => setMaxKm(e.target.value)} placeholder="Max km" className="w-1/3 bg-surface-100 border border-white/[0.06] rounded-xl px-3 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
-          <input type="number" value={minKm} onChange={e => setMinKm(e.target.value)} placeholder="Min km" className="w-1/3 bg-surface-100 border border-white/[0.06] rounded-xl px-3 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
-          <input type="number" value={approxKm} onChange={e => setApproxKm(e.target.value)} placeholder="~ km" className="w-1/3 bg-surface-100 border border-white/[0.06] rounded-xl px-3 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none transition" />
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Challenge Types (optional)</label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {ALL_CATEGORIES.map(c => {
-            const Icon = categoryIcons[c.id]
-            return <button key={c.id} onClick={() => toggleCat(c.id)} className={`px-3 py-2 rounded-lg text-xs font-medium btn-press flex items-center gap-1.5 ${cats.includes(c.id) ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white' : 'bg-surface-100 border border-white/[0.06] text-ink-400 hover:text-ink-200'}`}><Icon size={14} /> {c.label}</button>
+        <p className="section-label flex items-center gap-1.5"><Zap size={12} /> Difficulty</p>
+        <div className="grid grid-cols-2 gap-2">
+          {difficulties.map(d => {
+            const Icon = difficultyIcons[d.id]
+            return (
+              <button key={d.id} onClick={() => setDifficulty(d.id)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition btn-press ${difficulty === d.id ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white border-surface-300 text-ink-600 hover:border-brand-400'}`}>
+                <Icon size={16} /> {d.label}
+              </button>
+            )
           })}
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {sensorAvail.compass && <span className="text-xs text-ink-400 bg-surface-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-white/[0.04]"><Compass size={12} className="text-brand-400" /> Compass</span>}
-        {sensorAvail.accelerometer && <span className="text-xs text-ink-400 bg-surface-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-white/[0.04]"><Smartphone size={12} className="text-brand-400" /> Accelerometer</span>}
-        {sensorAvail.camera && <span className="text-xs text-ink-400 bg-surface-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-white/[0.04]"><Camera size={12} className="text-brand-400" /> Camera</span>}
-        {sensorAvail.gps && <span className="text-xs text-ink-400 bg-surface-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-white/[0.04]"><Navigation size={12} className="text-brand-400" /> GPS</span>}
+
+      <div>
+        <p className="section-label flex items-center gap-1.5"><Clock size={12} /> Duration</p>
+        <div className="flex gap-2 flex-wrap">
+          {durations.map(d => (
+            <button key={d} onClick={() => setDuration(d)}
+              className={`chip ${duration === d ? 'chip-active' : 'chip-inactive'}`}>{d} min</button>
+          ))}
+        </div>
       </div>
-      <button onClick={handleGenerate} disabled={generating} className="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 text-white rounded-xl font-bold text-sm btn-press disabled:opacity-50 shadow-glow-brand flex items-center justify-center gap-2">
-        {generating ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating...</> : <><Sparkles size={18} /> Generate Adventure</>}
+
+      <div>
+        <p className="section-label flex items-center gap-1.5"><Mountain size={12} /> Checkpoints</p>
+        <div className="flex gap-2 flex-wrap">
+          {checkpointCounts.map(c => (
+            <button key={c} onClick={() => setCpCount(c)}
+              className={`chip ${cpCount === c ? 'chip-active' : 'chip-inactive'}`}>{c} stops</button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="section-label flex items-center gap-1.5"><Sparkles size={12} /> Challenge Types</p>
+        <div className="flex gap-2 flex-wrap">
+          {challengeCategories.map(c => (
+            <button key={c.id} onClick={() => toggleCategory(c.id)}
+              className={`chip ${categories.includes(c.id) ? 'chip-active' : 'chip-inactive'}`}>{c.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={handleSubmit} className="btn-primary flex items-center justify-center gap-2">
+        <Sparkles size={18} /> Generate Adventure
       </button>
     </div>
   )

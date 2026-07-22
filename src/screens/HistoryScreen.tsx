@@ -1,40 +1,48 @@
 import { useEffect, useState } from 'react'
-import { History, MapPin, Clock, Zap, Gem } from 'lucide-react'
+import { Clock, Star, Coins, Mountain, MapPin } from 'lucide-react'
 import { getAdventureHistory } from '@/lib/db'
 import type { AdventureHistoryItem } from '@/types/adventure'
+import { formatDuration } from '@/lib/geo'
 import ScreenShell from '@/components/ScreenShell'
+import BottomNav from '@/components/BottomNav'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
 
-const diffColors: Record<string, string> = { easy: 'text-brand-400', medium: 'text-sky-400', hard: 'text-accent-400', extreme: 'text-rose-400' }
+interface Props { onNavigate: (s: string) => void }
 
-export default function HistoryScreen() {
-  const [items, setItems] = useState<AdventureHistoryItem[]>([])
+export default function HistoryScreen({ onNavigate }: Props) {
+  const [history, setHistory] = useState<AdventureHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { (async () => { const h = await getAdventureHistory(); setItems(h || []); setLoading(false) })() }, [])
+  useEffect(() => { (async () => { const h = await getAdventureHistory(); setHistory(h || []); setLoading(false) })() }, [])
 
   return (
-    <ScreenShell title="History" subtitle="Your adventure log">
-      {loading ? <div className="flex justify-center py-20"><LoadingSpinner /></div> : items.length === 0 ? <EmptyState icon={<History size={32} />} title="No adventures yet" message="Complete your first adventure to see it here" /> : (
-        <div className="space-y-3">
-          {items.map((h, i) => (
-            <div key={h.id} className="card-premium p-4 stagger" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="flex items-start justify-between mb-2">
-                <div><p className="text-sm font-bold text-ink-100">{h.adventure_name}</p><p className="text-xs text-ink-500 capitalize">{h.type?.replace('_', ' ') || 'Adventure'}</p></div>
-                <span className={`text-xs font-bold capitalize ${diffColors[h.difficulty] || 'text-ink-400'}`}>{h.difficulty}</span>
+    <>
+      <ScreenShell title="History" subtitle="Your past adventures">
+        {loading ? <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div> : history.length === 0 ? <EmptyState icon={<Mountain size={32} />} title="No adventures yet" message="Complete your first adventure to see it here" actionLabel="Generate" onAction={() => onNavigate('generator')} /> : (
+          <div className="space-y-3">
+            {history.map((h, i) => (
+              <div key={h.id} className="card-premium p-4 stagger" style={{ animationDelay: `${i * 40}ms` }}>
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-50 to-accent-50 flex items-center justify-center flex-shrink-0"><Mountain size={20} className="text-brand-500" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-ink-900 truncate">{h.adventure_name}</p>
+                    <p className="text-xs text-ink-400 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {h.location_name}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="flex items-center gap-1 text-xs text-ink-400"><Clock size={12} /> {formatDuration(h.duration)}</span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-brand-600"><Star size={12} /> +{h.xp_earned}</span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-accent-600"><Coins size={12} /> +{h.coins_earned}</span>
+                      <span className="text-xs text-ink-400">{h.treasures_found} challenges</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-ink-400 flex-shrink-0">{new Date(h.completed_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</span>
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                <div className="flex items-center gap-1.5 text-xs text-ink-500"><MapPin size={13} className="text-brand-400" />{h.distance?.toFixed(1) || '0'}km</div>
-                <div className="flex items-center gap-1.5 text-xs text-ink-500"><Clock size={13} className="text-sky-400" />{h.duration || 0}min</div>
-                <div className="flex items-center gap-1.5 text-xs text-ink-500"><Zap size={13} className="text-accent-400" />{h.xp_earned || 0} XP</div>
-              </div>
-              {h.treasures_found > 0 && <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-400"><Gem size={13} />{h.treasures_found} treasures found</div>}
-              <p className="text-xs text-ink-600 mt-2">{new Date(h.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </ScreenShell>
+            ))}
+          </div>
+        )}
+      </ScreenShell>
+      <BottomNav active="history" onNavigate={onNavigate} />
+    </>
   )
 }

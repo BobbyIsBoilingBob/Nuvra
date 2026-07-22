@@ -1,58 +1,67 @@
-import { useEffect, useState } from 'react'
-import { Users, Plus, Crown } from 'lucide-react'
-import { getParties, createParty } from '@/lib/db'
-import type { Party } from '@/types/adventure'
+import { useState } from 'react'
+import { Users, Zap, Crown, Check, X, Play, Copy } from 'lucide-react'
+import type { PartyMember } from '@/types/adventure'
 import ScreenShell from '@/components/ScreenShell'
-import LoadingSpinner from '@/components/LoadingSpinner'
-import EmptyState from '@/components/EmptyState'
 import { useToasts, ToastContainer } from '@/components/Toast'
 
-export default function PartyScreen() {
-  const [parties, setParties] = useState<Party[]>([])
-  const [loading, setLoading] = useState(true)
-  const [name, setName] = useState('')
-  const [creating, setCreating] = useState(false)
+interface Props { onNavigate: (s: string) => void }
+
+const mockParty: PartyMember[] = [
+  { id: 'p1', username: 'TrailBlazer', avatar_color: '#10b981', level: 8, status: 'ready', role: 'member' },
+  { id: 'p2', username: 'PathFinder', avatar_color: '#f59e0b', level: 6, status: 'ready', role: 'member' },
+  { id: 'p3', username: 'MoonWalker', avatar_color: '#059669', level: 4, status: 'in_adventure', role: 'member' },
+]
+
+export default function PartyScreen({ onNavigate }: Props) {
+  const [members, setMembers] = useState<PartyMember[]>(mockParty)
+  const [partyCode] = useState('ZVQ-7K3X')
   const { toasts, push, dismiss } = useToasts()
+  const allReady = members.every(m => m.status === 'ready')
 
-  const load = async () => { const p = await getParties(); setParties(p || []); setLoading(false) }
-  useEffect(() => { load() }, [])
-
-  const handleCreate = async () => {
-    if (!name.trim()) return
-    setCreating(true)
-    const { error } = await createParty(name.trim())
-    setCreating(false)
-    if (error) { push('error', 'Failed', error); return }
-    setName(''); push('success', 'Party created!'); load()
-  }
+  const removeMember = (id: string) => setMembers(prev => prev.filter(m => m.id !== id))
+  const copyCode = () => { navigator.clipboard?.writeText(partyCode); push('success', 'Party code copied!') }
 
   return (
     <>
-      <ScreenShell title="Parties" subtitle="Adventure together">
-        <div className="space-y-4">
-          <div className="card-premium p-4">
-            <h3 className="text-sm font-bold text-ink-100 mb-3">Create a Party</h3>
-            <div className="flex gap-2">
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Party name..." className="flex-1 bg-surface-100 border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
-              <button onClick={handleCreate} disabled={creating || !name.trim()} className="px-4 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl text-sm font-bold btn-press disabled:opacity-50 flex items-center gap-1.5"><Plus size={16} /> Create</button>
+      <ScreenShell title="Party" subtitle="Adventure together" onBack={() => onNavigate('friends')}>
+        <div className="space-y-5">
+          <div className="bg-gradient-to-br from-brand-50 to-accent-50/40 border border-brand-200 rounded-2xl p-4 animate-slide-up">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2"><Users size={18} className="text-brand-600" /><span className="text-sm font-bold text-ink-900">Your Party</span></div>
+              <span className="text-xs text-ink-400">{members.length} members</span>
             </div>
+            <button onClick={copyCode} className="w-full bg-white border border-surface-200 rounded-xl p-3 flex items-center justify-between btn-press hover:bg-surface-50 transition">
+              <div><p className="text-xs text-ink-400">Party Code</p><p className="text-sm font-bold text-ink-900 font-mono">{partyCode}</p></div>
+              <Copy size={16} className="text-ink-400" />
+            </button>
           </div>
 
-          {loading ? <div className="flex justify-center py-20"><LoadingSpinner /></div> : parties.length === 0 ? <EmptyState icon={<Users size={32} />} title="No parties yet" message="Create one to adventure with friends" /> : (
-            <div className="space-y-3">
-              {parties.map((p, i) => (
-                <div key={p.id} className="card-premium p-4 stagger" style={{ animationDelay: `${i * 50}ms` }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center"><Crown className="text-white" size={20} /></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-ink-100">{p.name}</p>
-                      <p className="text-xs text-ink-500 capitalize">{p.status}</p>
-                    </div>
+          <div>
+            <h3 className="section-label">Members</h3>
+            <div className="space-y-2.5">
+              <div className="bg-gradient-to-r from-accent-50 to-brand-50 border border-accent-300 rounded-xl p-3.5 flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center text-white font-bold text-sm">Y</div>
+                  <Crown size={14} className="absolute -top-1 -right-1 text-accent-500 bg-white rounded-full p-0.5" />
+                </div>
+                <div className="flex-1"><p className="text-sm font-bold text-ink-900">You (Leader)</p><p className="text-xs text-success-600 flex items-center gap-1"><Check size={10} /> Ready</p></div>
+              </div>
+              {members.map((m, i) => (
+                <div key={m.id} className="bg-white border border-surface-200 rounded-xl p-3.5 flex items-center gap-3 shadow-card stagger" style={{ animationDelay: `${i * 40}ms` }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: m.avatar_color }}>{m.username.charAt(0)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink-900 truncate">{m.username}</p>
+                    <p className="text-xs flex items-center gap-1">{m.status === 'ready' ? <span className="text-success-600 flex items-center gap-1"><Check size={10} /> Ready</span> : <span className="text-accent-600 flex items-center gap-1"><Zap size={10} /> In Adventure</span>} · Level {m.level}</p>
                   </div>
+                  <button onClick={() => removeMember(m.id)} className="w-8 h-8 rounded-lg bg-surface-100 text-ink-400 hover:bg-error-50 hover:text-error-500 flex items-center justify-center btn-press transition"><X size={14} /></button>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+
+          <button onClick={() => onNavigate('generator')} disabled={!allReady} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <Play size={18} /> {allReady ? 'Start Party Adventure' : 'Waiting for members...'}
+          </button>
         </div>
       </ScreenShell>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />

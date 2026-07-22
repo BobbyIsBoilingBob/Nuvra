@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useAuth } from '@/lib/auth'
+import { AuthProvider, useAuth } from '@/lib/auth'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import LoginScreen from '@/screens/LoginScreen'
 import SignupScreen from '@/screens/SignupScreen'
@@ -25,7 +25,7 @@ import CreatorScreen from '@/screens/CreatorScreen'
 import NotificationsScreen from '@/screens/NotificationsScreen'
 import type { Adventure, ScreenName } from '@/types/adventure'
 
-export default function App() {
+function AppContent() {
   const { session, loading } = useAuth()
   const [screen, setScreen] = useState<ScreenName>('home')
   const [authView, setAuthView] = useState<'login' | 'signup'>('login')
@@ -47,23 +47,31 @@ export default function App() {
 
   switch (screen) {
     case 'home': return <HomeScreen onNavigate={navigate} />
-    case 'generator': return <AIGeneratorScreen onPreview={(a) => setPreviewAdventure(a)} />
+    case 'generator': return <AIGeneratorScreen onPreview={(a) => setPreviewAdventure(a)} onNavigate={navigate} />
     case 'profile': return <ProfileScreen onNavigate={navigate} />
-    case 'community': return <CommunityScreen />
-    case 'friends': return <FriendsScreen />
-    case 'party': return <PartyScreen />
-    case 'leaderboard': return <LeaderboardScreen />
-    case 'challenges': return <ChallengesScreen />
-    case 'quests': return <QuestsScreen />
-    case 'history': return <HistoryScreen />
-    case 'rewards': return <RewardsScreen />
-    case 'inventory': return <InventoryScreen />
-    case 'avatar': return <AvatarScreen />
-    case 'seasonal': return <SeasonalScreen />
-    case 'shop': return <ShopScreen />
-    case 'settings': return <SettingsScreen />
-    case 'creator': return <CreatorScreen />
-    case 'notifications': return <NotificationsScreen />
+    case 'community': return <CommunityScreen onNavigate={navigate} />
+    case 'friends': return <FriendsScreen onNavigate={navigate} />
+    case 'party': return <PartyScreen onNavigate={navigate} />
+    case 'leaderboard': return <LeaderboardScreen onNavigate={navigate} />
+    case 'challenges': return <ChallengesScreen onNavigate={navigate} />
+    case 'quests': return <QuestsScreen onNavigate={navigate} />
+    case 'history': return <HistoryScreen onNavigate={navigate} />
+    case 'rewards': return <RewardsScreen onNavigate={navigate} />
+    case 'inventory': return <InventoryScreen onNavigate={navigate} />
+    case 'avatar': return <AvatarScreen onNavigate={navigate} />
+    case 'seasonal': return <SeasonalScreen onNavigate={navigate} />
+    case 'shop': return <ShopScreen onNavigate={navigate} />
+    case 'settings': return <SettingsScreen onNavigate={navigate} />
+    case 'creator': return <CreatorScreen onNavigate={navigate} />
+    case 'notifications': return <NotificationsScreen onNavigate={navigate} />
     default: return <HomeScreen onNavigate={navigate} />
   }
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  )
 }

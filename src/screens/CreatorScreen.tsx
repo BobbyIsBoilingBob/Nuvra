@@ -1,115 +1,88 @@
-import { useState } from 'react'
-import { PenTool, MapPin, Sparkles, Save, Play } from 'lucide-react'
-import { generateAdventure, generateSuggestedAdventures } from '@/lib/generator'
-import { saveAdventure } from '@/lib/db'
-import { detectSensors } from '@/lib/sensors'
-import { getCurrentPosition } from '@/lib/gps'
-import type { Adventure, Difficulty, ChallengeCategory, SensorAvailability, GeoPoint } from '@/types/adventure'
-import { ALL_CATEGORIES } from '@/data/challenges'
-import { categoryIcons } from '@/data/icons'
-import ScreenShell from '@/components/ScreenShell'
-import AdventureMap from '@/components/AdventureMap'
+import { useState, useEffect, useCallback } from 'react'
+import { PenTool, MapPin, Plus, Trash2, Save, Navigation } from 'lucide-react'
+import { getCurrentPosition } from '@/lib/sensors'
 import { useToasts, ToastContainer } from '@/components/Toast'
+import { MapContainer, TileLayer, Marker, useMapEvents, CircleMarker } from 'react-leaflet'
+import L from 'leaflet'
+import type { GpsPosition } from '@/types/adventure'
+import ScreenShell from '@/components/ScreenShell'
+import BottomNav from '@/components/BottomNav'
 
-const DIFFS: { id: Difficulty; label: string; color: string }[] = [
-  { id: 'easy', label: 'Easy', color: 'from-brand-500 to-brand-600' },
-  { id: 'medium', label: 'Medium', color: 'from-sky-500 to-sky-600' },
-  { id: 'hard', label: 'Hard', color: 'from-accent-500 to-accent-600' },
-  { id: 'extreme', label: 'Extreme', color: 'from-rose-500 to-rose-600' },
-]
+interface Props { onNavigate: (s: string) => void }
 
-export default function CreatorScreen() {
-  const [name, setName] = useState('')
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
-  const [duration, setDuration] = useState(45)
-  const [distance, setDistance] = useState(3)
-  const [cats, setCats] = useState<ChallengeCategory[]>([])
-  const [center, setCenter] = useState<GeoPoint>({ lat: 0, lng: 0 })
-  const [adventure, setAdventure] = useState<Adventure | null>(null)
-  const [generating, setGenerating] = useState(false)
+const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+
+function makeIcon() {
+  return L.divIcon({ html: '<div style="width:20px;height:20px;background:#10b981;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] })
+}
+
+function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) {
+  useMapEvents({ click(e) { onClick(e.latlng.lat, e.latlng.lng) } })
+  return null
+}
+
+export default function CreatorScreen({ onNavigate }: Props) {
+  const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 51.5074, lng: -0.1278 })
+  const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number; title: string }[]>([])
+  const [title, setTitle] = useState('')
   const { toasts, push, dismiss } = useToasts()
 
-  const useGps = async () => {
-    try { const p = await getCurrentPosition(); if (p) { setCenter({ lat: p.lat, lng: p.lng }); push('success', 'Location found!') } }
-    catch { push('error', 'GPS Error', 'Could not get location') }
-  }
+  useEffect(() => { (async () => { const p = await getCurrentPosition(); if (p) setCenter({ lat: p.lat, lng: p.lng }) })() }, [])
 
-  const generate = async () => {
-    if (!name.trim()) { push('error', 'Name required'); return }
-    if (center.lat === 0 && center.lng === 0) { push('error', 'Location required', 'Use GPS or set a location'); return }
-    setGenerating(true)
-    const sa: SensorAvailability = await detectSensors()
-    const adv = generateAdventure({ center, locationName: name.trim(), locationSource: 'manual', preferences: { difficulty, durationMin: duration, approxDistanceKm: distance, categories: cats }, sensorAvail: sa })
-    setAdventure(adv); setGenerating(false); push('success', 'Adventure created!')
-  }
+  const handleMapClick = useCallback((lat: number, lng: number) => {
+    setCheckpoints(prev => [...prev, { lat, lng, title: `Checkpoint ${prev.length + 1}` }])
+  }, [])
 
-  const save = async () => {
-    if (!adventure) return
-    const { error } = await saveAdventure(adventure)
-    if (error) { push('error', 'Save failed', error); return }
-    push('success', 'Adventure saved!')
-  }
+  const removeCheckpoint = (i: number) => setCheckpoints(prev => prev.filter((_, idx) => idx !== i))
 
-  const toggleCat = (c: ChallengeCategory) => setCats(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
+  const handleSave = () => {
+    if (!title.trim()) { push('error', 'Enter a title'); return }
+    if (checkpoints.length < 2) { push('error', 'Add at least 2 checkpoints'); return }
+    push('success', 'Adventure saved!', `${checkpoints.length} checkpoints`)
+    setTimeout(() => onNavigate('community'), 1000)
+  }
 
   return (
     <>
-      <ScreenShell title="Creator" subtitle="Design your adventure">
+      <ScreenShell title="Creator" subtitle="Design custom adventures" onBack={() => onNavigate('home')} actions={[{ icon: <Save size={18} />, onClick: handleSave, label: 'Save' }]}>
         <div className="space-y-4">
-          <div className="card-premium p-4">
-            <label className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-2 block">Adventure Name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. My Local Trail" className="w-full bg-surface-100 border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-ink-100 placeholder-ink-500 focus:border-brand-500 focus:outline-none" />
+          <div>
+            <label className="text-xs font-semibold text-ink-500 mb-1.5 block">Adventure Name</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="My custom adventure..." className="input-field" />
           </div>
 
-          <div className="card-premium p-4">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Location</label>
-              <button onClick={useGps} className="flex items-center gap-1.5 text-xs font-bold text-brand-400 btn-press"><MapPin size={14} /> Use GPS</button>
-            </div>
-            {center.lat !== 0 || center.lng !== 0 ? <p className="text-xs text-ink-500">{center.lat.toFixed(4)}, {center.lng.toFixed(4)}</p> : <p className="text-xs text-ink-600">No location set</p>}
-          </div>
-
-          <div className="card-premium p-4">
-            <label className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-2 block">Difficulty</label>
-            <div className="grid grid-cols-4 gap-2">
-              {DIFFS.map(d => (
-                <button key={d.id} onClick={() => setDifficulty(d.id)} className={`py-2.5 rounded-xl text-xs font-bold transition-all btn-press ${difficulty === d.id ? `bg-gradient-to-r ${d.color} text-white` : 'bg-surface-200 text-ink-500'}`}>{d.label}</button>
-              ))}
+          <div>
+            <p className="section-label flex items-center gap-1.5"><Navigation size={12} /> Tap map to add checkpoints</p>
+            <div className="rounded-2xl overflow-hidden border border-surface-200 shadow-card">
+              <MapContainer center={[center.lat, center.lng]} zoom={14} className="w-full h-64" scrollWheelZoom={false}>
+                <TileLayer url={tileUrl} subdomains='abcd' maxZoom={20} />
+                <ClickHandler onClick={handleMapClick} />
+                {checkpoints.map((cp, i) => (
+                  <Marker key={i} position={[cp.lat, cp.lng]} icon={makeIcon()} />
+                ))}
+                <CircleMarker center={[center.lat, center.lng]} radius={8} pathOptions={{ color: '#312f81', fillColor: '#312f81', fillOpacity: 0.3 }} />
+              </MapContainer>
             </div>
           </div>
 
-          <div className="card-premium p-4 space-y-3">
-            <div><div className="flex justify-between mb-1.5"><label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Duration</label><span className="text-xs text-brand-400 font-bold">{duration} min</span></div><input type="range" min="15" max="120" step="5" value={duration} onChange={e => setDuration(+e.target.value)} className="w-full accent-brand-500" /></div>
-            <div><div className="flex justify-between mb-1.5"><label className="text-xs font-bold text-ink-400 uppercase tracking-wider">Distance</label><span className="text-xs text-brand-400 font-bold">{distance} km</span></div><input type="range" min="1" max="20" step="0.5" value={distance} onChange={e => setDistance(+e.target.value)} className="w-full accent-brand-500" /></div>
-          </div>
-
-          <div className="card-premium p-4">
-            <label className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-2 block">Categories (optional)</label>
-            <div className="flex flex-wrap gap-2">
-              {ALL_CATEGORIES.map(c => {
-                const Icon = categoryIcons[c.id]
-                const sel = cats.includes(c.id)
-                return <button key={c.id} onClick={() => toggleCat(c.id)} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all btn-press ${sel ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' : 'bg-surface-200 text-ink-500 border border-transparent'}`}><Icon size={12} /> {c.label}</button>
-              })}
-            </div>
-          </div>
-
-          <button onClick={generate} disabled={generating} className="w-full py-3.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl text-sm font-bold btn-press disabled:opacity-50 flex items-center justify-center gap-2"><Sparkles size={16} /> {generating ? 'Generating...' : 'Generate Adventure'}</button>
-
-          {adventure && (
-            <>
-              <div className="card-premium p-4">
-                <div className="flex items-center gap-2 mb-3"><PenTool size={16} className="text-brand-400" /><p className="text-sm font-bold text-ink-100">{adventure.title}</p></div>
-                <div className="h-48 rounded-xl overflow-hidden mb-3"><AdventureMap adventure={adventure} /></div>
-                <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                  <div><p className="text-xs text-ink-500">Distance</p><p className="text-sm font-bold text-ink-100">{adventure.distanceKm}km</p></div>
-                  <div><p className="text-xs text-ink-500">Duration</p><p className="text-sm font-bold text-ink-100">{adventure.durationMin}min</p></div>
-                  <div><p className="text-xs text-ink-500">Checkpoints</p><p className="text-sm font-bold text-ink-100">{adventure.checkpoints.length}</p></div>
-                </div>
-                <button onClick={save} className="w-full py-2.5 bg-surface-200 rounded-xl text-xs font-bold text-ink-300 btn-press flex items-center justify-center gap-1.5"><Save size={14} /> Save Adventure</button>
+          <div>
+            <h3 className="section-label flex items-center gap-1.5"><MapPin size={12} /> Checkpoints ({checkpoints.length})</h3>
+            {checkpoints.length === 0 ? (
+              <div className="bg-surface-50 border border-dashed border-surface-300 rounded-xl p-6 text-center"><MapPin size={24} className="text-ink-300 mx-auto mb-2" /><p className="text-sm text-ink-400">Tap the map to add checkpoints</p></div>
+            ) : (
+              <div className="space-y-2">
+                {checkpoints.map((cp, i) => (
+                  <div key={i} className="bg-white border border-surface-200 rounded-xl p-3 flex items-center gap-3 shadow-card">
+                    <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600">{i + 1}</div>
+                    <div className="flex-1 min-w-0"><p className="text-sm font-medium text-ink-900">{cp.title}</p><p className="text-xs text-ink-400">{cp.lat.toFixed(4)}, {cp.lng.toFixed(4)}</p></div>
+                    <button onClick={() => removeCheckpoint(i)} className="w-8 h-8 rounded-lg bg-surface-100 text-ink-400 hover:bg-error-50 hover:text-error-500 flex items-center justify-center btn-press transition"><Trash2 size={14} /></button>
+                  </div>
+                ))}
               </div>
-            </>
-          )}
+            )}
+          </div>
+
+          <button onClick={handleSave} className="btn-primary flex items-center justify-center gap-2"><Save size={18} /> Save Adventure</button>
         </div>
       </ScreenShell>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />

@@ -6,10 +6,10 @@ export interface ToastData { id: string; type: ToastType; title: string; message
 
 const icons = { success: Check, error: X, info: Info, reward: Sparkles }
 const styles: Record<ToastType, string> = {
-  success: 'from-success-500/20 to-success-600/10 border-success-500/40 text-success-400',
-  error: 'from-error-500/20 to-error-600/10 border-error-500/40 text-error-400',
-  reward: 'from-accent-500/20 to-accent-600/10 border-accent-500/40 text-accent-400',
-  info: 'from-surface-300/80 to-surface-400/60 border-white/10 text-ink-200',
+  success: 'from-success-50 to-success-100 border-success-400 text-success-700',
+  error: 'from-error-50 to-error-100 border-error-400 text-error-700',
+  reward: 'from-accent-50 to-accent-100 border-accent-400 text-accent-700',
+  info: 'from-surface-50 to-surface-100 border-surface-400 text-ink-700',
 }
 
 let counter = 0
@@ -34,7 +34,7 @@ export function ToastContainer({ toasts, onDismiss }: { toasts: ToastData[]; onD
       {toasts.map(t => {
         const Icon = icons[t.type]
         return (
-          <div key={t.id} className={`pointer-events-auto w-full max-w-sm rounded-2xl px-4 py-3.5 shadow-2xl border bg-gradient-to-br backdrop-blur-xl animate-slide-up flex items-start gap-3 ${styles[t.type]}`} onClick={() => onDismiss(t.id)}>
+          <div key={t.id} className={`pointer-events-auto w-full max-w-sm rounded-2xl px-4 py-3.5 shadow-card-hover border bg-gradient-to-br animate-slide-up flex items-start gap-3 ${styles[t.type]}`} onClick={() => onDismiss(t.id)}>
             <Icon size={18} className="flex-shrink-0 mt-0.5" />
             <div className="min-w-0">
               <p className="text-sm font-semibold">{t.title}</p>

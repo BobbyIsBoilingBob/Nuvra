@@ -1,46 +1,127 @@
-export type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme'
-export type LocationSource = 'gps' | 'manual' | 'suggested'
-export type ChallengeCategory =
-  | 'observation' | 'photography' | 'fitness' | 'puzzle' | 'memory'
-  | 'navigation' | 'compass' | 'landmarks' | 'nature' | 'collection'
-  | 'trivia' | 'timed' | 'team' | 'exploration' | 'balance' | 'reaction'
-export type SensorType = 'compass' | 'accelerometer' | 'gyroscope' | 'camera' | 'gps' | 'none'
-
-export interface GeoPoint { lat: number; lng: number }
-export interface Checkpoint { index: number; position: GeoPoint; label: string; challenge?: ChallengeAssignment }
-export interface ChallengeAssignment {
-  id: string; title: string; description: string; category: ChallengeCategory; difficulty: Difficulty;
-  sensorType: SensorType; sensorConfig?: Record<string, unknown>; data?: Record<string, unknown>; xp: number; coins: number;
-}
-export interface AdventureRoute { center: GeoPoint; checkpoints: Checkpoint[]; path: GeoPoint[]; totalDistanceKm: number; estimatedDurationMin: number }
-export interface AdventurePreferences { location?: string; maxDistanceKm?: number; minDistanceKm?: number; approxDistanceKm?: number; difficulty: Difficulty; durationMin: number; categories: ChallengeCategory[] }
-export interface Adventure {
-  id: string; title: string; description: string; difficulty: Difficulty; durationMin: number; distanceKm: number;
-  locationName: string; locationSource: LocationSource; center: GeoPoint; checkpoints: Checkpoint[]; path: GeoPoint[];
-  preferences: AdventurePreferences; isSuggested?: boolean; createdAt: string;
-}
-export interface SuggestedAdventure { adventure: Adventure; travelTimeMin: number; travelDistanceKm: number; isNearby: boolean }
-export interface SensorAvailability { compass: boolean; accelerometer: boolean; gyroscope: boolean; camera: boolean; gps: boolean }
-export interface GpsPosition { lat: number; lng: number; accuracy: number; timestamp: number }
-export type GpsStatus = 'idle' | 'locating' | 'located' | 'denied' | 'unavailable'
 export type ScreenName =
-  | 'home' | 'profile' | 'community' | 'friends' | 'party' | 'leaderboard' | 'challenges' | 'quests'
-  | 'history' | 'rewards' | 'inventory' | 'avatar' | 'seasonal' | 'shop' | 'settings'
-  | 'creator' | 'generator' | 'preview' | 'map' | 'notifications' | 'login' | 'signup'
+  | 'home' | 'generator' | 'profile' | 'community' | 'friends' | 'party'
+  | 'leaderboard' | 'challenges' | 'quests' | 'history' | 'rewards'
+  | 'inventory' | 'avatar' | 'seasonal' | 'shop' | 'settings' | 'creator'
+  | 'notifications'
+
+export type GpsStatus = 'idle' | 'locating' | 'located' | 'error'
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme'
+export type ChallengeCategory =
+  | 'trivia' | 'photo' | 'puzzle' | 'fitness' | 'exploration'
+  | 'riddle' | 'compass' | 'speed'
+
+export interface GpsPosition {
+  lat: number; lng: number; accuracy?: number; heading?: number; speed?: number
+}
+
+export interface SensorAvailability {
+  gps: boolean; compass: boolean; accelerometer: boolean
+}
+
+export interface Challenge {
+  id: string; title: string; description: string; category: ChallengeCategory
+  xp: number; coins: number
+  question?: string; options?: string[]; answerIndex?: number
+  targetSteps?: number; targetHeading?: number
+  photoPrompt?: string; riddleText?: string; riddleAnswer?: string
+  timeLimitSec?: number
+}
+
+export interface Checkpoint {
+  position: { lat: number; lng: number }
+  challenge?: Challenge
+  title?: string
+}
+
+export interface Adventure {
+  id: string; locationName: string; description: string
+  center: { lat: number; lng: number }
+  checkpoints: Checkpoint[]
+  difficulty: Difficulty
+  durationMin: number; distanceKm: number
+  locationSource: 'gps' | 'manual' | 'suggested'
+  createdAt?: string
+}
+
+export interface AdventurePreferences {
+  difficulty: Difficulty; durationMin: number; checkpointCount: number
+  categories: ChallengeCategory[]
+}
+
+export interface SuggestedAdventure {
+  adventure: Adventure; travelTimeMin: number
+}
 
 export interface UserProfile {
-  id: string; username: string; avatar_emoji: string; avatar_color: string; xp: number; level: number;
-  coins: number; gems: number; distance_walked: number; steps: number; completed_adventures: number;
-  completed_challenges: number; walking_streak: number; treasure_collected: number; exploration_percentage: number;
-  last_walk_date: string | null; settings: Record<string, unknown>; is_online: boolean; last_seen: string;
-  bio: string | null; created_at: string;
+  id: string; username: string; xp: number; coins: number; gems: number
+  walking_streak: number; completed_adventures: number
+  avatar_color: string; level: number
+  created_at?: string
 }
-export interface FriendRequest { id: string; sender_id: string; receiver_id: string; status: string; created_at: string; updated_at: string; sender?: UserProfile }
-export interface NotificationItem { id: string; user_id: string; type: string; title: string; message: string; read: boolean; created_at: string; actor_id: string | null }
-export interface AdventureHistoryItem { id: string; adventure_id: string; adventure_name: string; emoji: string; type: string; difficulty: string; distance: number; duration: number; xp_earned: number; coins_earned: number; gems_earned: number; treasures_found: number; max_combo: number; is_favorite: boolean; completed_at: string }
-export interface DailyReward { id: string; user_id: string; last_claim_date: string; current_streak: number; total_claimed: number }
-export interface Achievement { id: string; user_id: string; achievement_id: string; achievement_name: string; description: string | null; icon: string; unlocked_at: string }
-export interface QuestProgress { id: string; user_id: string; quest_id: string; progress: number; claimed: boolean; updated_at: string }
-export interface InventoryItem { id: string; user_id: string; item_id: string; item_name: string; item_type: string; quantity: number; rarity: string; icon: string; acquired_at: string }
-export interface Party { id: string; name: string; leader_id: string; adventure_id: string | null; status: string; created_at: string }
-export interface PartyMember { id: string; party_id: string; user_id: string; role: string; joined_at: string }
+
+export interface NotificationItem {
+  id: string; type: string; title: string; message: string
+  read: boolean; created_at: string
+}
+
+export interface DailyReward {
+  id: string; last_claim_date: string; streak: number
+}
+
+export interface Achievement {
+  id: string; achievement_name: string; description: string
+  icon: string; unlocked: boolean; unlocked_at?: string
+}
+
+export interface AdventureHistoryItem {
+  id: string; adventure_name: string; location_name: string
+  duration: number; xp_earned: number; coins_earned: number
+  treasures_found: number; completed_at: string
+}
+
+export interface CommunityAdventure {
+  id: string; name: string; author: string; author_avatar: string
+  location: string; difficulty: Difficulty; rating: number
+  plays: number; distanceKm: number; durationMin: number
+  description: string; checkpoints: number
+}
+
+export interface Friend {
+  id: string; username: string; avatar_color: string
+  level: number; xp: number; status: 'online' | 'offline' | 'in_adventure'
+  current_activity?: string
+}
+
+export interface PartyMember {
+  id: string; username: string; avatar_color: string
+  level: number; status: 'ready' | 'in_adventure'
+  role: 'leader' | 'member'
+}
+
+export interface LeaderboardEntry {
+  id: string; rank: number; username: string; avatar_color: string
+  level: number; xp: number; weekly_xp: number
+}
+
+export interface Quest {
+  id: string; title: string; description: string
+  progress: number; target: number; xp: number; coins: number
+  type: string; expires_at?: string
+}
+
+export interface InventoryItem {
+  id: string; name: string; description: string; icon: string
+  quantity: number; rarity: 'common' | 'rare' | 'epic' | 'legendary'
+}
+
+export interface ShopItem {
+  id: string; name: string; description: string; icon: string
+  price: number; currency: 'coins' | 'gems'; category: string
+  owned: boolean
+}
+
+export interface SeasonalEvent {
+  id: string; name: string; description: string; icon: string
+  progress: number; target: number; reward_xp: number; reward_coins: number
+  ends_at: string
+}

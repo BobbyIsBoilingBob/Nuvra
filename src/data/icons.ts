@@ -1,33 +1,19 @@
-import {
-  Home, User, Users, Globe, PartyPopper, Trophy, Swords, ScrollText, History, Gift, Backpack,
-  Palette, Leaf, ShoppingBag, Settings as SettingsIcon, PenTool, Bot, Map, Bell, Compass,
-  Camera, Eye, Dumbbell, Puzzle, Brain, Navigation, Landmark, Flower2, Package, HelpCircle,
-  Clock, UserPlus, Search, Check, X, Plus, ArrowLeft, ChevronRight, Star, Flame, Zap, Gem,
-  Crown, Medal, Target, Footprints, Mountain, Sparkles, Coins, Award, TrendingUp, MapPin,
-  Route, Flag, CircleCheck, Info, ShieldCheck, LogOut, Mail, Lock, UserCircle2, type LucideIcon,
-} from 'lucide-react'
-import type { ScreenName, ChallengeCategory, Difficulty } from '@/types/adventure'
-
-export const screenIcons: Record<string, LucideIcon> = {
-  home: Home, profile: User, community: Globe, friends: Users, party: PartyPopper,
-  leaderboard: Trophy, challenges: Swords, quests: ScrollText, history: History,
-  rewards: Gift, inventory: Backpack, avatar: Palette, seasonal: Leaf, shop: ShoppingBag,
-  settings: SettingsIcon, creator: PenTool, generator: Bot, preview: Map, map: Map,
-  notifications: Bell, login: LogOut, signup: UserPlus,
-}
+import { Brain, Camera, Compass, Footprints, CircleHelp as HelpCircle, Mountain, Star, Trophy, Zap, Feather, Users } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import type { ChallengeCategory, Difficulty } from '@/types/adventure'
 
 export const categoryIcons: Record<ChallengeCategory, LucideIcon> = {
-  observation: Eye, photography: Camera, fitness: Dumbbell, puzzle: Puzzle, memory: Brain,
-  navigation: Navigation, compass: Compass, landmarks: Landmark, nature: Flower2,
-  collection: Package, trivia: HelpCircle, timed: Clock, team: Users,
-  exploration: Route, balance: ShieldCheck, reaction: Zap,
+  trivia: Brain, photo: Camera, puzzle: Mountain, fitness: Footprints,
+  exploration: Compass, riddle: HelpCircle, compass: Compass, speed: Zap,
 }
 
 export const difficultyIcons: Record<Difficulty, LucideIcon> = {
-  easy: CircleCheck, medium: Star, hard: Flame, extreme: Crown,
+  easy: Feather, medium: Star, hard: Mountain, extreme: Zap,
 }
 
 export const achievementIcons: Record<string, LucideIcon> = {
-  target: Target, footprints: Footprints, map: Map, trophy: Trophy, mountain: Mountain,
-  medal: Medal, sword: Swords, star: Star, crown: Crown, flame: Flame, zap: Zap, gem: Gem,
+  trophy: Trophy, star: Star, mountain: Mountain, compass: Compass,
+  fire: Zap, footprints: Footprints, camera: Camera, brain: Brain,
 }
+
+export { Users }
