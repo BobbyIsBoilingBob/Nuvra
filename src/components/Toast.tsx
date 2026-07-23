@@ -15,10 +15,7 @@ const styles: Record<ToastType, string> = {
 let counter = 0
 export function useToasts() {
   const [toasts, setToasts] = useState<ToastData[]>([])
-  const push = (type: ToastType, title: string, message?: string) => {
-    const id = `t${++counter}`
-    setToasts(prev => [...prev, { id, type, title, message }])
-  }
+  const push = (type: ToastType, title: string, message?: string) => { const id = 't' + (++counter); setToasts(prev => [...prev, { id, type, title, message }]) }
   const dismiss = (id: string) => setToasts(prev => prev.filter(t => t.id !== id))
   return { toasts, push, dismiss }
 }
@@ -34,12 +31,9 @@ export function ToastContainer({ toasts, onDismiss }: { toasts: ToastData[]; onD
       {toasts.map(t => {
         const Icon = icons[t.type]
         return (
-          <div key={t.id} className={`pointer-events-auto w-full max-w-sm rounded-2xl px-4 py-3.5 shadow-card-hover border bg-gradient-to-br animate-slide-up flex items-start gap-3 ${styles[t.type]}`} onClick={() => onDismiss(t.id)}>
+          <div key={t.id} className={'pointer-events-auto w-full max-w-sm rounded-2xl px-4 py-3.5 shadow-card-hover border bg-gradient-to-br animate-slide-up flex items-start gap-3 ' + styles[t.type]} onClick={() => onDismiss(t.id)}>
             <Icon size={18} className="flex-shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">{t.title}</p>
-              {t.message && <p className="text-xs mt-0.5 opacity-80">{t.message}</p>}
-            </div>
+            <div className="min-w-0"><p className="text-sm font-semibold">{t.title}</p>{t.message && <p className="text-xs mt-0.5 opacity-80">{t.message}</p>}</div>
           </div>
         )
       })}

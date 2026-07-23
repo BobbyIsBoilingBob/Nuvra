@@ -25,16 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) setProfile(data as UserProfile)
   }, [])
 
-  const refreshProfile = useCallback(async () => {
-    if (user) await loadProfile(user.id)
-  }, [user, loadProfile])
+  const refreshProfile = useCallback(async () => { if (user) await loadProfile(user.id) }, [user, loadProfile])
 
   useEffect(() => {
     if (!supabase) { setProfile(mockProfile); setLoading(false); return }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session); setUser(session?.user ?? null)
-      if (session?.user) loadProfile(session.user.id).finally(() => setLoading(false))
-      else setLoading(false)
+      if (session?.user) loadProfile(session.user.id).finally(() => setLoading(false)); else setLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session); setUser(session?.user ?? null)
@@ -48,7 +45,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }
-
   const signUp = async (email: string, password: string, username: string) => {
     if (!supabase) { setProfile(mockProfile); return { error: null } }
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } })
@@ -56,18 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.user) await supabase.from('profiles').upsert({ id: data.user.id, username })
     return { error: null }
   }
-
   const signOut = async () => {
     if (!supabase) { setProfile(null); return }
-    await supabase.auth.signOut()
-    setProfile(null); setSession(null); setUser(null)
+    await supabase.auth.signOut(); setProfile(null); setSession(null); setUser(null)
   }
 
-  return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signIn, signUp, signOut, refreshProfile }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ session, user, profile, loading, signIn, signUp, signOut, refreshProfile }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

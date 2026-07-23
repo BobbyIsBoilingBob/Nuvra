@@ -31,17 +31,10 @@ function AppContent() {
   const [authView, setAuthView] = useState<'login' | 'signup'>('login')
   const [previewAdventure, setPreviewAdventure] = useState<Adventure | null>(null)
   const [activeAdventure, setActiveAdventure] = useState<Adventure | null>(null)
-
   const navigate = useCallback((s: string) => setScreen(s as ScreenName), [])
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-surface-0"><LoadingSpinner size="lg" /></div>
-
-  if (!session) {
-    return authView === 'login'
-      ? <LoginScreen onSignup={() => setAuthView('signup')} />
-      : <SignupScreen onLogin={() => setAuthView('login')} />
-  }
-
+  if (!session) return authView === 'login' ? <LoginScreen onSignup={() => setAuthView('signup')} /> : <SignupScreen onLogin={() => setAuthView('login')} />
   if (activeAdventure) return <MapScreen adventure={activeAdventure} onExit={() => { setActiveAdventure(null); setScreen('home') }} />
   if (previewAdventure) return <PreviewScreen adventure={previewAdventure} onStart={() => setActiveAdventure(previewAdventure)} onBack={() => { setPreviewAdventure(null); setScreen('generator') }} />
 
@@ -69,9 +62,5 @@ function AppContent() {
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  )
+  return <AuthProvider><AppContent /></AuthProvider>
 }
