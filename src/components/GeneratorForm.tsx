@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { MapPin, Navigation, Sparkles, Clock, Mountain, Zap } from 'lucide-react'
 import type { AdventurePreferences, Difficulty, ChallengeCategory, GpsStatus } from '@/types/adventure'
 import { getCurrentPosition } from '@/lib/sensors'
@@ -11,7 +11,7 @@ const difficulties: { id: Difficulty; label: string }[] = [{ id: 'easy', label: 
 const durations = [15, 30, 45, 60, 90]
 const checkpointCounts = [3, 4, 5, 6]
 
-export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: Props) {
+function GeneratorFormInner({ onGenerate, gpsStatus, setGpsStatus }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [duration, setDuration] = useState(30)
   const [cpCount, setCpCount] = useState(4)
@@ -26,8 +26,8 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
     else setGpsStatus('error')
   }, [setGpsStatus])
 
-  const toggleCategory = (cat: ChallengeCategory) => setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
-  const handleSubmit = () => onGenerate({ difficulty, durationMin: duration, checkpointCount: cpCount, categories }, center, locationName || 'Custom Adventure')
+  const toggleCategory = useCallback((cat: ChallengeCategory) => setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]), [])
+  const handleSubmit = useCallback(() => onGenerate({ difficulty, durationMin: duration, checkpointCount: cpCount, categories }, center, locationName || 'Custom Adventure'), [onGenerate, difficulty, duration, cpCount, categories, center, locationName])
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -53,3 +53,5 @@ export default function GeneratorForm({ onGenerate, gpsStatus, setGpsStatus }: P
     </div>
   )
 }
+
+export const GeneratorForm = memo(GeneratorFormInner)

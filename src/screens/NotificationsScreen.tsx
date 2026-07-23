@@ -1,36 +1,92 @@
-import { useEffect, useState } from 'react'
-import { Bell, Check, Gift, Users, Trophy, ScrollText, BellOff } from 'lucide-react'
-import { getNotifications, markNotificationRead } from '@/lib/db'
-import type { NotificationItem } from '@/types/adventure'
+import { useCallback, memo } from 'react'
+import { Bell, Check, Gift, Trophy, ScrollText, Users, Zap } from 'lucide-react'
+import { ScreenShell } from '@/components/ScreenShell'
+import { BottomNav } from '@/components/BottomNav'
 import { useToasts, ToastContainer } from '@/components/Toast'
-import ScreenShell from '@/components/ScreenShell'
-import BottomNav from '@/components/BottomNav'
-import LoadingSpinner from '@/components/LoadingSpinner'
-import EmptyState from '@/components/EmptyState'
+import { SkeletonList } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { useCachedData, invalidateCache } from '@/lib/cache'
+import { getNotifications, markNotificationRead } from '@/lib/db'
+import type { ScreenName, NotificationItem } from '@/types/adventure'
 
-interface Props { onNavigate: (s: string) => void }
-const typeIcons: Record<string, typeof Bell> = { reward: Gift, social: Users, achievement: Trophy, quest: ScrollText }
-const typeColors: Record<string, string> = { reward: 'bg-accent-100 text-accent-600', social: 'bg-brand-100 text-brand-600', achievement: 'bg-ink-100 text-ink-600', quest: 'bg-warning-100 text-warning-600' }
-export default function NotificationsScreen({ onNavigate }: Props) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [loading, setLoading] = useState(true)
+interface Props { onNavigate: (s: ScreenName) => void }
+
+const typeIcons: Record<string, typeof Bell> = {
+  reward: Gift,
+  achievement: Trophy,
+  quest: ScrollText,
+  social: Users,
+  default: Bell,
+}
+const typeColors: Record<string, string> = {
+  reward: 'bg-accent-50 text-accent-600',
+  achievement: 'bg-success-50 text-success-600',
+  quest: 'bg-warning-50 text-warning-600',
+  social: 'bg-brand-50 text-brand-600',
+  default: 'bg-surface-100 text-ink-500',
+}
+
+function NotificationRow({ item, onRead }: { item: NotificationItem; onRead: (id: string) => void }) {
+  const Icon = typeIcons[item.type] ?? Bell
+  const colorClass = typeColors[item.type] ?? typeColors.default
+  return (
+    <button onClick={() => onRead(item.id)} className={'w-full rounded-xl p-3 flex items-center gap-3 text-left border transition btn-press animate-fade-in ' + (item.read ? 'bg-white border-surface-200' : 'bg-brand-50 border-brand-200')}>
+      <div className={'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ' + colorClass}>
+        <Icon size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-ink-900">{item.title}</p>
+        <p className="text-xs text-ink-400">{item.message}</p>
+        <p className="text-[10px] text-ink-300 mt-0.5">{new Date(item.created_at).toLocaleString()}</p>
+      </div>
+      {!item.read && <div className="w-2.5 h-2.5 rounded-full bg-brand-500 flex-shrink-0" />}
+      {item.read && <Check size={14} className="text-ink-300 flex-shrink-0" />}
+    </button>
+  )
+}
+
+function NotificationsScreenInner({ onNavigate }: Props) {
   const { toasts, push, dismiss } = useToasts()
-  useEffect(() => { (async () => { const n = await getNotifications(); setNotifications(n || []); setLoading(false) })() }, [])
-  const handleRead = async (id: string) => { await markNotificationRead(id); setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)) }
-  const handleReadAll = async () => { for (const n of notifications.filter(n => !n.read)) await markNotificationRead(n.id); setNotifications(prev => prev.map(n => ({ ...n, read: true }))); push('success', 'All notifications read') }
+  const { data, loading, refresh } = useCachedData<NotificationItem[]>('notifications', getNotifications)
+
+  const handleRead = useCallback(async (id: string) => {
+    await markNotificationRead(id)
+    invalidateCache('notifications')
+    refresh()
+    push('info', 'Marked as read', 'Notification updated')
+  }, [push, refresh])
+
+  const handleMarkAll = useCallback(async () => {
+    if (!data) return
+    for (const n of data) {
+      if (!n.read) await markNotificationRead(n.id)
+    }
+    invalidateCache('notifications')
+    refresh()
+    push('success', 'All read', 'Notifications cleared')
+  }, [data, push, refresh])
+
+  const handleNavigate = useCallback((s: ScreenName) => onNavigate(s), [onNavigate])
+
+  const unreadCount = (data ?? []).filter(n => !n.read).length
+
   return (
     <>
-      <ScreenShell title="Notifications" subtitle="Stay up to date" onBack={() => onNavigate('home')} actions={notifications.some(n => !n.read) ? [{ icon: <Check size={18} />, onClick: handleReadAll, label: 'Mark all read' }] : undefined}>
-        {loading ? <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div> : notifications.length === 0 ? <EmptyState icon={<BellOff size={32} />} title="No notifications" message="You're all caught up!" /> : (
-          <div className="space-y-2.5">{notifications.map((n, i) => { const Icon = typeIcons[n.type] || Bell; return (
-            <button key={n.id} onClick={() => handleRead(n.id)} className={'w-full text-left rounded-xl p-3.5 flex items-start gap-3 border shadow-card stagger transition ' + (n.read ? 'bg-white border-surface-200' : 'bg-brand-50/50 border-brand-200')} style={{ animationDelay: i * 40 + 'ms' }}>
-              <div className={'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ' + (typeColors[n.type] || 'bg-surface-100 text-ink-500')}><Icon size={18} /></div>
-              <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="text-sm font-bold text-ink-900">{n.title}</p>{!n.read && <div className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />}</div><p className="text-xs text-ink-400 mt-0.5">{n.message}</p><p className="text-xs text-ink-300 mt-1">{new Date(n.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p></div>
-            </button>
-          )})}</div>
-        )}
+      <ScreenShell title="Notifications" subtitle={unreadCount > 0 ? unreadCount + ' unread' : 'All caught up'} icon={<Bell size={18} />} onBack={() => onNavigate('home')} actions={unreadCount > 0 ? [{ icon: <Check size={18} />, onClick: handleMarkAll, label: 'Mark all read' }] : undefined}>
+        <div className="space-y-3">
+          {loading && !data ? <SkeletonList count={4} /> : data && data.length > 0 ? (
+            <div className="space-y-2">
+              {data.map((n, i) => <NotificationRow key={n.id} item={n} onRead={handleRead} />)}
+            </div>
+          ) : (
+            <EmptyState icon={<Bell size={28} />} title="No notifications" message="You're all caught up! Check back later for updates." />
+          )}
+        </div>
       </ScreenShell>
+      <BottomNav active="notifications" onNavigate={handleNavigate} />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   )
 }
+
+export const NotificationsScreen = memo(NotificationsScreenInner)

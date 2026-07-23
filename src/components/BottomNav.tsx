@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Chrome as Home, Bot, Trophy, UserPlus, User } from 'lucide-react'
 import type { ScreenName } from '@/types/adventure'
 import type { LucideIcon } from 'lucide-react'
@@ -9,7 +10,7 @@ const items: { id: ScreenName; label: string; icon: LucideIcon }[] = [
   { id: 'profile', label: 'Profile', icon: User },
 ]
 
-export default function BottomNav({ active, onNavigate }: Props) {
+function BottomNavInner({ active, onNavigate }: Props) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 glass safe-bottom border-t border-surface-300/60">
       <div className="flex items-center justify-around px-2 py-2 max-w-md mx-auto">
@@ -28,3 +29,5 @@ export default function BottomNav({ active, onNavigate }: Props) {
     </nav>
   )
 }
+
+export const BottomNav = memo(BottomNavInner)

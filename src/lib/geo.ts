@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { Difficulty } from '@/types/adventure'
 
 export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -23,4 +24,12 @@ export const difficultyColors: Record<Difficulty, string> = {
   medium: 'text-brand-600 bg-brand-50 border-brand-200',
   hard: 'text-warning-600 bg-warning-50 border-warning-200',
   extreme: 'text-error-600 bg-error-50 border-error-200',
+}
+
+export function useLevelInfo(xp: number) {
+  return useMemo(() => {
+    const level = levelFromXp(xp)
+    const { current, needed } = xpProgressInLevel(xp)
+    return { level, current, needed, pct: needed > 0 ? (current / needed) * 100 : 0 }
+  }, [xp])
 }

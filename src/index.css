@@ -25,6 +25,7 @@
   .chip-active { @apply bg-brand-500 text-white border-brand-500; }
   .chip-inactive { @apply bg-white text-ink-500 border-surface-300 hover:border-brand-400; }
   .section-label { @apply text-xs font-bold text-ink-400 uppercase tracking-wider mb-3; }
+  .skeleton-base { @apply bg-surface-200 rounded-xl; background-image: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; @apply animate-skeleton; }
 }
 
 @layer utilities {

@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { Check, Camera, Navigation, Brain, CircleHelp as HelpCircle, Zap, Footprints } from 'lucide-react'
 import type { Challenge, SensorAvailability } from '@/types/adventure'
 
 interface Props { challenge: Challenge; sensorAvail: SensorAvailability; onComplete: (xp: number, coins: number) => void }
 
-export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: Props) {
+function ChallengeRunnerInner({ challenge, sensorAvail, onComplete }: Props) {
   const [done, setDone] = useState(false)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [stepCount, setStepCount] = useState(0)
@@ -23,7 +23,8 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
 
   useEffect(() => {
     if (challenge.category === 'compass' && sensorAvail.compass) {
-      const handler = (e: DeviceOrientationEvent) => { setCompassHeading(Math.round(e.alpha ? 360 - e.alpha : 0)) }
+      let lastH = -1
+      const handler = (e: DeviceOrientationEvent) => { const heading = Math.round(e.alpha ? 360 - e.alpha : 0); if (lastH < 0 || Math.abs(heading - lastH) >= 2) { lastH = heading; setCompassHeading(heading) } }
       window.addEventListener('deviceorientation', handler)
       return () => window.removeEventListener('deviceorientation', handler)
     }
@@ -59,17 +60,13 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center"><CategoryIcon category={challenge.category} /></div>
         <div><p className="text-sm font-bold text-ink-900">{challenge.title}</p><p className="text-xs text-ink-400">{challenge.description}</p></div>
       </div>
-
       {challenge.category === 'trivia' && challenge.options && (
         <div className="space-y-2">
           <p className="text-sm text-ink-700 mb-3">{challenge.question}</p>
-          {challenge.options.map((opt, i) => (
-            <button key={i} onClick={() => setSelectedAnswer(i)} disabled={done} className={'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition btn-press ' + (selectedAnswer === i ? 'bg-brand-50 border-brand-500 text-brand-700' : 'bg-white border-surface-300 text-ink-700 hover:border-brand-400')}>{opt}</button>
-          ))}
+          {challenge.options.map((opt, i) => <button key={i} onClick={() => setSelectedAnswer(i)} disabled={done} className={'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition btn-press ' + (selectedAnswer === i ? 'bg-brand-50 border-brand-500 text-brand-700' : 'bg-white border-surface-300 text-ink-700 hover:border-brand-400')}>{opt}</button>)}
           <button onClick={handleComplete} disabled={selectedAnswer === null} className="btn-primary mt-2 disabled:opacity-40 disabled:cursor-not-allowed">Submit Answer</button>
         </div>
       )}
-
       {challenge.category === 'photo' && (
         <div className="space-y-3">
           <p className="text-sm text-ink-700">{challenge.photoPrompt}</p>
@@ -77,7 +74,6 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
           <button onClick={handleComplete} className="btn-primary">Capture & Complete</button>
         </div>
       )}
-
       {challenge.category === 'fitness' && (
         <div className="space-y-3 text-center">
           <p className="text-sm text-ink-700">Walk {challenge.targetSteps} steps</p>
@@ -87,19 +83,14 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
           <button onClick={handleComplete} disabled={stepCount < (challenge.targetSteps ?? 0) && sensorAvail.accelerometer} className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed">Complete Challenge</button>
         </div>
       )}
-
       {challenge.category === 'compass' && (
         <div className="space-y-3 text-center">
           <p className="text-sm text-ink-700">Face north (0&deg;)</p>
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 rounded-full border-4 border-surface-300" />
-            <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotate(' + compassHeading + 'deg)' }}><Navigation size={32} className="text-brand-500" /></div>
-          </div>
+          <div className="relative w-24 h-24 mx-auto"><div className="absolute inset-0 rounded-full border-4 border-surface-300" /><div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotate(' + compassHeading + 'deg)' }}><Navigation size={32} className="text-brand-500" /></div></div>
           <p className="text-2xl font-bold text-ink-900">{compassHeading}&deg;</p>
           <button onClick={handleComplete} className="btn-primary">Complete Challenge</button>
         </div>
       )}
-
       {challenge.category === 'riddle' && (
         <div className="space-y-3">
           <p className="text-sm text-ink-700 italic">{challenge.riddleText}</p>
@@ -107,7 +98,6 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
           <button onClick={handleComplete} disabled={!riddleInput.trim()} className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed">Submit Answer</button>
         </div>
       )}
-
       {challenge.category === 'speed' && (
         <div className="space-y-3 text-center">
           <p className="text-sm text-ink-700">Reach the next checkpoint!</p>
@@ -115,15 +105,12 @@ export default function ChallengeRunner({ challenge, sensorAvail, onComplete }: 
           <button onClick={handleComplete} className="btn-primary">Mark Arrived</button>
         </div>
       )}
-
       {(challenge.category === 'exploration' || challenge.category === 'puzzle') && (
         <div className="space-y-3">
           <p className="text-sm text-ink-700">{challenge.question ?? challenge.description}</p>
           {challenge.options ? (
             <>
-              {challenge.options.map((opt, i) => (
-                <button key={i} onClick={() => setSelectedAnswer(i)} disabled={done} className={'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition btn-press ' + (selectedAnswer === i ? 'bg-brand-50 border-brand-500 text-brand-700' : 'bg-white border-surface-300 text-ink-700 hover:border-brand-400')}>{opt}</button>
-              ))}
+              {challenge.options.map((opt, i) => <button key={i} onClick={() => setSelectedAnswer(i)} disabled={done} className={'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition btn-press ' + (selectedAnswer === i ? 'bg-brand-50 border-brand-500 text-brand-700' : 'bg-white border-surface-300 text-ink-700 hover:border-brand-400')}>{opt}</button>)}
               <button onClick={handleComplete} disabled={selectedAnswer === null} className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed">Submit Answer</button>
             </>
           ) : <button onClick={handleComplete} className="btn-primary">Complete Challenge</button>}
@@ -138,3 +125,5 @@ function CategoryIcon({ category }: { category: string }) {
   const Icon = icons[category] ?? Check
   return <Icon size={16} className="text-white" />
 }
+
+export const ChallengeRunner = memo(ChallengeRunnerInner)

@@ -1,47 +1,121 @@
-import { useState } from 'react'
-import { ShoppingBag, Star, Coins, Check } from 'lucide-react'
-import type { ShopItem } from '@/types/adventure'
-import { useAuth } from '@/lib/auth'
+import { useState, useCallback, memo } from 'react'
+import { ShoppingBag, Coins, Gem, Check, Search } from 'lucide-react'
+import { ScreenShell } from '@/components/ScreenShell'
+import { BottomNav } from '@/components/BottomNav'
 import { useToasts, ToastContainer } from '@/components/Toast'
-import ScreenShell from '@/components/ScreenShell'
-import BottomNav from '@/components/BottomNav'
+import { SkeletonGrid } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { useCachedData } from '@/lib/cache'
+import { useAuth } from '@/lib/auth'
+import { achievementIcons } from '@/data/navigation'
+import type { ScreenName, ShopItem } from '@/types/adventure'
 
-interface Props { onNavigate: (s: string) => void }
+interface Props { onNavigate: (s: ScreenName) => void }
+
 const mockShop: ShopItem[] = [
-  { id: 's1', name: 'XP Booster (1h)', description: 'Double XP for 1 hour', icon: 'star', price: 50, currency: 'coins', category: 'boosters', owned: false },
-  { id: 's2', name: 'Coin Magnet (24h)', description: 'Attracts coins while walking', icon: 'coins', price: 100, currency: 'coins', category: 'boosters', owned: false },
-  { id: 's3', name: 'Adventure Key', description: 'Unlocks premium adventures', icon: 'key', price: 5, currency: 'gems', category: 'keys', owned: false },
-  { id: 's4', name: 'Magic Compass', description: 'Points to nearest checkpoint', icon: 'compass', price: 200, currency: 'coins', category: 'items', owned: true },
-  { id: 's5', name: 'Treasure Map', description: 'Reveals hidden treasures', icon: 'map', price: 150, currency: 'coins', category: 'items', owned: false },
-  { id: 's6', name: 'Legendary Boots', description: 'Increases step count by 50%', icon: 'boots', price: 10, currency: 'gems', category: 'gear', owned: false },
-  { id: 's7', name: 'Coin Pack (500)', description: '500 coins instantly', icon: 'coins', price: 5, currency: 'gems', category: 'packs', owned: false },
-  { id: 's8', name: 'Gem Pack (10)', description: '10 gems instantly', icon: 'gem', price: 300, currency: 'coins', category: 'packs', owned: false },
+  { id: 's1', name: 'XP Booster', description: 'Doubles XP for 1 hour', icon: 'star', price: 100, currency: 'coins', category: 'boosters', owned: false },
+  { id: 's2', name: 'Coin Magnet', description: 'Auto-collect coins for 30 min', icon: 'fire', price: 150, currency: 'coins', category: 'boosters', owned: false },
+  { id: 's3', name: 'Golden Compass', description: 'Shows all checkpoint locations', icon: 'compass', price: 5, currency: 'gems', category: 'tools', owned: false },
+  { id: 's4', name: 'Treasure Map', description: 'Reveals hidden treasures', icon: 'mountain', price: 8, currency: 'gems', category: 'tools', owned: true },
+  { id: 's5', name: 'Streak Shield', description: 'Protects your streak for 1 day', icon: 'trophy', price: 200, currency: 'coins', category: 'protection', owned: false },
+  { id: 's6', name: 'Energy Crystal', description: 'Restores adventure stamina', icon: 'fire', price: 80, currency: 'coins', category: 'consumables', owned: false },
+  { id: 's7', name: 'Photo Pro', description: 'Unlocks advanced photo challenges', icon: 'camera', price: 10, currency: 'gems', category: 'upgrades', owned: false },
+  { id: 's8', name: 'Riddle Hint', description: 'Get hints for riddle challenges', icon: 'brain', price: 50, currency: 'coins', category: 'consumables', owned: true },
 ]
-const categories = ['all','boosters','keys','items','gear','packs']
-export default function ShopScreen({ onNavigate }: Props) {
+
+async function fetchShop(): Promise<ShopItem[]> {
+  return mockShop
+}
+
+const categories = ['all', 'boosters', 'tools', 'protection', 'consumables', 'upgrades']
+
+function ShopScreenInner({ onNavigate }: Props) {
   const { profile } = useAuth()
-  const [items, setItems] = useState(mockShop)
-  const [filter, setFilter] = useState('all')
   const { toasts, push, dismiss } = useToasts()
-  const filtered = filter === 'all' ? items : items.filter(i => i.category === filter)
-  const handleBuy = (item: ShopItem) => { if (item.owned) return; const balance = item.currency === 'coins' ? (profile?.coins ?? 0) : (profile?.gems ?? 0); if (balance < item.price) { push('error', 'Not enough ' + item.currency); return } setItems(prev => prev.map(i => i.id === item.id ? { ...i, owned: true } : i)); push('success', item.name + ' purchased!', '-' + item.price + ' ' + item.currency) }
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<string>('all')
+  const { data, loading } = useCachedData<ShopItem[]>('shop', fetchShop)
+
+  const handleBuy = useCallback((item: ShopItem) => {
+    if (item.owned) { push('info', 'Already owned', 'You already have ' + item.name); return }
+    if (item.currency === 'coins' && (profile?.coins ?? 0) < item.price) { push('error', 'Not enough coins', 'You need ' + item.price + ' coins'); return }
+    if (item.currency === 'gems' && (profile?.gems ?? 0) < item.price) { push('error', 'Not enough gems', 'You need ' + item.price + ' gems'); return }
+    push('success', 'Purchase complete!', 'You bought ' + item.name)
+  }, [profile, push])
+
+  const handleNavigate = useCallback((s: ScreenName) => onNavigate(s), [onNavigate])
+
+  const filtered = (data ?? []).filter(item => {
+    if (filter !== 'all' && item.category !== filter) return false
+    if (search.trim() && !item.name.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
+
   return (
     <>
-      <ScreenShell title="Shop" subtitle="Spend your hard-earned coins">
+      <ScreenShell title="Shop" subtitle="Spend your rewards" icon={<ShoppingBag size={18} />} onBack={() => onNavigate('home')} actions={[{ icon: <span className="text-xs font-bold text-accent-600">{profile?.coins ?? 0}</span>, onClick: () => push('info', 'Your balance', (profile?.coins ?? 0) + ' coins, ' + (profile?.gems ?? 0) + ' gems'), label: 'Balance' }]}>
         <div className="space-y-4">
-          <div className="flex items-center gap-3"><div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border border-surface-200 shadow-card"><Coins size={16} className="text-accent-500" /><span className="text-sm font-bold text-ink-900">{profile?.coins ?? 0}</span></div><div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border border-surface-200 shadow-card"><Star size={16} className="text-brand-500" /><span className="text-sm font-bold text-ink-900">{profile?.gems ?? 0}</span></div></div>
-          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">{categories.map(c => <button key={c} onClick={() => setFilter(c)} className={'chip whitespace-nowrap capitalize ' + (filter === c ? 'chip-active' : 'chip-inactive')}>{c}</button>)}</div>
-          <div className="grid grid-cols-2 gap-3">{filtered.map((item, i) => (
-            <div key={item.id} className="card-premium p-4 stagger" style={{ animationDelay: i * 40 + 'ms' }}>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-50 to-accent-50 flex items-center justify-center mb-3"><ShoppingBag size={20} className="text-ink-400" /></div>
-              <p className="text-sm font-bold text-ink-900">{item.name}</p><p className="text-xs text-ink-400 mt-0.5 leading-tight">{item.description}</p>
-              {item.owned ? <div className="mt-3 bg-success-50 border border-success-300 rounded-xl py-2 flex items-center justify-center gap-1.5 text-success-700 font-bold text-xs"><Check size={14} /> Owned</div> : <button onClick={() => handleBuy(item)} className="mt-3 w-full py-2.5 bg-brand-500 text-white rounded-xl text-xs font-bold btn-press hover:bg-brand-600 transition flex items-center justify-center gap-1.5">{item.currency === 'coins' ? <Coins size={12} /> : <Star size={12} />} {item.price}</button>}
+          {/* Balance */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white border border-surface-200 rounded-xl p-3 flex items-center gap-2 shadow-card">
+              <Coins size={18} className="text-accent-500" />
+              <span className="text-sm font-extrabold text-ink-900">{profile?.coins ?? 0}</span>
+              <span className="text-xs text-ink-400">coins</span>
             </div>
-          ))}</div>
+            <div className="bg-white border border-surface-200 rounded-xl p-3 flex items-center gap-2 shadow-card">
+              <Gem size={18} className="text-success-500" />
+              <span className="text-sm font-extrabold text-ink-900">{profile?.gems ?? 0}</span>
+              <span className="text-xs text-ink-400">gems</span>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search shop..." className="input-field pl-10" />
+          </div>
+
+          {/* Category filter */}
+          <div className="flex gap-2 flex-wrap">
+            {categories.map(c => (
+              <button key={c} onClick={() => setFilter(c)} className={'chip ' + (filter === c ? 'chip-active' : 'chip-inactive')}>{c.charAt(0).toUpperCase() + c.slice(1)}</button>
+            ))}
+          </div>
+
+          {/* Items grid */}
+          {loading && !data ? <SkeletonGrid count={6} /> : filtered.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {filtered.map((item, i) => {
+                const Icon = achievementIcons[item.icon] ?? ShoppingBag
+                return (
+                  <div key={item.id} className="card-premium p-4 animate-fade-in" style={{ animationDelay: String(i * 40) + 'ms' }}>
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-surface-100 to-surface-200 flex items-center justify-center mb-2">
+                      <Icon size={20} className="text-ink-600" />
+                    </div>
+                    <p className="text-sm font-bold text-ink-900">{item.name}</p>
+                    <p className="text-xs text-ink-400 mb-3">{item.description}</p>
+                    {item.owned ? (
+                      <div className="flex items-center justify-center gap-1.5 py-2 bg-success-50 rounded-lg text-success-600 text-sm font-bold">
+                        <Check size={14} /> Owned
+                      </div>
+                    ) : (
+                      <button onClick={() => handleBuy(item)} className="w-full btn-primary text-sm flex items-center justify-center gap-1.5 py-2">
+                        {item.currency === 'coins' ? <Coins size={14} /> : <Gem size={14} />} {item.price}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <EmptyState icon={<ShoppingBag size={28} />} title="No items found" message="Try a different search or category" />
+          )}
         </div>
       </ScreenShell>
-      <BottomNav active="shop" onNavigate={onNavigate} />
+      <BottomNav active="shop" onNavigate={handleNavigate} />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   )
 }
+
+export const ShopScreen = memo(ShopScreenInner)

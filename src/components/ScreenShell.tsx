@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 import { ArrowLeft } from 'lucide-react'
 
 interface Action { icon: ReactNode; onClick: () => void; label?: string }
 interface Props { title: string; subtitle?: string; icon?: ReactNode; onBack?: () => void; children: ReactNode; actions?: Action[] }
 
-export default function ScreenShell({ title, subtitle, icon, onBack, children, actions }: Props) {
+function ScreenShellInner({ title, subtitle, icon, onBack, children, actions }: Props) {
   return (
     <div className="min-h-screen bg-surface-0 animate-slide-up">
       <header className="sticky top-0 z-30 glass safe-top">
@@ -24,3 +24,5 @@ export default function ScreenShell({ title, subtitle, icon, onBack, children, a
     </div>
   )
 }
+
+export const ScreenShell = memo(ScreenShellInner)

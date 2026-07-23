@@ -1,28 +1,74 @@
-import { useState } from 'react'
-import { MapPin, Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { useState, useCallback, memo } from 'react'
+import { Mail, Lock, User, UserPlus, Compass } from 'lucide-react'
+import { ScreenShell } from '@/components/ScreenShell'
+import { useToasts, ToastContainer } from '@/components/Toast'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useAuth } from '@/lib/auth'
 
-interface Props { onLogin: () => void }
-export default function SignupScreen({ onLogin }: Props) {
+interface Props { onNavigate: (s: 'home') => void }
+
+function SignupScreenInner({ onNavigate }: Props) {
   const { signUp } = useAuth()
-  const [username, setUsername] = useState(''), [email, setEmail] = useState(''), [password, setPassword] = useState(''), [showPass, setShowPass] = useState(false), [error, setError] = useState<string | null>(null), [loading, setLoading] = useState(false)
-  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); setError(null); setLoading(true); const { error } = await signUp(email, password, username); if (error) setError(error); setLoading(false) }
+  const { toasts, push, dismiss } = useToasts()
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username.trim() || !email.trim() || !password.trim()) { push('error', 'Missing fields', 'Fill in all fields'); return }
+    if (password.length < 6) { push('error', 'Password too short', 'Use at least 6 characters'); return }
+    setBusy(true)
+    const { error } = await signUp(email.trim(), password, username.trim())
+    setBusy(false)
+    if (error) { push('error', 'Signup failed', error); return }
+    push('success', 'Account created!', 'Welcome to Zeviqo')
+    onNavigate('home')
+  }, [username, email, password, signUp, push, onNavigate])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-0 via-brand-50/40 to-accent-50/30 flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-md mx-auto w-full">
-        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center shadow-glow-accent mb-6 animate-bounce-in"><MapPin size={40} className="text-white" /></div>
-        <h1 className="text-3xl font-extrabold text-ink-900 text-center">Join Zeviqo</h1>
-        <p className="text-sm text-ink-500 mt-2 text-center">Create your adventurer account</p>
-        <form onSubmit={handleSubmit} className="w-full space-y-4 mt-8 animate-slide-up">
-          {error && <div className="bg-error-50 border border-error-300 rounded-xl px-4 py-3 text-sm text-error-700">{error}</div>}
-          <div><label className="text-xs font-semibold text-ink-500 mb-1.5 block">Username</label><div className="relative"><User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" /><input type="text" required value={username} onChange={e => setUsername(e.target.value)} placeholder="Your adventurer name" className="input-field pl-11" /></div></div>
-          <div><label className="text-xs font-semibold text-ink-500 mb-1.5 block">Email</label><div className="relative"><Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" /><input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="input-field pl-11" /></div></div>
-          <div><label className="text-xs font-semibold text-ink-500 mb-1.5 block">Password</label><div className="relative"><Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" /><input type={showPass ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" className="input-field pl-11 pr-11" /><button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600">{showPass ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>
-          <button type="submit" disabled={loading} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50">{loading ? 'Creating account...' : <>Create Account <ArrowRight size={18} /></>}</button>
-        </form>
-        <div className="flex items-center gap-3 my-6 w-full"><div className="flex-1 h-px bg-surface-300" /><span className="text-xs text-ink-400 font-medium">or</span><div className="flex-1 h-px bg-surface-300" /></div>
-        <button onClick={onLogin} className="btn-secondary">Already have an account? Sign In</button>
-      </div>
-    </div>
+    <>
+      <ScreenShell title="Sign Up" subtitle="Start your adventure" icon={<Compass size={18} />}>
+        <div className="flex flex-col items-center pt-6 animate-fade-in">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center mb-6 shadow-glow-brand">
+            <UserPlus size={40} className="text-white" />
+          </div>
+          <form onSubmit={handleSubmit} className="w-full space-y-4">
+            <div>
+              <label className="section-label">Username</label>
+              <div className="relative">
+                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Explorer123" className="input-field pl-10" autoComplete="username" />
+              </div>
+            </div>
+            <div>
+              <label className="section-label">Email</label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="input-field pl-10" autoComplete="email" />
+              </div>
+            </div>
+            <div>
+              <label className="section-label">Password</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="input-field pl-10" autoComplete="new-password" />
+              </div>
+            </div>
+            <button type="submit" disabled={busy} className="btn-primary flex items-center justify-center gap-2 w-full disabled:opacity-50">
+              {busy ? <LoadingSpinner size="sm" /> : <UserPlus size={18} />}
+              {busy ? 'Creating account...' : 'Create Account'}
+            </button>
+          </form>
+          <p className="text-sm text-ink-400 mt-6 text-center">
+            Already have an account? <button onClick={() => push('info', 'Sign in', 'Use the login screen to sign in')} className="text-brand-600 font-bold">Sign in</button>
+          </p>
+        </div>
+      </ScreenShell>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    </>
   )
 }
+
+export const SignupScreen = memo(SignupScreenInner)

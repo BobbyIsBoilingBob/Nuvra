@@ -1,44 +1,124 @@
-import { useState } from 'react'
-import { Bell, MapPin, Compass, LogOut, ChevronRight, Moon, Globe, Shield, CircleHelp as HelpCircle } from 'lucide-react'
-import { useAuth } from '@/lib/auth'
+import { useState, useCallback, memo } from 'react'
+import { Settings, Bell, MapPin, Volume2, Moon, Globe, LogOut, ChevronRight, User, Shield, CircleHelp as HelpCircle } from 'lucide-react'
+import { ScreenShell } from '@/components/ScreenShell'
+import { BottomNav } from '@/components/BottomNav'
 import { useToasts, ToastContainer } from '@/components/Toast'
-import ScreenShell from '@/components/ScreenShell'
-import BottomNav from '@/components/BottomNav'
+import { useAuth } from '@/lib/auth'
+import type { ScreenName } from '@/types/adventure'
 
-interface Props { onNavigate: (s: string) => void }
-export default function SettingsScreen({ onNavigate }: Props) {
-  const { signOut, profile } = useAuth()
-  const [notifications, setNotifications] = useState(true), [highAccuracy, setHighAccuracy] = useState(true), [compassMode, setCompassMode] = useState(false), [darkMode, setDarkMode] = useState(false)
+interface Props { onNavigate: (s: ScreenName) => void }
+
+interface ToggleProps { label: string; description: string; icon: typeof Bell; value: boolean; onChange: (v: boolean) => void }
+
+const Toggle = memo(function Toggle({ label, description, icon: Icon, value, onChange }: ToggleProps) {
+  return (
+    <div className="card-premium p-3.5 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-surface-100 flex items-center justify-center flex-shrink-0">
+        <Icon size={18} className="text-ink-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-ink-900">{label}</p>
+        <p className="text-xs text-ink-400">{description}</p>
+      </div>
+      <button onClick={() => onChange(!value)} className={'relative w-11 h-6 rounded-full transition flex-shrink-0 ' + (value ? 'bg-brand-500' : 'bg-surface-300')}>
+        <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all ' + (value ? 'left-[22px]' : 'left-0.5')} />
+      </button>
+    </div>
+  )
+})
+
+function SettingsScreenInner({ onNavigate }: Props) {
+  const { profile, signOut } = useAuth()
   const { toasts, push, dismiss } = useToasts()
-  const toggle = (key: string, val: boolean, set: (v: boolean) => void) => { set(!val); push('info', key + ' ' + (!val ? 'on' : 'off')) }
+  const [notifications, setNotifications] = useState(true)
+  const [location, setLocation] = useState(true)
+  const [sound, setSound] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
+
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    push('info', 'Signed out', 'See you soon!')
+    onNavigate('home')
+  }, [signOut, push, onNavigate])
+
+  const handleNavigate = useCallback((s: ScreenName) => onNavigate(s), [onNavigate])
+
+  const linkItems: { label: string; icon: typeof User; screen: ScreenName }[] = [
+    { label: 'Edit Profile', icon: User, screen: 'avatar' },
+    { label: 'Privacy & Security', icon: Shield, screen: 'profile' },
+    { label: 'Help & Support', icon: HelpCircle, screen: 'home' },
+  ]
+
   return (
     <>
-      <ScreenShell title="Settings" subtitle="Customize your experience" onBack={() => onNavigate('profile')}>
+      <ScreenShell title="Settings" subtitle="App preferences" icon={<Settings size={18} />} onBack={() => onNavigate('home')}>
         <div className="space-y-5">
-          <div className="bg-white border border-surface-200 rounded-2xl p-4 flex items-center gap-3 shadow-card"><div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ background: profile?.avatar_color || '#10b981' }}>{profile?.username?.charAt(0).toUpperCase() || 'A'}</div><div className="flex-1"><p className="text-sm font-bold text-ink-900">{profile?.username || 'Adventurer'}</p><p className="text-xs text-ink-400">Level {profile?.level || 1} · {profile?.xp.toLocaleString() || 0} XP</p></div><button onClick={() => onNavigate('avatar')} className="px-3 py-2 bg-brand-50 border border-brand-200 text-brand-600 rounded-xl text-xs font-bold btn-press hover:bg-brand-100 transition">Edit</button></div>
-          <div><h3 className="section-label">Preferences</h3><div className="bg-white border border-surface-200 rounded-2xl divide-y divide-surface-200 shadow-card overflow-hidden">
-            <ToggleRow icon={<Bell size={18} />} label="Notifications" desc="Adventure reminders and alerts" value={notifications} onChange={() => toggle('Notifications', notifications, setNotifications)} />
-            <ToggleRow icon={<MapPin size={18} />} label="High Accuracy GPS" desc="More precise location tracking" value={highAccuracy} onChange={() => toggle('High Accuracy GPS', highAccuracy, setHighAccuracy)} />
-            <ToggleRow icon={<Compass size={18} />} label="Compass Mode" desc="Show compass on map screen" value={compassMode} onChange={() => toggle('Compass Mode', compassMode, setCompassMode)} />
-            <ToggleRow icon={<Moon size={18} />} label="Dark Mode" desc="Reduce brightness at night" value={darkMode} onChange={() => toggle('Dark Mode', darkMode, setDarkMode)} />
-          </div></div>
-          <div><h3 className="section-label">About</h3><div className="bg-white border border-surface-200 rounded-2xl divide-y divide-surface-200 shadow-card overflow-hidden">
-            <LinkRow icon={<Globe size={18} />} label="Language" value="English" onClick={() => push('info', 'Language settings coming soon')} />
-            <LinkRow icon={<Shield size={18} />} label="Privacy" value="Manage" onClick={() => push('info', 'Privacy settings coming soon')} />
-            <LinkRow icon={<HelpCircle size={18} />} label="Help & Support" value="FAQ" onClick={() => push('info', 'Help center coming soon')} />
-          </div></div>
-          <button onClick={() => signOut()} className="w-full py-3.5 bg-error-50 border border-error-300 text-error-600 rounded-xl font-bold text-sm btn-press hover:bg-error-100 transition flex items-center justify-center gap-2"><LogOut size={18} /> Sign Out</button>
-          <p className="text-center text-xs text-ink-400 pt-2">Zeviqo v1.0.0 · Adventure Awaits</p>
+          {/* Profile card */}
+          <div className="card-premium p-4 flex items-center gap-3 animate-fade-in">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg" style={{ background: profile?.avatar_color ?? '#10b981' }}>
+              {(profile?.username ?? 'U').charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-ink-900">{profile?.username ?? 'Explorer'}</p>
+              <p className="text-xs text-ink-400">Level {profile?.level ?? 1} - {profile?.xp ?? 0} XP</p>
+            </div>
+            <ChevronRight size={18} className="text-ink-400" />
+          </div>
+
+          {/* Toggles */}
+          <div>
+            <p className="section-label">Preferences</p>
+            <div className="space-y-2">
+              <Toggle label="Notifications" description="Adventure and reward alerts" icon={Bell} value={notifications} onChange={setNotifications} />
+              <Toggle label="Location Services" description="GPS for adventures" icon={MapPin} value={location} onChange={setLocation} />
+              <Toggle label="Sound Effects" description="Audio feedback" icon={Volume2} value={sound} onChange={setSound} />
+              <Toggle label="Dark Mode" description="Easier on the eyes at night" icon={Moon} value={darkMode} onChange={setDarkMode} />
+            </div>
+          </div>
+
+          {/* Links */}
+          <div>
+            <p className="section-label">Account</p>
+            <div className="space-y-2">
+              {linkItems.map((item, i) => {
+                const Icon = item.icon
+                return (
+                  <button key={i} onClick={() => onNavigate(item.screen)} className="w-full card-premium p-3.5 flex items-center gap-3 text-left hover:border-brand-400 transition btn-press animate-fade-in" style={{ animationDelay: String(i * 40) + 'ms' }}>
+                    <div className="w-10 h-10 rounded-xl bg-surface-100 flex items-center justify-center flex-shrink-0">
+                      <Icon size={18} className="text-ink-600" />
+                    </div>
+                    <p className="flex-1 text-sm font-bold text-ink-900">{item.label}</p>
+                    <ChevronRight size={18} className="text-ink-400" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className="card-premium p-3.5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-surface-100 flex items-center justify-center flex-shrink-0">
+              <Globe size={18} className="text-ink-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-ink-900">Language</p>
+              <p className="text-xs text-ink-400">English</p>
+            </div>
+            <button onClick={() => push('info', 'Language', 'More languages coming soon')} className="text-xs font-bold text-brand-600">Change</button>
+          </div>
+
+          {/* Sign out */}
+          <button onClick={handleSignOut} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border-2 border-error-300 bg-error-50 text-error-600 text-sm font-bold btn-press hover:bg-error-100 transition">
+            <LogOut size={16} /> Sign Out
+          </button>
+
+          <p className="text-center text-xs text-ink-400">Zeviqo v1.0.0</p>
         </div>
       </ScreenShell>
+      <BottomNav active="settings" onNavigate={handleNavigate} />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   )
 }
 
-function ToggleRow({ icon, label, desc, value, onChange }: { icon: React.ReactNode; label: string; desc: string; value: boolean; onChange: () => void }) {
-  return <div className="flex items-center gap-3 p-4"><div className="w-9 h-9 rounded-lg bg-surface-100 flex items-center justify-center text-ink-500">{icon}</div><div className="flex-1"><p className="text-sm font-semibold text-ink-900">{label}</p><p className="text-xs text-ink-400">{desc}</p></div><button onClick={onChange} className={'relative w-11 h-6 rounded-full transition ' + (value ? 'bg-brand-500' : 'bg-surface-300')}><div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-card transition-transform ' + (value ? 'translate-x-5' : 'translate-x-0.5')} /></button></div>
-}
-function LinkRow({ icon, label, value, onClick }: { icon: React.ReactNode; label: string; value: string; onClick: () => void }) {
-  return <button onClick={onClick} className="w-full flex items-center gap-3 p-4 hover:bg-surface-50 transition text-left"><div className="w-9 h-9 rounded-lg bg-surface-100 flex items-center justify-center text-ink-500">{icon}</div><div className="flex-1"><p className="text-sm font-semibold text-ink-900">{label}</p></div><span className="text-xs text-ink-400">{value}</span><ChevronRight size={16} className="text-ink-400" /></button>
-}
+export const SettingsScreen = memo(SettingsScreenInner)

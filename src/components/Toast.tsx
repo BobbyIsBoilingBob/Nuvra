@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, memo } from 'react'
 import { Check, X, Info, Sparkles } from 'lucide-react'
 
 export type ToastType = 'success' | 'error' | 'info' | 'reward'
@@ -15,12 +15,12 @@ const styles: Record<ToastType, string> = {
 let counter = 0
 export function useToasts() {
   const [toasts, setToasts] = useState<ToastData[]>([])
-  const push = (type: ToastType, title: string, message?: string) => { const id = 't' + (++counter); setToasts(prev => [...prev, { id, type, title, message }]) }
-  const dismiss = (id: string) => setToasts(prev => prev.filter(t => t.id !== id))
+  const push = useCallback((type: ToastType, title: string, message?: string) => { const id = 't' + (++counter); setToasts(prev => [...prev, { id, type, title, message }]) }, [])
+  const dismiss = useCallback((id: string) => setToasts(prev => prev.filter(t => t.id !== id)), [])
   return { toasts, push, dismiss }
 }
 
-export function ToastContainer({ toasts, onDismiss }: { toasts: ToastData[]; onDismiss: (id: string) => void }) {
+function ToastContainerInner({ toasts, onDismiss }: { toasts: ToastData[]; onDismiss: (id: string) => void }) {
   useEffect(() => {
     const timers = toasts.map(t => setTimeout(() => onDismiss(t.id), 3500))
     return () => timers.forEach(clearTimeout)
@@ -40,3 +40,5 @@ export function ToastContainer({ toasts, onDismiss }: { toasts: ToastData[]; onD
     </div>
   )
 }
+
+export const ToastContainer = memo(ToastContainerInner)

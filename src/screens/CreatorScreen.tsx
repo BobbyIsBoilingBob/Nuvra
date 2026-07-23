@@ -1,37 +1,145 @@
-import { useState, useEffect, useCallback } from 'react'
-import { MapPin, Plus, Trash2, Save, Navigation } from 'lucide-react'
-import { getCurrentPosition } from '@/lib/sensors'
+import { useState, useCallback, memo } from 'react'
+import { Feather, MapPin, Clock, Mountain, Zap, Star, Save, Eye } from 'lucide-react'
+import { ScreenShell } from '@/components/ScreenShell'
+import { BottomNav } from '@/components/BottomNav'
 import { useToasts, ToastContainer } from '@/components/Toast'
-import { MapContainer, TileLayer, Marker, useMapEvents, CircleMarker } from 'react-leaflet'
-import L from 'leaflet'
-import ScreenShell from '@/components/ScreenShell'
-import BottomNav from '@/components/BottomNav'
+import { generateAdventure } from '@/data/challenges'
+import { detectSensors } from '@/lib/sensors'
+import { difficultyIcons, categoryIcons } from '@/data/navigation'
+import type { ScreenName, Adventure, Difficulty, ChallengeCategory } from '@/types/adventure'
 
-interface Props { onNavigate: (s: string) => void }
-const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-function makeIcon() { return L.divIcon({ html: '<div style="width:20px;height:20px;background:#10b981;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }) }
-function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) { useMapEvents({ click(e) { onClick(e.latlng.lat, e.latlng.lng) } }); return null }
+interface Props { onNavigate: (s: ScreenName) => void; onPreview: (adv: Adventure) => void }
 
-export default function CreatorScreen({ onNavigate }: Props) {
-  const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 51.5074, lng: -0.1278 })
-  const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number; title: string }[]>([])
-  const [title, setTitle] = useState('')
+const difficulties: { id: Difficulty; label: string }[] = [
+  { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' }, { id: 'extreme', label: 'Extreme' },
+]
+const allCategories: ChallengeCategory[] = ['trivia', 'photo', 'fitness', 'compass', 'riddle', 'speed', 'exploration', 'puzzle']
+
+function CreatorScreenInner({ onNavigate, onPreview }: Props) {
   const { toasts, push, dismiss } = useToasts()
-  useEffect(() => { (async () => { const p = await getCurrentPosition(); if (p) setCenter({ lat: p.lat, lng: p.lng }) })() }, [])
-  const handleMapClick = useCallback((lat: number, lng: number) => { setCheckpoints(prev => [...prev, { lat, lng, title: 'Checkpoint ' + (prev.length + 1) }]) }, [])
-  const removeCheckpoint = (i: number) => setCheckpoints(prev => prev.filter((_, idx) => idx !== i))
-  const handleSave = () => { if (!title.trim()) { push('error', 'Enter a title'); return } if (checkpoints.length < 2) { push('error', 'Add at least 2 checkpoints'); return } push('success', 'Adventure saved!', checkpoints.length + ' checkpoints'); setTimeout(() => onNavigate('community'), 1000) }
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
+  const [duration, setDuration] = useState(30)
+  const [cpCount, setCpCount] = useState(4)
+  const [categories, setCategories] = useState<ChallengeCategory[]>([])
+  const [lat, setLat] = useState(51.5074)
+  const [lng, setLng] = useState(-0.1278)
+  const [saving, setSaving] = useState(false)
+
+  const toggleCategory = useCallback((cat: ChallengeCategory) => {
+    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
+  }, [])
+
+  const handleSave = useCallback(() => {
+    if (!name.trim()) { push('error', 'Name required', 'Give your adventure a name'); return }
+    setSaving(true)
+    const sensorAvail = detectSensors()
+    const adv = generateAdventure({
+      center: { lat, lng },
+      locationName: name.trim(),
+      locationSource: 'manual',
+      preferences: { difficulty, durationMin: duration, checkpointCount: cpCount, categories },
+      sensorAvail,
+    })
+    adv.description = description.trim() || adv.description
+    setSaving(false)
+    push('success', 'Adventure created!', name.trim() + ' is ready to play')
+    onPreview(adv)
+  }, [name, description, difficulty, duration, cpCount, categories, lat, lng, push, onPreview])
+
+  const handleNavigate = useCallback((s: ScreenName) => onNavigate(s), [onNavigate])
+
   return (
     <>
-      <ScreenShell title="Creator" subtitle="Design custom adventures" onBack={() => onNavigate('home')} actions={[{ icon: <Save size={18} />, onClick: handleSave, label: 'Save' }]}>
-        <div className="space-y-4">
-          <div><label className="text-xs font-semibold text-ink-500 mb-1.5 block">Adventure Name</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="My custom adventure..." className="input-field" /></div>
-          <div><p className="section-label flex items-center gap-1.5"><Navigation size={12} /> Tap map to add checkpoints</p><div className="rounded-2xl overflow-hidden border border-surface-200 shadow-card"><MapContainer center={[center.lat, center.lng]} zoom={14} className="w-full h-64" scrollWheelZoom={false}><TileLayer url={tileUrl} subdomains='abcd' maxZoom={20} /><ClickHandler onClick={handleMapClick} />{checkpoints.map((cp, i) => <Marker key={i} position={[cp.lat, cp.lng]} icon={makeIcon()} />)}<CircleMarker center={[center.lat, center.lng]} radius={8} pathOptions={{ color: '#312f81', fillColor: '#312f81', fillOpacity: 0.3 }} /></MapContainer></div></div>
-          <div><h3 className="section-label flex items-center gap-1.5"><MapPin size={12} /> Checkpoints ({checkpoints.length})</h3>{checkpoints.length === 0 ? <div className="bg-surface-50 border border-dashed border-surface-300 rounded-xl p-6 text-center"><MapPin size={24} className="text-ink-300 mx-auto mb-2" /><p className="text-sm text-ink-400">Tap the map to add checkpoints</p></div> : <div className="space-y-2">{checkpoints.map((cp, i) => <div key={i} className="bg-white border border-surface-200 rounded-xl p-3 flex items-center gap-3 shadow-card"><div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600">{i + 1}</div><div className="flex-1 min-w-0"><p className="text-sm font-medium text-ink-900">{cp.title}</p><p className="text-xs text-ink-400">{cp.lat.toFixed(4)}, {cp.lng.toFixed(4)}</p></div><button onClick={() => removeCheckpoint(i)} className="w-8 h-8 rounded-lg bg-surface-100 text-ink-400 hover:bg-error-50 hover:text-error-500 flex items-center justify-center btn-press transition"><Trash2 size={14} /></button></div>)}</div>}</div>
-          <button onClick={handleSave} className="btn-primary flex items-center justify-center gap-2"><Save size={18} /> Save Adventure</button>
+      <ScreenShell title="Creator" subtitle="Build custom adventures" icon={<Feather size={18} />} onBack={() => onNavigate('home')}>
+        <div className="space-y-5">
+          {/* Name */}
+          <div>
+            <label className="section-label">Adventure Name</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="My Custom Adventure" className="input-field" maxLength={40} />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="section-label">Description</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe your adventure..." className="input-field min-h-[80px] resize-none" maxLength={200} />
+          </div>
+
+          {/* Location */}
+          <div>
+            <p className="section-label flex items-center gap-1.5"><MapPin size={12} /> Location (lat, lng)</p>
+            <div className="flex gap-2">
+              <input type="number" step="0.0001" value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} className="input-field flex-1" />
+              <input type="number" step="0.0001" value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} className="input-field flex-1" />
+            </div>
+          </div>
+
+          {/* Difficulty */}
+          <div>
+            <p className="section-label flex items-center gap-1.5"><Zap size={12} /> Difficulty</p>
+            <div className="grid grid-cols-2 gap-2">
+              {difficulties.map(d => {
+                const Icon = difficultyIcons[d.id]
+                return (
+                  <button key={d.id} onClick={() => setDifficulty(d.id)} className={'flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition btn-press ' + (difficulty === d.id ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white border-surface-300 text-ink-600 hover:border-brand-400')}>
+                    <Icon size={16} /> {d.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <p className="section-label flex items-center gap-1.5"><Clock size={12} /> Duration</p>
+            <div className="flex gap-2 flex-wrap">
+              {[15, 30, 45, 60, 90].map(d => (
+                <button key={d} onClick={() => setDuration(d)} className={'chip ' + (duration === d ? 'chip-active' : 'chip-inactive')}>{d} min</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Checkpoints */}
+          <div>
+            <p className="section-label flex items-center gap-1.5"><Mountain size={12} /> Checkpoints</p>
+            <div className="flex gap-2 flex-wrap">
+              {[3, 4, 5, 6].map(c => (
+                <button key={c} onClick={() => setCpCount(c)} className={'chip ' + (cpCount === c ? 'chip-active' : 'chip-inactive')}>{c} stops</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div>
+            <p className="section-label flex items-center gap-1.5"><Star size={12} /> Challenge Types</p>
+            <div className="flex gap-2 flex-wrap">
+              {allCategories.map(c => {
+                const Icon = categoryIcons[c]
+                return (
+                  <button key={c} onClick={() => toggleCategory(c)} className={'chip flex items-center gap-1 ' + (categories.includes(c) ? 'chip-active' : 'chip-inactive')}>
+                    <Icon size={12} /> {c.charAt(0).toUpperCase() + c.slice(1)}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button onClick={() => onNavigate('home')} className="flex-1 btn-secondary flex items-center justify-center gap-2">
+              <Eye size={16} /> Preview
+            </button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
+              <Save size={16} /> {saving ? 'Creating...' : 'Create'}
+            </button>
+          </div>
         </div>
       </ScreenShell>
+      <BottomNav active="creator" onNavigate={handleNavigate} />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   )
 }
+
+export const CreatorScreen = memo(CreatorScreenInner)

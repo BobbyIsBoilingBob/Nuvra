@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useEffect } from 'react'
@@ -24,12 +25,10 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
 
 interface Props { adventure: Adventure; playerPos?: GpsPosition | null; completedIndices?: Set<number>; heading?: number }
 
-export default function AdventureMap({ adventure, playerPos, completedIndices, heading = 0 }: Props) {
-  const cpPositions: [number, number][] = adventure.checkpoints.map(cp => [cp.position.lat, cp.position.lng])
-  const allPositions = [...cpPositions]
-  if (playerPos) allPositions.push([playerPos.lat, playerPos.lng])
-  const route: [number, number][] = [...cpPositions]
-  if (playerPos && cpPositions.length > 0) route.unshift([playerPos.lat, playerPos.lng])
+function AdventureMapInner({ adventure, playerPos, completedIndices, heading = 0 }: Props) {
+  const cpPositions: [number, number][] = useMemo(() => adventure.checkpoints.map(cp => [cp.position.lat, cp.position.lng]), [adventure.checkpoints])
+  const allPositions = useMemo(() => { const p = [...cpPositions]; if (playerPos) p.push([playerPos.lat, playerPos.lng]); return p }, [cpPositions, playerPos])
+  const route = useMemo(() => { const r = [...cpPositions]; if (playerPos && cpPositions.length > 0) r.unshift([playerPos.lat, playerPos.lng]); return r }, [cpPositions, playerPos])
 
   return (
     <MapContainer center={[adventure.center.lat, adventure.center.lng]} zoom={14} className="w-full h-64 rounded-2xl" scrollWheelZoom={false} zoomControl={true}>
@@ -51,3 +50,5 @@ export default function AdventureMap({ adventure, playerPos, completedIndices, h
     </MapContainer>
   )
 }
+
+export const AdventureMap = memo(AdventureMapInner)

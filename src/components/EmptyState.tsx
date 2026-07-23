@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
+
 interface Props { icon: ReactNode; title: string; message: string; actionLabel?: string; onAction?: () => void }
-export default function EmptyState({ icon, title, message, actionLabel, onAction }: Props) {
+
+function EmptyStateInner({ icon, title, message, actionLabel, onAction }: Props) {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-fade-in">
       <div className="w-16 h-16 rounded-2xl bg-surface-100 border border-surface-200 flex items-center justify-center mb-4 text-ink-400">{icon}</div>
@@ -10,3 +12,5 @@ export default function EmptyState({ icon, title, message, actionLabel, onAction
     </div>
   )
 }
+
+export const EmptyState = memo(EmptyStateInner)

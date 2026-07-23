@@ -29,15 +29,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) { setProfile(mockProfile); setLoading(false); return }
+    let mounted = true
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
       setSession(session); setUser(session?.user ?? null)
-      if (session?.user) loadProfile(session.user.id).finally(() => setLoading(false)); else setLoading(false)
+      if (session?.user) loadProfile(session.user.id).finally(() => { if (mounted) setLoading(false) })
+      else setLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session); setUser(session?.user ?? null)
       if (session?.user) { (async () => { await loadProfile(session.user.id) })() } else setProfile(null)
     })
-    return () => subscription.unsubscribe()
+    return () => { mounted = false; subscription.unsubscribe() }
   }, [loadProfile])
 
   const signIn = async (email: string, password: string) => {
